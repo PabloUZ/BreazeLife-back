@@ -1,0 +1,30 @@
+# Version control
+.git/
+.gitignore
+
+# Build output (rebuilt inside Docker)
+target/
+
+# IDE files
+.idea/
+*.iml
+*.classpath
+*.project
+.settings/
+
+# Tests (skipped in production build)
+src/test/
+
+# Documentation
+*.md
+
+# Windows Maven wrapper (not needed in Linux container)
+mvnw.cmd
+
+# Local environment / secrets
+.env
+*.env.local
+
+# Docker files (not needed inside the image)
+Dockerfile
+.dockerignore

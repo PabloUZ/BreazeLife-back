@@ -1,0 +1,15 @@
+{
+    "properties": [
+        {
+            "name": "jwt.secret",
+            "type": "java.lang.String",
+            "description": "The secret key used for signing JWT tokens. This value should be kept secure and not hardcoded in the source code. It is recommended to set this value through environment variables or external configuration files."
+        },
+
+        {
+            "name": "mail.token",
+            "type": "java.lang.String",
+            "description": "The token used for email verification. This value should be kept secure and not hardcoded in the source code. It is recommended to set this value through environment variables or external configuration files."
+        }
+    ]
+}
