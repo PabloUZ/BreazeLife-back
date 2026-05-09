@@ -2,7 +2,7 @@ FROM maven:3.9-amazoncorretto-25
 
 RUN yum install -y tar
 
-WORKDIR /app
+WORKDIR /workspace
 
 COPY pom.xml .
 RUN mvn dependency:go-offline
