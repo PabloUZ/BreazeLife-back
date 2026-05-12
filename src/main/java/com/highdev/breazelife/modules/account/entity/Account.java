@@ -4,6 +4,9 @@ import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Entity
 @Table(name = "accounts")
@@ -29,6 +32,19 @@ public class Account {
 
     public enum AccountType {
         CONSERVATIVE, MODERATE, RISKY
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.id == null) {
+            this.id = generateAccountId();
+        }
+    }
+
+    private String generateAccountId() {
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String random = UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+        return "ACC-" + date + "-" + random;
     }
 
     public String getId() { return id; }
