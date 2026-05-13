@@ -1,5 +1,7 @@
 package com.highdev.breazelife.modules.employer.dto.response;
 
+import com.highdev.breazelife.modules.employer.entity.Employer;
+
 public class EmployerProfileResponseDTO {
     private String companyName;
     private String nit;
@@ -11,6 +13,13 @@ public class EmployerProfileResponseDTO {
         this.nit = nit;
         this.sector = sector;
         this.nameLegalRep = nameLegalRep;
+    }
+
+    public EmployerProfileResponseDTO(Employer employer) {
+        this.companyName = employer.getCompanyName();
+        this.nit = employer.getNit();
+        this.sector = employer.getSector();
+        this.nameLegalRep = employer.getNameLegalRep();
     }
 
     public String getCompanyName() { return companyName; }
