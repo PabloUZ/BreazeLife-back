@@ -1,16 +1,17 @@
 package com.highdev.breazelife.modules.fund.entity;
 
+import com.highdev.breazelife.modules.fund.enums.FundType;
 import java.io.Serializable;
 import java.util.Objects;
 
 public class FundId implements Serializable {
 
     private String employerId;
-    private Fund.FundType type;
+    private FundType type;
 
     public FundId() {}
 
-    public FundId(String employerId, Fund.FundType type) {
+    public FundId(String employerId, FundType type) {
         this.employerId = employerId;
         this.type = type;
     }
@@ -30,6 +31,6 @@ public class FundId implements Serializable {
     public String getEmployerId() { return employerId; }
     public void setEmployerId(String employerId) { this.employerId = employerId; }
 
-    public Fund.FundType getType() { return type; }
-    public void setType(Fund.FundType type) { this.type = type; }
+    public FundType getType() { return type; }
+    public void setFundType(FundType type) { this.type = type; }
 }

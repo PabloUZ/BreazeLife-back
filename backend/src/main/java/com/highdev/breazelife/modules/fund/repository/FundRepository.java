@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface FundRepository extends JpaRepository<Fund, FundId> {
 
-    List<Fund> findByIdEmployerId(String employerId);
+    List<Fund> findByEmployerId(String employerId);
 
-    Optional<Fund> findByIdEmployerIdAndIdType(String employerId, FundType type);
+    Optional<Fund> findByEmployerIdAndType(String employerId, FundType type);
 }

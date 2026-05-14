@@ -1,7 +1,11 @@
 package com.highdev.breazelife.modules.fund.entity;
 
 import com.highdev.breazelife.modules.employer.entity.Employer;
+import com.highdev.breazelife.modules.fund.enums.FundType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,6 +13,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "funds")
 @IdClass(FundId.class)
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Fund {
 
     @Id
@@ -23,15 +30,12 @@ public class Fund {
     @JoinColumn(name = "employer_id", insertable = false, updatable = false)
     private Employer employer;
 
+    @Builder.Default
     @Column(precision = 15, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public enum FundType {
-        PAYROLL, PENSION
-    }
 
     public String getEmployerId() { return employerId; }
     public void setEmployerId(String employerId) { this.employerId = employerId; }
@@ -44,6 +48,7 @@ public class Fund {
 
     public BigDecimal getBalance() { return balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
+    public void addFunds(BigDecimal amount) { this.balance = this.balance.add(amount); }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
