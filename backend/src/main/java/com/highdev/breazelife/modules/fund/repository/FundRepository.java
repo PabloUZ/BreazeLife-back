@@ -2,6 +2,7 @@ package com.highdev.breazelife.modules.fund.repository;
 
 import com.highdev.breazelife.modules.fund.entity.Fund;
 import com.highdev.breazelife.modules.fund.entity.FundId;
+import com.highdev.breazelife.modules.fund.enums.FundType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface FundRepository extends JpaRepository<Fund, FundId> {
 
-    List<Fund> findByEmployerId(String employerId);
+    List<Fund> findByIdEmployerId(String employerId);
 
-    Optional<Fund> findByEmployerIdAndType(String employerId, Fund.FundType type);
+    Optional<Fund> findByIdEmployerIdAndIdType(String employerId, FundType type);
 }
