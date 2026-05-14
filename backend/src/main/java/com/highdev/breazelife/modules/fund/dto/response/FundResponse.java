@@ -13,8 +13,8 @@ public record FundResponse(
 ) {
     public static FundResponse from(Fund fund) {
         return new FundResponse(
-            fund.getId().getEmployerId(),
-            fund.getId().getType(),
+            fund.getEmployerId(),
+            fund.getType(),
             fund.getBalance(),
             fund.getUpdatedAt()
         );

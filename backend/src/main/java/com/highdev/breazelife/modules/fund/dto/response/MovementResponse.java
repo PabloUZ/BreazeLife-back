@@ -17,8 +17,8 @@ public record MovementResponse(
     public static MovementResponse from(Movement movement) {
         return new MovementResponse(
             movement.getId(),
-            movement.getFund().getId().getEmployerId(),
-            movement.getFund().getId().getType(),
+            movement.getFund().getEmployerId(),
+            movement.getFund().getType(),
             movement.getType(),
             movement.getAmount(),
             movement.getDate()

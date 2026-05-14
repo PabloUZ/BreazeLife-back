@@ -27,7 +27,6 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
     Optional<Quote> findByIdAndAccountAffiliateUserId(String id, String affiliateUserId);
 
     long countByStatus(Quote.QuoteStatus status);
-}
 
     @Query("SELECT q FROM Quote q WHERE q.account.id = :accountId AND (:status IS NULL OR q.status = :status) AND (:from IS NULL OR q.contribDate >= :from) AND (:to IS NULL OR q.contribDate <= :to)")
     Page<Quote> findByFilters(
