@@ -25,7 +25,7 @@ public class FundsExceptionHandler {
             "insufficient_funds", ex.getShortages()
         );
         
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+        return ResponseEntity.status(HttpStatus.valueOf(422))
                 .body(ApiResponse.errorWithData(
                         ex.getMessage(), 
                         "INSUFFICIENT_FUNDS", 
