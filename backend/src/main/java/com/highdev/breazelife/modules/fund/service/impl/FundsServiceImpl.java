@@ -28,7 +28,7 @@ public class FundsServiceImpl implements FundsService {
     @Transactional
     public void initializeFunds(String employerId) {
         //solo los crea si no existen previamente
-        if (fundRepository.findByIdEmployerId(employerId).isEmpty()) {
+        if (fundRepository.findByEmployerId(employerId).isEmpty()) {
             Fund payroll = Fund.builder()
                     .employerId(employerId)
                     .type(FundType.PAYROLL)
@@ -44,7 +44,7 @@ public class FundsServiceImpl implements FundsService {
     @Override
     @Transactional(readOnly = true)
     public List<FundResponse> getFunds(String employerId) {
-        List<Fund> funds = fundRepository.findByIdEmployerId(employerId);
+        List<Fund> funds = fundRepository.findByEmployerId(employerId);
         if (funds.isEmpty()) {
             throw new FundNotFoundException(employerId);
         }
