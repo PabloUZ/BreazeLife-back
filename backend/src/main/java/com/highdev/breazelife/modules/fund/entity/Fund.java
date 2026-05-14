@@ -1,6 +1,7 @@
 package com.highdev.breazelife.modules.fund.entity;
 
 import com.highdev.breazelife.modules.employer.entity.Employer;
+import com.highdev.breazelife.modules.fund.enums.FundType;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -28,10 +29,6 @@ public class Fund {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public enum FundType {
-        PAYROLL, PENSION
-    }
 
     public String getEmployerId() { return employerId; }
     public void setEmployerId(String employerId) { this.employerId = employerId; }
