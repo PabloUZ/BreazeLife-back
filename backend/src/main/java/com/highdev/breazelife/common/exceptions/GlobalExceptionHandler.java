@@ -7,30 +7,37 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
 
+import com.highdev.breazelife.common.exceptions.http.BadRequestException;
+import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
+
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(AffiliateNotFoundException.class)
-    public ResponseEntity<?> handleAffiliateNotFound(AffiliateNotFoundException e) {
+
+    
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<?> handleNotFoundException(NotFoundException e) {
         return ResponseEntity.status(404).body(Map.of(
-                "message", "Affiliate not found",
-                "message_code", "AFFILIATE_NOT_FOUND",
+                "message", e.getMessage(),
+                "message_code", "NOT_FOUND",
                 "status_code", 404,
                 "status", "NOT_FOUND"
         ));
     }
 
-    @ExceptionHandler(InvalidDateRangeException.class)
-    public ResponseEntity<?> handleInvalidDateRange(InvalidDateRangeException e) {
-        return ResponseEntity.status(400).body(Map.of(
-                "message", "Invalid date range: 'from' must be before 'to'",
-                "message_code", "INVALID_DATE_RANGE",
-                "status_code", 400,
-                "status", "BAD_REQUEST"
-        ));
-    }
+    @ExceptionHandler(BadRequestException.class)
+public ResponseEntity<?> handleBadRequestException(BadRequestException e) {
+    return ResponseEntity.status(400).body(Map.of(
+            "message", e.getMessage(),
+            "message_code", "BAD_REQUEST",
+            "status_code", 400,
+            "status", "BAD_REQUEST"
+    ));
+}
 
 
     @ExceptionHandler(Exception.class)
@@ -40,6 +47,16 @@ public class GlobalExceptionHandler {
                 "message_code", "INTERNAL_ERROR",
                 "status_code", 500,
                 "status", "INTERNAL_SERVER_ERROR"
+        ));
+    }
+
+    @ExceptionHandler(AffiliateAlreadyExistsException.class)
+    public ResponseEntity<?> handleAffiliateAlreadyExists(AffiliateAlreadyExistsException e) {
+        return ResponseEntity.status(409).body(Map.of( // 409 es Conflict
+                "message", e.getMessage(),
+                "message_code", "DOCUMENT_ALREADY_EXISTS",
+                "status_code", 409,
+                "status", "CONFLICT"
         ));
     }
 }

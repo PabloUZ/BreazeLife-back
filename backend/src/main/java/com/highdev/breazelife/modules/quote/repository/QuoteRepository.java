@@ -7,10 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -28,22 +28,17 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
 
     long countByStatus(Quote.QuoteStatus status);
 
-    @Query("SELECT q FROM Quote q WHERE q.accountId = :accountId " +
-            "AND (:status IS NULL OR q.status = :status) " +
-            "AND (:from IS NULL OR q.contribDate >= :from) " +
-            "AND (:to IS NULL OR q.contribDate <= :to)")
+    @Query("SELECT q FROM Quote q WHERE q.account.id = :accountId AND (:status IS NULL OR q.status = :status) AND (:from IS NULL OR q.contribDate >= :from) AND (:to IS NULL OR q.contribDate <= :to)")
     Page<Quote> findByFilters(
-        @Param("accountId") String accountId,
-        @Param("status") Quote.QuoteStatus status,
-        @Param("from") LocalDateTime from,
-        @Param("to") LocalDateTime to,
+        @Param("accountId") String accountId, 
+        @Param("status") Quote.QuoteStatus status, 
+        @Param("from") LocalDateTime from, 
+        @Param("to") LocalDateTime to, 
         Pageable pageable
     );
 
-    @Query("SELECT q FROM Quote q WHERE q.accountId = :accountId " +
-            "AND q.status = 'ACCEPTED' " +
-            "ORDER BY q.contribDate ASC")
-    java.util.List<Quote> findAcceptedByAccountId(@Param("accountId") String accountId);
+    @Query("SELECT q FROM Quote q WHERE q.account.id = :accountId AND q.status = 'ACCEPTED' ORDER BY q.contribDate ASC")
+    List<Quote> findAcceptedByAccountId(@Param("accountId") String accountId);
 
     @Query("""
             select coalesce(sum(q.employerContrib), 0) + coalesce(sum(q.affiliateContrib), 0)
