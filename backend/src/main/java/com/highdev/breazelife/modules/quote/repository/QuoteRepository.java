@@ -5,9 +5,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -42,4 +44,17 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             "AND q.status = 'ACCEPTED' " +
             "ORDER BY q.contribDate ASC")
     java.util.List<Quote> findAcceptedByAccountId(@Param("accountId") String accountId);
+
+    @Query("""
+            select coalesce(sum(q.employerContrib), 0) + coalesce(sum(q.affiliateContrib), 0)
+            from Quote q
+            where q.status = :status
+              and q.contribDate >= :from
+              and q.contribDate < :to
+            """)
+    BigDecimal sumContributionsByStatusAndContribDateBetween(
+            @Param("status") Quote.QuoteStatus status,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }
