@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Entity
 @Table(name = "profitability_history")
@@ -25,6 +28,19 @@ public class ProfitabilityHistory {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.id == null) {
+            this.id = generateProfitabilityId();
+        }
+    }
+
+    private String generateProfitabilityId() {
+        String dateString = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String random = UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+        return "PRH-" + dateString + "-" + random;
+    }
 
     public Account getAccount() { return account; }
     public void setAccount(Account account) { this.account = account; }

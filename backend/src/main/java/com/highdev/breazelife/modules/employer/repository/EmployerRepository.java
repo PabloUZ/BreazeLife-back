@@ -12,4 +12,6 @@ public interface EmployerRepository extends JpaRepository<Employer, String> {
     Optional<Employer> findByNit(String nit);
 
     boolean existsByNit(String nit);
+
+    long countByStatus(Employer.Status status);
 }
