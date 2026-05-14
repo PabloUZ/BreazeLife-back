@@ -1,35 +1,26 @@
 package com.highdev.breazelife.modules.fund.entity;
 
-import java.io.Serializable;
-import java.util.Objects;
+import com.highdev.breazelife.modules.fund.enums.FundType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Embeddable
 public class FundId implements Serializable {
 
+    @Column(name = "employer_id", length = 36, nullable = false)
     private String employerId;
-    private Fund.FundType type;
 
-    public FundId() {}
-
-    public FundId(String employerId, Fund.FundType type) {
-        this.employerId = employerId;
-        this.type = type;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FundId that)) return false;
-        return Objects.equals(employerId, that.employerId) && Objects.equals(type, that.type);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(employerId, type);
-    }
-
-    public String getEmployerId() { return employerId; }
-    public void setEmployerId(String employerId) { this.employerId = employerId; }
-
-    public Fund.FundType getType() { return type; }
-    public void setType(Fund.FundType type) { this.type = type; }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private FundType type;
 }

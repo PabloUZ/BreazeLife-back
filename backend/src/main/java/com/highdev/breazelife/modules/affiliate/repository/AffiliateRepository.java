@@ -16,4 +16,5 @@ public interface AffiliateRepository extends JpaRepository<Affiliate, String> {
     boolean existsByPhoneNumber(String phoneNumber);
 
     long countByStatus(Affiliate.Status status);
+    
 }
