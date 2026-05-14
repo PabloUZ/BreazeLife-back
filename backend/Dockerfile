@@ -5,7 +5,7 @@ WORKDIR /build
 COPY pom.xml .
 RUN mvn dependency:go-offline
 
-COPY . .
+COPY .. .
 RUN mvn clean package -Dmaven.test.skip=true
 
 FROM amazoncorretto:25
