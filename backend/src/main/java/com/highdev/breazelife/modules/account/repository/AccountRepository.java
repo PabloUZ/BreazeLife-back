@@ -15,4 +15,6 @@ public interface AccountRepository extends JpaRepository<Account, String> {
 
     @Query("select sum(a.balance) from Account a")
     BigDecimal sumAllBalances();
+
+    
 }

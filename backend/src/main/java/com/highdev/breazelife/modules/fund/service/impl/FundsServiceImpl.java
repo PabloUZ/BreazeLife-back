@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -29,14 +28,14 @@ public class FundsServiceImpl implements FundsService {
     @Transactional
     public void initializeFunds(String employerId) {
         //solo los crea si no existen previamente
-        if (fundRepository.findByIdEmployerId(employerId).isEmpty()) {
+        if (fundRepository.findByEmployerId(employerId).isEmpty()) {
             Fund payroll = Fund.builder()
-                    .id(new FundId(employerId, FundType.PAYROLL))
-                    .balance(BigDecimal.ZERO)
+                    .employerId(employerId)
+                    .type(FundType.PAYROLL)
                     .build();
             Fund pension = Fund.builder()
-                    .id(new FundId(employerId, FundType.PENSION))
-                    .balance(BigDecimal.ZERO)
+                    .employerId(employerId)
+                    .type(FundType.PENSION)
                     .build();
             fundRepository.saveAll(List.of(payroll, pension));
         }
@@ -45,7 +44,7 @@ public class FundsServiceImpl implements FundsService {
     @Override
     @Transactional(readOnly = true)
     public List<FundResponse> getFunds(String employerId) {
-        List<Fund> funds = fundRepository.findByIdEmployerId(employerId);
+        List<Fund> funds = fundRepository.findByEmployerId(employerId);
         if (funds.isEmpty()) {
             throw new FundNotFoundException(employerId);
         }

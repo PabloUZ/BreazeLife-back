@@ -1,40 +1,55 @@
 package com.highdev.breazelife.modules.fund.entity;
 
+import com.highdev.breazelife.modules.employer.entity.Employer;
+import com.highdev.breazelife.modules.fund.enums.FundType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "funds")
+@IdClass(FundId.class)
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Fund {
 
-    @EmbeddedId
-    private FundId id;
+    @Id
+    @Column(name = "employer_id", length = 36)
+    private String employerId;
 
-    @Column(name = "balance", precision = 15, scale = 2)
+    @Id
+    @Enumerated(EnumType.STRING)
+    private FundType type;
+
+    @ManyToOne
+    @JoinColumn(name = "employer_id", insertable = false, updatable = false)
+    private Employer employer;
+
     @Builder.Default
+    @Column(precision = 15, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    //metodos para manipular el saldo
-    public void addFunds(BigDecimal amount) {
-        this.balance = this.balance.add(amount);
-    }
+    public String getEmployerId() { return employerId; }
+    public void setEmployerId(String employerId) { this.employerId = employerId; }
 
-    public void deductFunds(BigDecimal amount) {
-        this.balance = this.balance.subtract(amount);
-    }
+    public FundType getType() { return type; }
+    public void setType(FundType type) { this.type = type; }
+
+    public Employer getEmployer() { return employer; }
+    public void setEmployer(Employer employer) { this.employer = employer; }
+
+    public BigDecimal getBalance() { return balance; }
+    public void setBalance(BigDecimal balance) { this.balance = balance; }
+    public void addFunds(BigDecimal amount) { this.balance = this.balance.add(amount); }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
