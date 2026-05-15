@@ -45,7 +45,7 @@ cd breazelife-backend
 docker compose -f docker-compose.dev.yml --env-file .env up --build
 ```
 
-El servidor arranca en `http://localhost:${PORT}`.
+El servidor arranca en `http://localhost:8080`.
 
 ### Entorno de producción
 
