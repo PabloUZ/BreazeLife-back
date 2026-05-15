@@ -17,6 +17,7 @@ import com.highdev.breazelife.modules.quote.dto.response.QuoteResponseDTO;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
 
+import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.affiliate.service.AffiliateService;
 
 // Importación corregida al módulo quote
@@ -32,6 +33,21 @@ public class AffiliateController {
 
     @Autowired
     private AffiliateService affiliateService;
+
+    @GetMapping("/{affiliate_id}/dashboard")
+    public ResponseEntity<?> getDashboard(@PathVariable("affiliate_id") String affiliateId) {
+        try {
+            AffiliateDashboardResponseDTO dashboard = affiliateService.getDashboard(affiliateId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Dashboard retrieved successfully",
+                    "status_code", 200,
+                    "status", "OK",
+                    "data", dashboard
+            ));
+        } catch (AffiliateNotFoundException e) {
+            throw new NotFoundException("AFFILIATE_NOT_FOUND", e.getMessage());
+        }
+    }
 
     @GetMapping("/{affiliate_id}/quotes")
     public ResponseEntity<?> getQuoteHistory(
