@@ -171,7 +171,7 @@ public class PayrollService {
     }
 
     private BigDecimal getFundBalance(String employerUserId, FundType type) {
-        return fundRepository.findByIdEmployerIdAndIdType(employerUserId, type)
+        return fundRepository.findByEmployerIdAndType(employerUserId, type)
             .map(Fund::getBalance)
             .orElse(BigDecimal.ZERO);
     }
