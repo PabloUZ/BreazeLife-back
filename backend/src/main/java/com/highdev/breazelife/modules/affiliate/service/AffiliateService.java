@@ -55,44 +55,52 @@ public class AffiliateService {
     private ProfitabilityHistoryRepository profitabilityHistoryRepository;
 
     public AffiliateDashboardResponseDTO getDashboard(String affiliateId) {
-        Affiliate affiliate = affiliateRepository.findById(affiliateId)
-                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
-
         Account account = accountRepository.findByAffiliateUserId(affiliateId)
-                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
 
-        int quotedDays = account.getQuotedDays() != null ? account.getQuotedDays() : 0;
-        int quotedWeeks = quotedDays / 7;
+        int rawDays = account.getQuotedDays() != null ? account.getQuotedDays() : 0;
+        BigDecimal quotedWeeks = BigDecimal.valueOf(rawDays)
+                .divide(BigDecimal.valueOf(7), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal weeksRemaining = BigDecimal.valueOf(1300).subtract(quotedWeeks);
+        BigDecimal progressPercentage = quotedWeeks
+                .divide(BigDecimal.valueOf(1300), 4, java.math.RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
 
         AffiliateDashboardResponseDTO.LastContribution lastContribution = quoteRepository
-                .findByAccountAffiliateUserIdOrderByContribDateDesc(affiliateId,
-                        PageRequest.of(0, 1))
-                .getContent()
-                .stream()
-                .findFirst()
+                .findTopByAccountAffiliateUserIdAndStatusOrderByContribDateDesc(
+                        affiliateId, Quote.QuoteStatus.ACCEPTED)
                 .map(q -> {
-                    BigDecimal total = BigDecimal.ZERO;
-                    if (q.getEmployerContrib() != null) total = total.add(q.getEmployerContrib());
-                    if (q.getAffiliateContrib() != null) total = total.add(q.getAffiliateContrib());
+                    BigDecimal employer = q.getEmployerContrib() != null ? q.getEmployerContrib() : BigDecimal.ZERO;
+                    BigDecimal affiliate = q.getAffiliateContrib() != null ? q.getAffiliateContrib() : BigDecimal.ZERO;
                     return new AffiliateDashboardResponseDTO.LastContribution(
-                            total, q.getContribDate(), q.getStatus().name());
+                            q.getId(),
+                            q.getEmployerContrib(),
+                            q.getAffiliateContrib(),
+                            employer.add(affiliate),
+                            q.getDaysContributed(),
+                            q.getContribDate(),
+                            q.getStatus().name()
+                    );
                 })
                 .orElse(null);
 
-        AffiliateDashboardResponseDTO.LastProfitability lastProfitability =
+        AffiliateDashboardResponseDTO.MonthlyProfitability monthlyProfitability =
                 profitabilityHistoryRepository.findTopByAccountIdOrderByDateDesc(account.getId())
-                        .map(p -> new AffiliateDashboardResponseDTO.LastProfitability(
+                        .map(p -> new AffiliateDashboardResponseDTO.MonthlyProfitability(
                                 p.getProfit(), p.getDate()))
                         .orElse(null);
 
         return new AffiliateDashboardResponseDTO(
                 account.getId(),
-                account.getBalance(),
                 account.getAccountType() != null ? account.getAccountType().name() : null,
-                quotedDays,
+                account.getBalance(),
                 quotedWeeks,
-                lastContribution,
-                lastProfitability
+                weeksRemaining,
+                progressPercentage,
+                monthlyProfitability,
+                lastContribution
         );
     }
 

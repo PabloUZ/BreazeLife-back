@@ -6,21 +6,26 @@ import java.time.LocalDateTime;
 
 public record AffiliateDashboardResponseDTO(
         String accountId,
-        BigDecimal balance,
         String accountType,
-        Integer quotedDays,
-        Integer quotedWeeks,
-        LastContribution lastContribution,
-        LastProfitability lastProfitability
+        BigDecimal balance,
+        BigDecimal quotedWeeks,
+        BigDecimal weeksRemaining,
+        BigDecimal progressPercentage,
+        MonthlyProfitability monthlyProfitability,
+        LastContribution lastContribution
 ) {
-    public record LastContribution(
-            BigDecimal amount,
-            LocalDateTime date,
-            String status
-    ) {}
-
-    public record LastProfitability(
+    public record MonthlyProfitability(
             BigDecimal profit,
             LocalDate date
+    ) {}
+
+    public record LastContribution(
+            String quoteId,
+            BigDecimal employerContrib,
+            BigDecimal affiliateContrib,
+            BigDecimal totalContribution,
+            Integer daysContributed,
+            LocalDateTime contribDate,
+            String status
     ) {}
 }
