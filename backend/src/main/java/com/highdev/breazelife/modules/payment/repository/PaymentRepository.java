@@ -18,4 +18,6 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
     Page<Payment> findByContractEmployerUserIdOrderByDateDesc(String employerUserId, Pageable pageable);
 
     boolean existsByContractIdAndDateBetween(String contractId, LocalDateTime from, LocalDateTime to);
+
+    boolean existsByContractEmployerUserIdAndDateBetween(String employerUserId, LocalDateTime from, LocalDateTime to);
 }
