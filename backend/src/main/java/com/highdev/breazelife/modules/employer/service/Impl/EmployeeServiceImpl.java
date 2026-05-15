@@ -1,5 +1,7 @@
 package com.highdev.breazelife.modules.employer.service.Impl;
 
+import com.highdev.breazelife.common.exceptions.http.BadRequestException;
+import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
@@ -7,9 +9,6 @@ import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
 import com.highdev.breazelife.modules.employer.entity.Employer;
-import com.highdev.breazelife.modules.employer.exceptions.DocumentAlreadyExistsException;
-import com.highdev.breazelife.modules.employer.exceptions.EmailAlreadyExistsException;
-import com.highdev.breazelife.modules.employer.exceptions.EmployerNotFoundException;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
 import com.highdev.breazelife.modules.user.entity.User;
@@ -43,20 +42,69 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public RegisterEmployeeResponse registerEmployee(String employerId, RegisterEmployeeRequest request) {
 
-        // reemplazar con lógica real cuando affiliate y contract estén disponibles
+        Employer employer = employerRepository.findById(employerId)
+            .orElseThrow(() -> new NotFoundException("EMPLOYER_NOT_FOUND",
+                "Employer not found with id: " + employerId));
+
+        if (employer.getStatus() != Employer.Status.ACTIVE) {
+            throw new NotFoundException("EMPLOYER_NOT_ACTIVE",
+                "Employer account is not active: " + employerId);
+        }
+
+        if (affiliateRepository.existsByDocument(request.getDocument())) {
+            throw new BadRequestException("DOCUMENT_ALREADY_EXISTS",
+                "An employee with document " + request.getDocument() + " already exists");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("EMAIL_ALREADY_EXISTS",
+                "An user with email " + request.getEmail() + " already exists");
+        }
+
+        // Crear el usuario base
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        user.setPassword(UUID.randomUUID().toString());
+        user.setRole(User.Role.AFFILIATE);
+        user.setVerified(false);
+        user= userRepository.save(user);
+
+        // Crear el afiliado
+        Affiliate affiliate = new Affiliate();
+        affiliate.setUser(user);
+        affiliate.setDocument(request.getDocument());
+        affiliate.setBirthDate(request.getBirthDate());
+        affiliate.setAffiliationDate(request.getStartDate());
+        affiliate.setStatus(Affiliate.Status.ACTIVE);
+        affiliateRepository.save(affiliate);
+
+        // Crear el contrato
+        Contract contract = new Contract();
+        contract.setId(UUID.randomUUID().toString());
+        contract.setAffiliate(affiliate);
+        contract.setEmployer(employer);
+        contract.setBaseSalary(request.getBaseSalary());
+        contract.setPosition(request.getPosition());
+        contract.setStartDate(request.getStartDate());
+        contractRepository.save(contract);
+
+        // Construir respuesta
         RegisterEmployeeResponse response = new RegisterEmployeeResponse();
-        response.setContractId(UUID.randomUUID().toString());
-        response.setAffiliateId(UUID.randomUUID().toString());
-        response.setEmployerId(employerId);
-        response.setFirstName(request.getFirstName());
-        response.setLastName(request.getLastName());
-        response.setEmail(request.getEmail());
-        response.setDocument(request.getDocument());
-        response.setBirthDate(request.getBirthDate());
-        response.setPosition(request.getPosition());
-        response.setBaseSalary(request.getBaseSalary());
-        response.setStartDate(request.getStartDate());
-        response.setStatus("ACTIVE");
+        response.setContractId(contract.getId());
+        response.setAffiliateId(affiliate.getUserId());
+        response.setEmployerId(employer.getUserId());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setEmail(user.getEmail());
+        response.setDocument(affiliate.getDocument());
+        response.setBirthDate(affiliate.getBirthDate());
+        response.setPosition(contract.getPosition());
+        response.setBaseSalary(contract.getBaseSalary());
+        response.setStartDate(contract.getStartDate());
+        response.setStatus(affiliate.getStatus().name());
         response.setCreatedAt(LocalDateTime.now());
         return response;
     }
