@@ -30,7 +30,7 @@ public class AffiliateDocument {
     private String fileName;
 
     @Lob
-    @Column(name = "content", nullable = false)
+    @Column(name = "content", nullable = false, columnDefinition = "LONGBLOB")
     private byte[] content;
 
     @CreationTimestamp
