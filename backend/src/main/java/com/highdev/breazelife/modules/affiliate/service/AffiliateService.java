@@ -50,8 +50,11 @@ public class AffiliateService {
 
     public AffiliateProfileResponseDTO getProfile(String affiliateId) {
         Affiliate affiliate = affiliateRepository.findById(affiliateId)
-                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
-        Account account = accountRepository.findByAffiliateUserId(affiliateId).orElse(null);
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
         return AffiliateProfileResponseDTO.from(affiliate, account);
     }
 
