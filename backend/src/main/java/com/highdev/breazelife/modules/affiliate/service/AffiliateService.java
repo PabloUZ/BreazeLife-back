@@ -66,7 +66,7 @@ public class AffiliateService {
 
         AffiliateDashboardResponseDTO.LastContribution lastContribution = quoteRepository
                 .findByAccountAffiliateUserIdOrderByContribDateDesc(affiliateId,
-                        org.springframework.data.domain.PageRequest.of(0, 1))
+                        PageRequest.of(0, 1))
                 .getContent()
                 .stream()
                 .findFirst()
