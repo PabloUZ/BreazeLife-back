@@ -2,6 +2,8 @@ package com.highdev.breazelife.modules.fund.service.impl;
 
 import com.highdev.breazelife.modules.fund.dto.request.RechargeFundRequest;
 import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
+import com.highdev.breazelife.modules.fund.dto.response.MovementPageResponse;
+import com.highdev.breazelife.modules.fund.dto.response.MovementResponse;
 import com.highdev.breazelife.modules.fund.entity.Fund;
 import com.highdev.breazelife.modules.fund.entity.FundId;
 import com.highdev.breazelife.modules.fund.entity.Movement;
@@ -11,10 +13,18 @@ import com.highdev.breazelife.modules.fund.exceptions.FundNotFoundException;
 import com.highdev.breazelife.modules.fund.repository.FundRepository;
 import com.highdev.breazelife.modules.fund.repository.MovementRepository;
 import com.highdev.breazelife.modules.fund.service.FundsService;
+import org.springframework.data.domain.Pageable;
+
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -82,4 +92,22 @@ public class FundsServiceImpl implements FundsService {
         return fundRepository.findById(new FundId(employerId, type))
                 .orElseThrow(() -> new FundNotFoundException(employerId, type));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public MovementPageResponse getFundMovements(String employerId, FundType fundType, LocalDate from, LocalDate to, int page, int limit) {
+        getFundEntity(employerId, fundType);
+
+        LocalDateTime fromDate = (from != null) ? from.atStartOfDay() : null;
+        LocalDateTime toDate = (to != null) ? to.atTime(LocalTime.MAX) : null;
+        
+        Pageable pageable = PageRequest.of(page - 1, limit);
+        Page<Movement> movementPage = movementRepository.findMovementsWithFilters(employerId, fundType, fromDate, toDate, pageable);
+
+        List<MovementResponse> movementResponses = movementPage.getContent().stream().map(MovementResponse::from).toList();
+
+        return new MovementPageResponse(employerId, fundType, movementPage.getTotalElements(), page, limit, movementResponses);
+    }
+
+
 }

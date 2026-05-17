@@ -3,14 +3,18 @@ package com.highdev.breazelife.modules.fund.controller;
 import com.highdev.breazelife.modules.fund.dto.request.RechargeFundRequest;
 import com.highdev.breazelife.modules.fund.dto.response.ApiResponse;
 import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
+import com.highdev.breazelife.modules.fund.dto.response.MovementPageResponse;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.service.FundsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -43,4 +47,21 @@ public class FundsController {
         FundResponse data = fundsService.rechargeFund(employerId, fundType, request);
         return ResponseEntity.ok(ApiResponse.success("Fund recharged successfully", 200, "OK", data));
     }
+
+
+    @GetMapping("/{fund_type}/movements")
+    public ResponseEntity<ApiResponse<MovementPageResponse>> getFundMovements(
+            @PathVariable("employer_id") String employerId,
+            @PathVariable("fund_type") FundType fundType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int limit) {
+
+        MovementPageResponse data = fundsService.getFundMovements(
+            employerId, fundType, from, to, page, limit);
+        return ResponseEntity.ok(
+            ApiResponse.success("Movements retrieved successfully", 200, "OK", data));
+    }
+    
 }
