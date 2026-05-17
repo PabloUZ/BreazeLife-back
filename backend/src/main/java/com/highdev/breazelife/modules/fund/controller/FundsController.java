@@ -8,12 +8,14 @@ import com.highdev.breazelife.modules.fund.service.FundsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/employers/{employer_id}/funds")
+@PreAuthorize("hasRole('EMPLOYER')")
 @RequiredArgsConstructor
 public class FundsController {
 
