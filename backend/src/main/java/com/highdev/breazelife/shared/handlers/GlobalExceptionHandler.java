@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
+import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -53,6 +54,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAffiliateAlreadyExists(AffiliateAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(ex.getMessage(), "DOCUMENT_ALREADY_EXISTS", 409, "CONFLICT"));
+    }
+
+    @ExceptionHandler(AffiliateNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAffiliateNotFound(AffiliateNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ex.getMessage(), "USER_NOT_FOUND", 404, "NOT_FOUND"));
     }
 
     // ── HTTP helpers (BadRequestException / NotFoundException) ────────────────

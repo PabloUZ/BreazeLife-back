@@ -87,3 +87,5 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             @Param("status") Quote.QuoteStatus status
     );
 }
+    Page<Quote> findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(String affiliateId, Pageable pageable);
+}
