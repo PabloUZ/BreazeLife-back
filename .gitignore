@@ -1,6 +1,5 @@
 # Monorepo root .gitignore
 
-db/
 # OS
 .DS_Store
 Thumbs.db
@@ -25,6 +24,3 @@ yarn-error.log*
 
 # Node
 node_modules/
-
-API-FULL.md
-docker-compose*.yml

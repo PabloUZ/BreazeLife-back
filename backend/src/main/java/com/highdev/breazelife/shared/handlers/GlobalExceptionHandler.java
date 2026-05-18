@@ -3,8 +3,6 @@ package com.highdev.breazelife.shared.handlers;
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
-import com.highdev.breazelife.modules.auth.exception.InvalidCredentialsException;
-import com.highdev.breazelife.modules.auth.exception.InvalidRefreshTokenException;
 import com.highdev.breazelife.modules.user.exception.EmailAlreadyExistsException;
 import com.highdev.breazelife.modules.user.exception.UserNotFoundException;
 import com.highdev.breazelife.shared.dto.ErrorResponse;
@@ -30,20 +28,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(ex.getMessage(), "EMAIL_ALREADY_EXISTS", 409, "CONFLICT"));
-    }
-
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidCredentials(InvalidCredentialsException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(ex.getMessage(), "INVALID_CREDENTIALS", 401, "UNAUTHORIZED"));
-    }
-
-    @ExceptionHandler(InvalidRefreshTokenException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(ex.getMessage(), "INVALID_REFRESH_TOKEN", 401, "UNAUTHORIZED"));
     }
 
     // ── Affiliate ─────────────────────────────────────────────────────────────

@@ -25,7 +25,6 @@ import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
 
 import com.highdev.breazelife.modules.affiliate.dto.request.AffiliateRequestDTO;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/affiliates")
@@ -34,7 +33,6 @@ public class AffiliateController {
     @Autowired
     private AffiliateService affiliateService;
 
-    @PreAuthorize("hasAnyRole('AFFILIATE', 'ADMIN')")
     @GetMapping("/{affiliate_id}/quotes")
     public ResponseEntity<?> getQuoteHistory(
             @PathVariable("affiliate_id") String affiliateId,
@@ -62,7 +60,6 @@ public class AffiliateController {
     }
 
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<?> registerAffiliate(@RequestBody AffiliateRequestDTO dto) {
         try {

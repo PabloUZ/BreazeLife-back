@@ -1,70 +1,28 @@
 package com.highdev.breazelife.modules.fund.service.impl;
 
-import com.highdev.breazelife.modules.fund.dto.request.DeductFundsRequest;
 import com.highdev.breazelife.modules.fund.dto.request.RechargeFundRequest;
-import com.highdev.breazelife.modules.fund.dto.request.ValidateFundsRequest;
 import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
-import com.highdev.breazelife.modules.fund.dto.response.FundValidationResponse;
-import com.highdev.breazelife.modules.fund.dto.response.MovementPageResponse;
-import com.highdev.breazelife.modules.fund.dto.response.MovementResponse;
 import com.highdev.breazelife.modules.fund.entity.Fund;
 import com.highdev.breazelife.modules.fund.entity.FundId;
 import com.highdev.breazelife.modules.fund.entity.Movement;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.enums.MovementType;
 import com.highdev.breazelife.modules.fund.exceptions.FundNotFoundException;
-import com.highdev.breazelife.modules.fund.exceptions.InsufficientFundsException;
 import com.highdev.breazelife.modules.fund.repository.FundRepository;
 import com.highdev.breazelife.modules.fund.repository.MovementRepository;
 import com.highdev.breazelife.modules.fund.service.FundsService;
-import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
-
+@RequiredArgsConstructor
 public class FundsServiceImpl implements FundsService {
 
     private final FundRepository fundRepository;
     private final MovementRepository movementRepository;
-    private final SimpMessagingTemplate messagingTemplate;
-
-    public FundsServiceImpl(
-            FundRepository fundRepository,
-            MovementRepository movementRepository,
-            @Autowired(required = false) SimpMessagingTemplate messagingTemplate) {
-        this.fundRepository = fundRepository;
-        this.movementRepository = movementRepository;
-        this.messagingTemplate = messagingTemplate;
-    }
-
-    //nos ayudará a emitir eventos en tiempo real cuando hayan cambios en los fondos
-    private void emitWebSocketEvent(String employerId, String eventName, Map<String, Object> eventData) {
-        if (messagingTemplate != null) {
-            String channel = "/topic/employers/" + employerId + "/funds";
-            Map<String, Object> payload = Map.of(
-                "event", eventName,
-                "employer_id", employerId,
-                "data", eventData
-            );
-            messagingTemplate.convertAndSend(channel, (Object) payload);
-        }
-    }
-
 
     @Override
     @Transactional
@@ -119,129 +77,9 @@ public class FundsServiceImpl implements FundsService {
         return FundResponse.from(fund);
     }
 
-
-    @Override
-    @Transactional(readOnly = true)
-    public MovementPageResponse getFundMovements(String employerId, FundType fundType, LocalDate from, LocalDate to, int page, int limit) {
-        getFundEntity(employerId, fundType);
-
-        LocalDateTime fromDate = (from != null) ? from.atStartOfDay() : null;
-        LocalDateTime toDate = (to != null) ? to.atTime(LocalTime.MAX) : null;
-        
-        Pageable pageable = PageRequest.of(page - 1, limit);
-        Page<Movement> movementPage = movementRepository.findMovementsWithFilters(employerId, fundType, fromDate, toDate, pageable);
-
-        List<MovementResponse> movementResponses = movementPage.getContent().stream().map(MovementResponse::from).toList();
-
-        return new MovementPageResponse(employerId, fundType, movementPage.getTotalElements(), page, limit, movementResponses);
-    }
-
-
-
-    @Override
-    @Transactional
-    public FundValidationResponse validateFunds(String employerId, ValidateFundsRequest request) {
-        Fund payrollFund = getFundEntity(employerId, FundType.PAYROLL);
-        Fund pensionFund = getFundEntity(employerId, FundType.PENSION);
-
-        List<FundValidationResponse.InsufficientFundDetail> shortages = new ArrayList<>();
-
-        if (payrollFund.getBalance().compareTo(request.requiredPayroll()) < 0) {
-            shortages.add(new FundValidationResponse.InsufficientFundDetail(
-                    FundType.PAYROLL.name(),
-                    payrollFund.getBalance(),
-                    request.requiredPayroll(),
-                    request.requiredPayroll().subtract(payrollFund.getBalance())
-            ));
-        }
-
-        if (pensionFund.getBalance().compareTo(request.requiredPension()) < 0) {
-            shortages.add(new FundValidationResponse.InsufficientFundDetail(
-                    FundType.PENSION.name(),
-                    pensionFund.getBalance(),
-                    request.requiredPension(),
-                    request.requiredPension().subtract(pensionFund.getBalance())
-            ));
-        }
-
-        if (!shortages.isEmpty()) {
-            //emitimos alerta WebSocket si hay fondos insuficientes
-            emitWebSocketEvent(employerId, "INSUFFICIENT_FUNDS_ALERT", Map.of(
-                "insufficient_funds", shortages.stream().map(s -> Map.of(
-                    "fund_type", s.fundType(),
-                    "current_balance", s.currentBalance(),
-                    "required", s.required(),
-                    "shortage", s.shortage()
-                )).toList()
-            ));
-
-            List<InsufficientFundsException.FundShortage> excShortages = shortages.stream()
-                .map(s -> new InsufficientFundsException.FundShortage(
-                    FundType.valueOf(s.fundType()), s.currentBalance(),
-                    s.required(), s.shortage()))
-                .toList();
-            throw new InsufficientFundsException(excShortages);
-        }
-
-        return new FundValidationResponse(
-                true,
-                new FundValidationResponse.FundDetail(employerId, FundType.PAYROLL.name(),
-                        payrollFund.getBalance(), request.requiredPayroll()),
-                new FundValidationResponse.FundDetail(employerId, FundType.PENSION.name(),
-                        pensionFund.getBalance(), request.requiredPension()),
-                shortages
-        );
-    }
-
-    @Override
-    @Transactional
-    public void deductFunds(String employerId, DeductFundsRequest request) {
-        Fund payrollFund = getFundEntity(employerId, FundType.PAYROLL);
-        Fund pensionFund = getFundEntity(employerId, FundType.PENSION);
-
-
-        //validamos si hay fondos insuficientes silenciosamente
-        List<FundValidationResponse.InsufficientFundDetail> shortages = new ArrayList<>();
-
-        if (payrollFund.getBalance().compareTo(request.payrollAmount()) < 0) {
-            shortages.add(new FundValidationResponse.InsufficientFundDetail(
-                FundType.PAYROLL.name(), payrollFund.getBalance(),
-                request.payrollAmount(),
-                request.payrollAmount().subtract(payrollFund.getBalance())));
-        }
-
-        if (pensionFund.getBalance().compareTo(request.pensionAmount()) < 0) {
-            shortages.add(new FundValidationResponse.InsufficientFundDetail(
-                FundType.PENSION.name(), pensionFund.getBalance(),
-                request.pensionAmount(),
-                request.pensionAmount().subtract(pensionFund.getBalance())));
-        }
-
-        if (!shortages.isEmpty()) {
-            List<InsufficientFundsException.FundShortage> excShortages = shortages.stream()
-                .map(s -> new InsufficientFundsException.FundShortage(
-                    FundType.valueOf(s.fundType()), s.currentBalance(),
-                    s.required(), s.shortage()))
-                .toList();
-            throw new InsufficientFundsException(excShortages);
-        }
-
-        payrollFund.deductFunds(request.payrollAmount());
-        pensionFund.deductFunds(request.pensionAmount());
-        fundRepository.saveAll(List.of(payrollFund, pensionFund));
-
-        movementRepository.saveAll(List.of(
-            Movement.builder().fund(payrollFund)
-                .type(MovementType.OUTCOME).amount(request.payrollAmount()).build(),
-            Movement.builder().fund(pensionFund)
-                .type(MovementType.OUTCOME).amount(request.pensionAmount()).build()
-        ));
-    }
-
+    //metodo para obtener el fondo por id y tipo de fondo
     private Fund getFundEntity(String employerId, FundType type) {
         return fundRepository.findById(new FundId(employerId, type))
                 .orElseThrow(() -> new FundNotFoundException(employerId, type));
     }
-
-
 }
