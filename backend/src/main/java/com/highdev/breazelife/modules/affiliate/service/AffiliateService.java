@@ -31,6 +31,8 @@ import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
+
 @Service
 public class AffiliateService {
 
@@ -45,6 +47,16 @@ public class AffiliateService {
 
     @Autowired
     private AffiliateRepository affiliateRepository;
+
+    public AffiliateProfileResponseDTO getProfile(String affiliateId) {
+        Affiliate affiliate = affiliateRepository.findById(affiliateId)
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
+        return AffiliateProfileResponseDTO.from(affiliate, account);
+    }
 
     public PagedResponseDTO<QuoteResponseDTO> getQuoteHistory(String affiliateId, Quote.QuoteStatus status, LocalDate from, LocalDate to, int page, int size) {
         Account account = accountRepository.findByAffiliateUserId(affiliateId)
