@@ -28,6 +28,8 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
 
     Page<Quote> findByStatus(Quote.QuoteStatus status, Pageable pageable);
 
+    Page<Quote> findByStatusOrderByContribDateDesc(Quote.QuoteStatus status, Pageable pageable);
+
     Page<Quote> findByAccountAffiliateUserIdOrderByContribDateDesc(String affiliateUserId, Pageable pageable);
 
     Page<Quote> findByAccountAffiliateUserIdAndStatus(String affiliateUserId, Quote.QuoteStatus status, Pageable pageable);
