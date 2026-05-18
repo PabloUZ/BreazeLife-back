@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.highdev.breazelife.modules.quote.dto.response.PagedResponseDTO;
+import com.highdev.breazelife.modules.quote.dto.response.PayslipResponseDTO;
 import com.highdev.breazelife.modules.quote.dto.response.QuoteResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.request.AffiliateRequestDTO;
 
@@ -22,6 +23,7 @@ import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExist
 import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -175,4 +177,62 @@ public class AffiliateService {
         }
         return dto;
         }
+
+
+
+        //MÉTODO DE LAS COLILLAS DE PAGO
+        public PagedResponseDTO<PayslipResponseDTO> getPayslips(String affiliateId, int page, int size) {
+        
+        // 1. Obtener la cuenta para poder extraer al afiliado y al usuario
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
+        
+        Affiliate affiliate = account.getAffiliate();
+        
+        String fullName = affiliate.getUser().getFirstName() + " " + affiliate.getUser().getLastName();
+        String document = affiliate.getDocument();
+
+        // 2. Traer las cotizaciones que SÍ tienen un pago asociado
+        Page<Quote> quotesPage = quoteRepository
+                .findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(
+                        affiliateId, PageRequest.of(page, size));
+
+        // 3. Mapear y calcular los valores financieros
+        List<PayslipResponseDTO> content = quotesPage.getContent().stream().map(quote -> {
+        
+            // La matemática del Salario:
+            // Sabemos que el affiliateContrib es el 4% del Salario Bruto (IBC).
+            // Por lo tanto, Salario Bruto = affiliateContrib / 0.04
+            BigDecimal grossSalary = quote.getAffiliateContrib()
+                    .divide(new BigDecimal("0.04"), 2, RoundingMode.HALF_UP);
+            
+            // Y el Salario Neto (Lo que recibe el empleado) es el Bruto - 4%
+            BigDecimal netSalaryReceived = grossSalary.subtract(quote.getAffiliateContrib());
+            
+            // Total enviado al fondo (16%)
+            BigDecimal totalContrib = quote.getEmployerContrib().add(quote.getAffiliateContrib());
+
+            // Formatear periodo (Ej: "MAY 2026")
+            String periodString = quote.getContribDate().getMonth().name() + " " + quote.getContribDate().getYear();
+
+            return PayslipResponseDTO.builder()
+                    .affiliateName(fullName)
+                    .affiliateDocument(document)
+                    .period(periodString)
+                    .grossSalary(grossSalary)
+                    .pensionDeduction(quote.getAffiliateContrib()) // 4%
+                    .netSalaryReceived(netSalaryReceived)
+                    .employerContrib(quote.getEmployerContrib())   // 12%
+                    .totalContrib(totalContrib)                    // 16%
+                    .status(quote.getStatus().name())
+                    .build();
+        }).collect(Collectors.toList());
+
+        return new PagedResponseDTO<>(
+                quotesPage.getTotalElements(), 
+                quotesPage.getTotalPages(), 
+                quotesPage.getNumber(), 
+                content
+        );
+    }
 }

@@ -12,6 +12,7 @@ import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 
 import com.highdev.breazelife.modules.quote.dto.response.PagedResponseDTO;
+import com.highdev.breazelife.modules.quote.dto.response.PayslipResponseDTO;
 import com.highdev.breazelife.modules.quote.dto.response.QuoteResponseDTO;
 
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
@@ -106,4 +107,26 @@ public class AffiliateController {
         }
     }
     
+
+    @PreAuthorize("hasAnyRole('AFFILIATE', 'ADMIN')")
+    @GetMapping("/{affiliate_id}/payslips")
+    public ResponseEntity<?> getPayslips(
+            @PathVariable("affiliate_id") String affiliateId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // Llama al nuevo método del servicio
+        PagedResponseDTO<PayslipResponseDTO> result = affiliateService.getPayslips(affiliateId, page, size);
+            try{
+                return ResponseEntity.ok(Map.of(
+                    "message", "Payslips retrieved successfully",
+                    "status_code", 200,
+                    "status", "OK",
+                    "data", result
+            ));
+        }catch(AffiliateNotFoundException e){
+            throw new NotFoundException("AFFILIATE_NOT_FOUND", e.getMessage());
+        }
+        
+    }
 }

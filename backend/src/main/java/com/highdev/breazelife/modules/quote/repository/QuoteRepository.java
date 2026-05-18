@@ -54,4 +54,6 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
+
+    Page<Quote> findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(String affiliateId, Pageable pageable);
 }
