@@ -16,6 +16,16 @@ import java.util.Optional;
 @Repository
 public interface QuoteRepository extends JpaRepository<Quote, String> {
 
+    interface QuoteStatusCountProjection {
+        Quote.QuoteStatus getStatus();
+        Long getCount();
+    }
+
+    interface MonthlyContributionProjection {
+        String getMonth();
+        BigDecimal getTotalContribution();
+    }
+
     Page<Quote> findByStatus(Quote.QuoteStatus status, Pageable pageable);
 
     Page<Quote> findByAccountAffiliateUserIdOrderByContribDateDesc(String affiliateUserId, Pageable pageable);
@@ -53,5 +63,25 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             @Param("status") Quote.QuoteStatus status,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
+    );
+
+    @Query("""
+            select q.status as status, count(q) as count
+            from Quote q
+            group by q.status
+            """)
+    List<QuoteStatusCountProjection> countQuotesGroupedByStatus();
+
+    @Query("""
+            select function('date_format', q.contribDate, '%Y-%m') as month,
+                   coalesce(sum(q.employerContrib), 0) + coalesce(sum(q.affiliateContrib), 0) as totalContribution
+            from Quote q
+            where q.status = :status
+              and q.contribDate is not null
+            group by function('date_format', q.contribDate, '%Y-%m')
+            order by function('date_format', q.contribDate, '%Y-%m')
+            """)
+    List<MonthlyContributionProjection> sumMonthlyContributionsByStatus(
+            @Param("status") Quote.QuoteStatus status
     );
 }
