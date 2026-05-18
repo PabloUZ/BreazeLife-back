@@ -2,6 +2,7 @@ package com.highdev.breazelife.modules.affiliate.controller;
 
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
+import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.affiliate.service.AffiliateService;
 import com.highdev.breazelife.modules.user.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,24 @@ public class AffiliateProfileController {
                     "status_code", 200,
                     "status", "OK",
                     "data", profile
+            ));
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NotFoundException("ACCOUNT_NOT_FOUND", "Pension account not found for this affiliate");
+        }
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard() {
+        String affiliateId = extractAffiliateId();
+        try {
+            AffiliateDashboardResponseDTO dashboard = affiliateService.getDashboard(affiliateId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Dashboard retrieved successfully",
+                    "status_code", 200,
+                    "status", "OK",
+                    "data", dashboard
             ));
         } catch (NotFoundException e) {
             throw e;
