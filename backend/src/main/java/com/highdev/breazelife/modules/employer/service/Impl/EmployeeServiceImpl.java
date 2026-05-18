@@ -7,12 +7,16 @@ import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,7 +74,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         user.setPassword(UUID.randomUUID().toString());
         user.setRole(User.Role.AFFILIATE);
         user.setVerified(false);
-        user= userRepository.save(user);
+        user = userRepository.save(user);
 
         // Crear el afiliado
         Affiliate affiliate = new Affiliate();
@@ -107,5 +111,33 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setStatus(affiliate.getStatus().name());
         response.setCreatedAt(LocalDateTime.now());
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ListEmployeeResponse> listEmployees(String employerId, Affiliate.Status status, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Contract> contracts;
+
+        if (status != null) {
+            contracts = contractRepository.findByEmployerUserIdAndAffiliateStatus(employerId, status, pageable);
+        } else {
+            contracts = contractRepository.findByEmployerUserId(employerId, pageable);
+        }
+
+        return contracts.map(contract -> {
+            ListEmployeeResponse response = new ListEmployeeResponse();
+            response.setContractId(contract.getId());
+            response.setAffiliateId(contract.getAffiliate().getUserId());
+            response.setFirstName(contract.getAffiliate().getUser().getFirstName());
+            response.setLastName(contract.getAffiliate().getUser().getLastName());
+            response.setDocument(contract.getAffiliate().getDocument());
+            response.setPosition(contract.getPosition());
+            response.setBaseSalary(contract.getBaseSalary());
+            response.setStartDate(contract.getStartDate());
+            response.setStatus(contract.getAffiliate().getStatus().name());
+            return response;
+        });
     }
 }

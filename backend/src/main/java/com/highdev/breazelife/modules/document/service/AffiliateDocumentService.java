@@ -22,14 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * BLIFE-04-02 / BLIFE-04-04 / BLIFE-04-05
- *
- * Lógica de negocio para generación y descarga de documentos PDF del afiliado.
- *
- * Documentos soportados:
- *  - AFFILIATION_CERTIFICATE → certificado de afiliación
- *  - BALANCE_CERTIFICATE     → certificado de saldo
- *  - ACCOUNT_STATEMENT       → extracto de cuenta con historial
+ * BLIFE-04-02 / BLIFE-04-04 / BLIFE-04-05 / BLIFE-15
  */
 @Service
 @RequiredArgsConstructor
@@ -41,11 +34,22 @@ public class AffiliateDocumentService {
     private static final DateTimeFormatter DATE_FMT =
         DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    // ── Listar documentos ─────────────────────────────────────────────────────
+    // ── Listar todos los documentos ───────────────────────────────────────────
 
     public List<DocumentResponse> getDocuments(String affiliateId) {
         return documentRepository
             .findByAffiliateIdOrderByGeneratedAtDesc(affiliateId)
+            .stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    // ── BLIFE-15: Listar solo colillas ────────────────────────────────────────
+
+    public List<DocumentResponse> getPayslips(String affiliateId) {
+        return documentRepository
+            .findByAffiliateIdAndTypeOrderByGeneratedAtDesc(
+                affiliateId, DocumentType.PAYSLIP)
             .stream()
             .map(this::toResponse)
             .toList();
@@ -66,14 +70,33 @@ public class AffiliateDocumentService {
                 "Unsupported type: " + request.type());
         };
 
-        String docId    = generateDocumentId();
-        String fileName = buildFileName(request.type());
+        AffiliateDocument saved = documentRepository.save(
+            AffiliateDocument.builder()
+                .id(generateDocumentId())
+                .affiliateId(affiliateId)
+                .type(request.type())
+                .fileName(buildFileName(request.type()))
+                .content(pdfBytes)
+                .build()
+        );
+
+        return toResponse(saved);
+    }
+
+    // ── BLIFE-15: Generar colilla ─────────────────────────────────────────────
+
+    @Transactional
+    public DocumentResponse generatePayslip(String affiliateId, PayslipData data) {
+        byte[] pdfBytes = buildPayslip(data);
+
+        String fileName = "colilla_pago_" + data.periodMonth()
+            + "_" + data.periodYear() + ".pdf";
 
         AffiliateDocument saved = documentRepository.save(
             AffiliateDocument.builder()
-                .id(docId)
+                .id(generateDocumentId())
                 .affiliateId(affiliateId)
-                .type(request.type())
+                .type(DocumentType.PAYSLIP)
                 .fileName(fileName)
                 .content(pdfBytes)
                 .build()
@@ -91,13 +114,8 @@ public class AffiliateDocumentService {
             .getContent();
     }
 
-    // ── Construcción de PDFs ──────────────────────────────────────────────────
+    // ── Builders de PDF ───────────────────────────────────────────────────────
 
-    /**
-     * BLIFE-04-02
-     * Certificado de afiliación:
-     * nombre, cédula, fecha de afiliación, tipo de fondo, estado.
-     */
     private byte[] buildAffiliationCertificate(AffiliateData data) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -107,12 +125,10 @@ public class AffiliateDocumentService {
             doc.add(new Paragraph(
                 "BreazeLife S.A., Fondo de Pensiones Obligatorias, certifica que la " +
                     "siguiente persona se encuentra AFILIADA y activa en el sistema:")
-                .setFontSize(11)
-                .setTextAlignment(TextAlignment.JUSTIFIED)
+                .setFontSize(11).setTextAlignment(TextAlignment.JUSTIFIED)
                 .setMarginBottom(20));
 
             pdfTemplateService.addSectionTitle(doc, "Información del Afiliado");
-
             Table table = pdfTemplateService.createDataTable();
             pdfTemplateService.addTableRow(table, "Nombre completo",
                 data.firstName() + " " + data.lastName(), true);
@@ -124,8 +140,7 @@ public class AffiliateDocumentService {
                 formatDate(data.affiliationDate()), false);
             pdfTemplateService.addTableRow(table, "Tipo de fondo pensional",
                 translateAccountType(data.accountType()), true);
-            pdfTemplateService.addTableRow(table, "Estado",
-                "ACTIVO", false);
+            pdfTemplateService.addTableRow(table, "Estado", "ACTIVO", false);
             doc.add(table);
 
             doc.add(new Paragraph(
@@ -136,17 +151,11 @@ public class AffiliateDocumentService {
             pdfTemplateService.addFooter(doc);
             doc.close();
             return out.toByteArray();
-
         } catch (Exception e) {
             throw new RuntimeException("Error generating affiliation certificate", e);
         }
     }
 
-    /**
-     * BLIFE-04-04
-     * Certificado de saldo:
-     * saldo acumulado a fecha de corte y semanas cotizadas.
-     */
     private byte[] buildBalanceCertificate(AffiliateData data) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -156,8 +165,7 @@ public class AffiliateDocumentService {
             doc.add(new Paragraph(
                 "BreazeLife S.A. certifica que el estado de la cuenta pensional " +
                     "del afiliado a la fecha de corte es el siguiente:")
-                .setFontSize(11)
-                .setTextAlignment(TextAlignment.JUSTIFIED)
+                .setFontSize(11).setTextAlignment(TextAlignment.JUSTIFIED)
                 .setMarginBottom(20));
 
             pdfTemplateService.addSectionTitle(doc, "Identificación");
@@ -184,17 +192,11 @@ public class AffiliateDocumentService {
             pdfTemplateService.addFooter(doc);
             doc.close();
             return out.toByteArray();
-
         } catch (Exception e) {
             throw new RuntimeException("Error generating balance certificate", e);
         }
     }
 
-    /**
-     * BLIFE-04-05
-     * Extracto de cuenta:
-     * historial de cotizaciones y rentabilidades por rango de fechas.
-     */
     private byte[] buildAccountStatement(AffiliateData data,
                                          String fromDate, String toDate) {
         try {
@@ -216,20 +218,17 @@ public class AffiliateDocumentService {
                 translateAccountType(data.accountType()), true);
             doc.add(idTable);
 
-            // Cotizaciones
             pdfTemplateService.addSectionTitle(doc, "Cotizaciones del Período");
             if (data.quotes() != null && !data.quotes().isEmpty()) {
                 Table quotesTable = new Table(
                     UnitValue.createPercentArray(new float[]{2, 1.5f, 1.5f, 1.5f, 1}))
-                    .setWidth(UnitValue.createPercentValue(100))
-                    .setMarginBottom(15);
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginBottom(15);
                 pdfTemplateService.addTableHeaderRow(quotesTable,
                     "Fecha", "Aporte Empleador", "Aporte Empleado", "Total", "Estado");
                 boolean even = true;
                 for (QuoteRow q : data.quotes()) {
                     pdfTemplateService.addMovementRow(quotesTable, even,
-                        q.date(),
-                        formatCurrency(q.employerContrib()),
+                        q.date(), formatCurrency(q.employerContrib()),
                         formatCurrency(q.affiliateContrib()),
                         formatCurrency(q.employerContrib() + q.affiliateContrib()),
                         q.status());
@@ -241,20 +240,17 @@ public class AffiliateDocumentService {
                     .setFontSize(10).setItalic().setMarginBottom(10));
             }
 
-            // Rentabilidades
             pdfTemplateService.addSectionTitle(doc, "Rentabilidades Aplicadas");
             if (data.rentabilities() != null && !data.rentabilities().isEmpty()) {
                 Table rentTable = new Table(
                     UnitValue.createPercentArray(new float[]{2, 1.5f, 1.5f}))
-                    .setWidth(UnitValue.createPercentValue(100))
-                    .setMarginBottom(15);
+                    .setWidth(UnitValue.createPercentValue(100)).setMarginBottom(15);
                 pdfTemplateService.addTableHeaderRow(rentTable,
                     "Fecha", "Rentabilidad", "Tipo de Fondo");
                 boolean even = true;
                 for (RentabilityRow r : data.rentabilities()) {
                     pdfTemplateService.addMovementRow(rentTable, even,
-                        r.date(),
-                        formatCurrency(r.profit()),
+                        r.date(), formatCurrency(r.profit()),
                         translateAccountType(r.accountType()));
                     even = !even;
                 }
@@ -264,7 +260,6 @@ public class AffiliateDocumentService {
                     .setFontSize(10).setItalic().setMarginBottom(10));
             }
 
-            // Resumen
             pdfTemplateService.addSectionTitle(doc, "Resumen Final");
             Table summary = pdfTemplateService.createDataTable();
             pdfTemplateService.addTableRow(summary, "Saldo actual",
@@ -276,9 +271,71 @@ public class AffiliateDocumentService {
             pdfTemplateService.addFooter(doc);
             doc.close();
             return out.toByteArray();
-
         } catch (Exception e) {
             throw new RuntimeException("Error generating account statement", e);
+        }
+    }
+
+    /**
+     * BLIFE-15 — Colilla de pago individual
+     */
+    private byte[] buildPayslip(PayslipData data) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Document doc = pdfTemplateService.createDocument(out);
+            pdfTemplateService.addHeader(doc, "Colilla de Pago");
+
+            doc.add(new Paragraph(
+                "Período: " + data.periodMonth() + "/" + data.periodYear())
+                .setFontSize(11).setBold()
+                .setTextAlignment(TextAlignment.CENTER)
+                .setMarginBottom(20));
+
+            pdfTemplateService.addSectionTitle(doc, "Identificación del Empleado");
+            Table idTable = pdfTemplateService.createDataTable();
+            pdfTemplateService.addTableRow(idTable, "Nombre completo",
+                data.firstName() + " " + data.lastName(), true);
+            pdfTemplateService.addTableRow(idTable, "Número de cédula",
+                data.document(), false);
+            pdfTemplateService.addTableRow(idTable, "Cargo",
+                data.position(), true);
+            pdfTemplateService.addTableRow(idTable, "Empresa",
+                data.companyName(), false);
+            doc.add(idTable);
+
+            pdfTemplateService.addSectionTitle(doc, "Detalle del Pago");
+            Table payTable = pdfTemplateService.createDataTable();
+            pdfTemplateService.addTableRow(payTable, "Salario bruto (IBC)",
+                formatCurrency(data.grossSalary()), true);
+            pdfTemplateService.addTableRow(payTable, "Deducción pensional empleado (4%)",
+                "- " + formatCurrency(data.grossSalary() * 0.04), false);
+            pdfTemplateService.addTableRow(payTable, "Salario neto recibido",
+                formatCurrency(data.netSalary()), true);
+            doc.add(payTable);
+
+            pdfTemplateService.addSectionTitle(doc,
+                "Aportes Pensionales a BreazeLife S.A.");
+            Table pensionTable = pdfTemplateService.createDataTable();
+            pdfTemplateService.addTableRow(pensionTable, "Aporte empleado (4%)",
+                formatCurrency(data.grossSalary() * 0.04), true);
+            pdfTemplateService.addTableRow(pensionTable, "Aporte empleador (12%)",
+                formatCurrency(data.employerContrib()), false);
+            pdfTemplateService.addTableRow(pensionTable,
+                "Total cotización BreazeLife S.A. (16%)",
+                formatCurrency(data.totalContrib()), true);
+            pdfTemplateService.addTableRow(pensionTable, "Estado",
+                data.status(), false);
+            doc.add(pensionTable);
+
+            doc.add(new Paragraph(
+                "Este documento es constancia del pago realizado en el período indicado.")
+                .setFontSize(9).setItalic().setMarginTop(10));
+
+            pdfTemplateService.addFooter(doc);
+            doc.close();
+            return out.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating payslip", e);
         }
     }
 
@@ -323,16 +380,12 @@ public class AffiliateDocumentService {
             doc.getType(),
             doc.getFileName(),
             doc.getGeneratedAt(),
-            "/api/v1/affiliates/documents/" + doc.getId() + "/download"
+            "api/v1/affiliates/documents/" + doc.getId() + "/download"
         );
     }
 
-    // ── Records de datos (usados por el Controller para pasar info al Service) ─
+    // ── Records de datos ──────────────────────────────────────────────────────
 
-    /**
-     * Proyección de datos del afiliado necesarios para generar los PDFs.
-     * El Controller resuelve estos datos antes de llamar a generateCertificate().
-     */
     public record AffiliateData(
         String firstName,
         String lastName,
@@ -356,8 +409,26 @@ public class AffiliateDocumentService {
     public record RentabilityRow(
         String date,
         Double profit,
-
-
         String accountType
+    ) {}
+
+    /**
+     * BLIFE-15 — Datos para la colilla de pago.
+     * TODO: conectar con datos reales de payments/contracts/quotes
+     *       cuando módulo 7 implemente ejecución de nómina en Sprint 2.
+     */
+    public record PayslipData(
+        String firstName,
+        String lastName,
+        String document,
+        String position,
+        String companyName,
+        Integer periodMonth,
+        Integer periodYear,
+        Double grossSalary,
+        Double netSalary,
+        Double employerContrib,
+        Double totalContrib,
+        String status
     ) {}
 }

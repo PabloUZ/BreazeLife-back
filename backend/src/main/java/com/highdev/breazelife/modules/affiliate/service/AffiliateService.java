@@ -32,6 +32,7 @@ import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
 import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHistoryRepository;
@@ -53,6 +54,16 @@ public class AffiliateService {
 
     @Autowired
     private ProfitabilityHistoryRepository profitabilityHistoryRepository;
+
+    public AffiliateProfileResponseDTO getProfile(String affiliateId) {
+        Affiliate affiliate = affiliateRepository.findById(affiliateId)
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                        "Pension account not found for this affiliate"));
+        return AffiliateProfileResponseDTO.from(affiliate, account);
+    }
 
     public AffiliateDashboardResponseDTO getDashboard(String affiliateId) {
         Account account = accountRepository.findByAffiliateUserId(affiliateId)
@@ -124,30 +135,23 @@ public class AffiliateService {
 
    @Transactional
     public void saveAffiliate(AffiliateRequestDTO dto) {
-        // 1. Validar si la cédula ya existe
         if (affiliateRepository.existsByDocument(dto.document())) {
             throw new AffiliateAlreadyExistsException(dto.document());
         }
 
-        // 2. BUSCAR EL USUARIO REAL EN LA DB (Esto soluciona el JpaSystemException)
         User user = userRepository.findById(dto.userId())
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "No existe un usuario con el ID: " + dto.userId()));
 
-        // 3. Crear el afiliado y vincularlo
         Affiliate affiliate = new Affiliate();
-        
-        // IMPORTANTE: Aquí le pasamos el OBJETO 'user' completo, no solo el String
-        affiliate.setUser(user); 
-        
+        affiliate.setUser(user);
         affiliate.setDocument(dto.document());
         affiliate.setBirthDate(dto.birthDate());
         affiliate.setPhoneNumber(dto.phoneNumber());
         affiliate.setAffiliationDate(LocalDate.now());
         affiliate.setStatus(Affiliate.Status.ACTIVE);
 
-        // 4. Guardar
         affiliateRepository.save(affiliate);
-}
+    }
 
     private QuoteResponseDTO mapToQuoteResponseDTO(Quote quote) {
         QuoteResponseDTO dto = new QuoteResponseDTO();
