@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.highdev.breazelife.modules.quote.dto.response.BalanceHistoryResponseDTO;
 import com.highdev.breazelife.modules.quote.dto.response.PagedResponseDTO;
 import com.highdev.breazelife.modules.quote.dto.response.PayslipResponseDTO;
 import com.highdev.breazelife.modules.quote.dto.response.QuoteResponseDTO;
@@ -26,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +40,10 @@ import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileRes
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
 import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHistoryRepository;
+
+
+import java.util.ArrayList;
+import java.util.Collections;
 
 @Service
 public class AffiliateService {
@@ -181,58 +187,85 @@ public class AffiliateService {
 
 
         //MÉTODO DE LAS COLILLAS DE PAGO
-        public PagedResponseDTO<PayslipResponseDTO> getPayslips(String affiliateId, int page, int size) {
+        // Cambiamos la firma para recibir from y to
+        public PagedResponseDTO<PayslipResponseDTO> getPayslips(String affiliateId, LocalDate from, LocalDate to, int page, int size) {
         
-        // 1. Obtener la cuenta para poder extraer al afiliado y al usuario
         Account account = accountRepository.findByAffiliateUserId(affiliateId)
                 .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
-        
+                
+        // Validar rango y convertir a LocalDateTime (igual que en getQuoteHistory)
+        if (from != null && to != null && from.isAfter(to)) throw new InvalidDateRangeException();
+        LocalDateTime fromDT = from != null ? from.atStartOfDay() : null;
+        LocalDateTime toDT = to != null ? to.atTime(23, 59, 59) : null;
+
         Affiliate affiliate = account.getAffiliate();
-        
         String fullName = affiliate.getUser().getFirstName() + " " + affiliate.getUser().getLastName();
         String document = affiliate.getDocument();
 
-        // 2. Traer las cotizaciones que SÍ tienen un pago asociado
-        Page<Quote> quotesPage = quoteRepository
-                .findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(
-                        affiliateId, PageRequest.of(page, size));
+        // Usamos el NUEVO método del repositorio con los filtros
+        Page<Quote> quotesPage = quoteRepository.findPayslipsByFilters(
+                affiliateId, fromDT, toDT, PageRequest.of(page, size));
 
-        // 3. Mapear y calcular los valores financieros
         List<PayslipResponseDTO> content = quotesPage.getContent().stream().map(quote -> {
-        
-            // La matemática del Salario:
-            // Sabemos que el affiliateContrib es el 4% del Salario Bruto (IBC).
-            // Por lo tanto, Salario Bruto = affiliateContrib / 0.04
-            BigDecimal grossSalary = quote.getAffiliateContrib()
-                    .divide(new BigDecimal("0.04"), 2, RoundingMode.HALF_UP);
-            
-            // Y el Salario Neto (Lo que recibe el empleado) es el Bruto - 4%
-            BigDecimal netSalaryReceived = grossSalary.subtract(quote.getAffiliateContrib());
-            
-            // Total enviado al fondo (16%)
-            BigDecimal totalContrib = quote.getEmployerContrib().add(quote.getAffiliateContrib());
+                
+                BigDecimal grossSalary = quote.getAffiliateContrib().divide(new BigDecimal("0.04"), 2, java.math.RoundingMode.HALF_UP);
+                BigDecimal netSalaryReceived = grossSalary.subtract(quote.getAffiliateContrib());
+                BigDecimal totalContrib = quote.getEmployerContrib().add(quote.getAffiliateContrib());
+                String periodString = quote.getContribDate().getMonth().name() + " " + quote.getContribDate().getYear();
 
-            // Formatear periodo (Ej: "MAY 2026")
-            String periodString = quote.getContribDate().getMonth().name() + " " + quote.getContribDate().getYear();
-
-            return PayslipResponseDTO.builder()
-                    .affiliateName(fullName)
-                    .affiliateDocument(document)
-                    .period(periodString)
-                    .grossSalary(grossSalary)
-                    .pensionDeduction(quote.getAffiliateContrib()) // 4%
-                    .netSalaryReceived(netSalaryReceived)
-                    .employerContrib(quote.getEmployerContrib())   // 12%
-                    .totalContrib(totalContrib)                    // 16%
-                    .status(quote.getStatus().name())
-                    .build();
+                return PayslipResponseDTO.builder()
+                        .affiliateName(fullName)
+                        .affiliateDocument(document)
+                        .period(periodString)
+                        .grossSalary(grossSalary)
+                        .pensionDeduction(quote.getAffiliateContrib())
+                        .netSalaryReceived(netSalaryReceived)
+                        .employerContrib(quote.getEmployerContrib())
+                        .totalContrib(totalContrib)
+                        .status(quote.getStatus().name())
+                        .build();
         }).collect(Collectors.toList());
 
-        return new PagedResponseDTO<>(
-                quotesPage.getTotalElements(), 
-                quotesPage.getTotalPages(), 
-                quotesPage.getNumber(), 
-                content
-        );
-    }
+        return new PagedResponseDTO<>(quotesPage.getTotalElements(), quotesPage.getTotalPages(), quotesPage.getNumber(), content);
+        }
+
+
+
+        public List<BalanceHistoryResponseDTO> getBalanceHistory(String affiliateId) {
+        // 1. Validar que la cuenta existe (reutilizando tu excepción estándar)
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
+
+        // 2. Obtener cotizaciones aceptadas en orden cronológico (antiguas primero)
+        List<Quote> acceptedQuotes = quoteRepository.findAllAcceptedQuotesByAffiliateAsc(affiliateId);
+
+        List<BalanceHistoryResponseDTO> historyList = new ArrayList<>();
+        BigDecimal runningBalance = BigDecimal.ZERO; // Nuestro acumulador de saldo
+
+        // 3. Algoritmo de acumulación lineal
+        for (Quote quote : acceptedQuotes) {
+                BigDecimal employer = quote.getEmployerContrib() != null ? quote.getEmployerContrib() : BigDecimal.ZERO;
+                BigDecimal affiliate = quote.getAffiliateContrib() != null ? quote.getAffiliateContrib() : BigDecimal.ZERO;
+                
+                // El valor total que entra a la bolsa en esta fecha (16%)
+                BigDecimal totalContribution = employer.add(affiliate);
+
+                // Se suma progresivamente al saldo total
+                runningBalance = runningBalance.add(totalContribution);
+
+                // Construimos el registro histórico
+                BalanceHistoryResponseDTO historyNode = BalanceHistoryResponseDTO.builder()
+                        .contributionDate(quote.getContribDate())
+                        .contributionValue(totalContribution)
+                        .resultingBalance(runningBalance)
+                        .build();
+
+                historyList.add(historyNode);
+        }
+
+        // 4. Invertimos la lista para la comodidad de la UI (más reciente primero)
+        Collections.reverse(historyList);
+
+        return historyList;
+        }
 }
