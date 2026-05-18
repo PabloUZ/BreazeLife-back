@@ -55,5 +55,23 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             @Param("to") LocalDateTime to
     );
 
-    Page<Quote> findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(String affiliateId, Pageable pageable);
+        Page<Quote> findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(String affiliateId, Pageable pageable);
+
+        @Query("SELECT q FROM Quote q WHERE q.account.affiliate.userId = :affiliateId " +
+        "AND q.payment IS NOT NULL " +
+        "AND (:from IS NULL OR q.contribDate >= :from) " +
+        "AND (:to IS NULL OR q.contribDate <= :to) " +
+        "ORDER BY q.contribDate DESC")
+        Page<Quote> findPayslipsByFilters(
+            @Param("affiliateId") String affiliateId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
+    );
+
+
+    @Query("SELECT q FROM Quote q WHERE q.account.affiliate.userId = :affiliateId " +
+        "AND q.status = 'ACCEPTED' " +
+        "ORDER BY q.contribDate ASC")
+    List<Quote> findAllAcceptedQuotesByAffiliateAsc(@Param("affiliateId") String affiliateId);
 }

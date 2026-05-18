@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
-
+import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -105,6 +105,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleQuoteAlreadyProcessed(QuoteAlreadyProcessedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(ex.getMessage(), "QUOTE_ALREADY_PROCESSED", 409, "CONFLICT"));
+    }
+
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDateRange(InvalidDateRangeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ex.getMessage(), "INVALID_DATE_RANGE", 400, "BAD_REQUEST"));
     }
 
 }
