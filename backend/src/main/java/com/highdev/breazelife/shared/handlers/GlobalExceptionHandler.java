@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -89,4 +90,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of("Internal server error", "INTERNAL_SERVER_ERROR", 500, "INTERNAL_SERVER_ERROR"));
     }
+
+
+
+
+    @ExceptionHandler(QuoteAlreadyProcessedException.class)
+    public ResponseEntity<ErrorResponse> handleQuoteAlreadyProcessed(QuoteAlreadyProcessedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(ex.getMessage(), "QUOTE_ALREADY_PROCESSED", 409, "CONFLICT"));
+    }
+
 }

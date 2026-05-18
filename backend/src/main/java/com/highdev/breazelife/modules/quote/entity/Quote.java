@@ -52,6 +52,21 @@ public class Quote {
     public enum QuoteStatus {
         PENDING, ACCEPTED, REJECTED
     }
+    // Método para saber el valor base sobre el que se calcula el 16%
+    public BigDecimal getIbc() {
+        // Si el IBC es la suma de ambos aportes:
+        return this.employerContrib.add(this.affiliateContrib);
+    }
+
+    // Método para validar si ya se procesó (usando tu enum de Status)
+    public boolean isProcessed() {
+        return this.status == QuoteStatus.ACCEPTED; // O el estado que signifique "Ya sumado"
+    }
+
+    // Método para cambiar el estado
+    public void markAsProcessed() {
+        this.status = QuoteStatus.ACCEPTED;
+    }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
