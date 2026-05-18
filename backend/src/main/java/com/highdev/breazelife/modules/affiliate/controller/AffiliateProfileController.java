@@ -3,10 +3,11 @@ package com.highdev.breazelife.modules.affiliate.controller;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.affiliate.service.AffiliateService;
+import com.highdev.breazelife.modules.user.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,8 +22,8 @@ public class AffiliateProfileController {
     private AffiliateService affiliateService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@AuthenticationPrincipal UserDetails userDetails) {
-        String affiliateId = extractAffiliateId(userDetails);
+    public ResponseEntity<?> getDashboard() {
+        String affiliateId = extractAffiliateId();
         try {
             AffiliateDashboardResponseDTO dashboard = affiliateService.getDashboard(affiliateId);
             return ResponseEntity.ok(Map.of(
@@ -38,11 +39,11 @@ public class AffiliateProfileController {
         }
     }
 
-    // TODO: remove fallback when Module 1 (auth) is complete
-    private String extractAffiliateId(UserDetails userDetails) {
-        if (userDetails == null) {
+    private String extractAffiliateId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User user)) {
             return "test-affiliate-id";
         }
-        return userDetails.getUsername();
+        return user.getId();
     }
 }
