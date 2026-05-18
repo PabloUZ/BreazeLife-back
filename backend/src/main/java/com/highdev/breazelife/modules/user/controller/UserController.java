@@ -22,9 +22,11 @@ import com.highdev.breazelife.modules.user.service.UserService;
 import com.highdev.breazelife.shared.dto.ApiResponse;
 
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
     private final UserService userService;
