@@ -40,60 +40,60 @@ import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHist
 @Service
 public class AffiliateService {
 
-    @Autowired
-    private UserRepository userRepository;
+        @Autowired
+        private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+        @Autowired
+        private AccountRepository accountRepository;
 
-    @Autowired
-    private QuoteRepository quoteRepository;
+        @Autowired
+        private QuoteRepository quoteRepository;
 
-    @Autowired
-    private AffiliateRepository affiliateRepository;
+        @Autowired
+        private AffiliateRepository affiliateRepository;
 
-    @Autowired
-    private ProfitabilityHistoryRepository profitabilityHistoryRepository;
+        @Autowired
+        private ProfitabilityHistoryRepository profitabilityHistoryRepository;
 
-    public AffiliateProfileResponseDTO getProfile(String affiliateId) {
-        Affiliate affiliate = affiliateRepository.findById(affiliateId)
-                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
-                        "Pension account not found for this affiliate"));
-        Account account = accountRepository.findByAffiliateUserId(affiliateId)
-                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
-                        "Pension account not found for this affiliate"));
-        return AffiliateProfileResponseDTO.from(affiliate, account);
-    }
+        public AffiliateProfileResponseDTO getProfile(String affiliateId) {
+                Affiliate affiliate = affiliateRepository.findById(affiliateId)
+                        .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                                "Pension account not found for this affiliate"));
+                Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                        .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                                "Pension account not found for this affiliate"));
+                return AffiliateProfileResponseDTO.from(affiliate, account);
+        }
 
-    public AffiliateDashboardResponseDTO getDashboard(String affiliateId) {
-        Account account = accountRepository.findByAffiliateUserId(affiliateId)
-                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
-                        "Pension account not found for this affiliate"));
+        public AffiliateDashboardResponseDTO getDashboard(String affiliateId) {
+                Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                        .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                                "Pension account not found for this affiliate"));
 
-        int rawDays = account.getQuotedDays() != null ? account.getQuotedDays() : 0;
-        BigDecimal quotedWeeks = BigDecimal.valueOf(rawDays)
-                .divide(BigDecimal.valueOf(7), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal weeksRemaining = BigDecimal.valueOf(1300).subtract(quotedWeeks);
-        BigDecimal progressPercentage = quotedWeeks
-                .divide(BigDecimal.valueOf(1300), 4, java.math.RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .setScale(2, java.math.RoundingMode.HALF_UP);
+                int rawDays = account.getQuotedDays() != null ? account.getQuotedDays() : 0;
+                BigDecimal quotedWeeks = BigDecimal.valueOf(rawDays)
+                        .divide(BigDecimal.valueOf(7), 2, java.math.RoundingMode.HALF_UP);
+                BigDecimal weeksRemaining = BigDecimal.valueOf(1300).subtract(quotedWeeks);
+                BigDecimal progressPercentage = quotedWeeks
+                        .divide(BigDecimal.valueOf(1300), 4, java.math.RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100))
+                        .setScale(2, java.math.RoundingMode.HALF_UP);
 
-        AffiliateDashboardResponseDTO.LastContribution lastContribution = quoteRepository
-                .findTopByAccountAffiliateUserIdAndStatusOrderByContribDateDesc(
-                        affiliateId, Quote.QuoteStatus.ACCEPTED)
-                .map(q -> {
-                    BigDecimal employer = q.getEmployerContrib() != null ? q.getEmployerContrib() : BigDecimal.ZERO;
-                    BigDecimal affiliate = q.getAffiliateContrib() != null ? q.getAffiliateContrib() : BigDecimal.ZERO;
-                    return new AffiliateDashboardResponseDTO.LastContribution(
-                            q.getId(),
-                            q.getEmployerContrib(),
-                            q.getAffiliateContrib(),
-                            employer.add(affiliate),
-                            q.getDaysContributed(),
-                            q.getContribDate(),
-                            q.getStatus().name()
-                    );
+                AffiliateDashboardResponseDTO.LastContribution lastContribution = quoteRepository
+                        .findTopByAccountAffiliateUserIdAndStatusOrderByContribDateDesc(
+                                affiliateId, Quote.QuoteStatus.ACCEPTED)
+                        .map(q -> {
+                        BigDecimal employer = q.getEmployerContrib() != null ? q.getEmployerContrib() : BigDecimal.ZERO;
+                        BigDecimal affiliate = q.getAffiliateContrib() != null ? q.getAffiliateContrib() : BigDecimal.ZERO;
+                        return new AffiliateDashboardResponseDTO.LastContribution(
+                                q.getId(),
+                                q.getEmployerContrib(),
+                                q.getAffiliateContrib(),
+                                employer.add(affiliate),
+                                q.getDaysContributed(),
+                                q.getContribDate(),
+                                q.getStatus().name()
+                        );
                 })
                 .orElse(null);
 
@@ -113,9 +113,9 @@ public class AffiliateService {
                 monthlyProfitability,
                 lastContribution
         );
-    }
+        }
 
-    public PagedResponseDTO<QuoteResponseDTO> getQuoteHistory(String affiliateId, Quote.QuoteStatus status, LocalDate from, LocalDate to, int page, int size) {
+        public PagedResponseDTO<QuoteResponseDTO> getQuoteHistory(String affiliateId, Quote.QuoteStatus status, LocalDate from, LocalDate to, int page, int size) {
         Account account = accountRepository.findByAffiliateUserId(affiliateId)
                 .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
 
@@ -131,12 +131,12 @@ public class AffiliateService {
                 .collect(Collectors.toList());
 
         return new PagedResponseDTO<>(quotesPage.getTotalElements(), quotesPage.getTotalPages(), quotesPage.getNumber(), content);
-    }
+        }
 
-   @Transactional
-    public void saveAffiliate(AffiliateRequestDTO dto) {
+        @Transactional
+        public void saveAffiliate(AffiliateRequestDTO dto) {
         if (affiliateRepository.existsByDocument(dto.document())) {
-            throw new AffiliateAlreadyExistsException(dto.document());
+                throw new AffiliateAlreadyExistsException(dto.document());
         }
 
         User user = userRepository.findById(dto.userId())
@@ -151,15 +151,15 @@ public class AffiliateService {
         affiliate.setStatus(Affiliate.Status.ACTIVE);
 
         affiliateRepository.save(affiliate);
-    }
+        }
 
-    private QuoteResponseDTO mapToQuoteResponseDTO(Quote quote) {
+        private QuoteResponseDTO mapToQuoteResponseDTO(Quote quote) {
         QuoteResponseDTO dto = new QuoteResponseDTO();
         dto.setQuoteId(quote.getId());
         dto.setEmployerContrib(quote.getEmployerContrib());
         dto.setAffiliateContrib(quote.getAffiliateContrib());
         if (quote.getEmployerContrib() != null && quote.getAffiliateContrib() != null) {
-            dto.setTotalContrib(quote.getEmployerContrib().add(quote.getAffiliateContrib()));
+                dto.setTotalContrib(quote.getEmployerContrib().add(quote.getAffiliateContrib()));
         }
         dto.setDaysContributed(quote.getDaysContributed());
         dto.setContribDate(quote.getContribDate());
@@ -169,10 +169,10 @@ public class AffiliateService {
         dto.setComment(quote.getComment());
 
         if (quote.getPayment() != null) {
-            QuoteResponseDTO.PaymentDTO paymentDTO = new QuoteResponseDTO.PaymentDTO();
-            paymentDTO.setPaymentId(quote.getPayment().getId());
-            dto.setPayment(paymentDTO);
+                QuoteResponseDTO.PaymentDTO paymentDTO = new QuoteResponseDTO.PaymentDTO();
+                paymentDTO.setPaymentId(quote.getPayment().getId());
+                dto.setPayment(paymentDTO);
         }
         return dto;
-    }
+        }
 }

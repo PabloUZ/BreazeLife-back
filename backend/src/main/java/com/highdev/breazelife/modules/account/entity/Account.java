@@ -47,6 +47,15 @@ public class Account {
         return "ACC-" + date + "-" + random;
     }
 
+    public void accumulateContribution(BigDecimal ibc, int days) {
+        // Regla 1: 16% del IBC
+        BigDecimal contribution = ibc.multiply(new BigDecimal("0.16"));
+        this.balance = this.balance.add(contribution);
+        
+        // Regla 2: Sumar días exactos
+        this.quotedDays += days;
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
