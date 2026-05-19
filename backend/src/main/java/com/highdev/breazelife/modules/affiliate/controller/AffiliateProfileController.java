@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -48,16 +49,16 @@ public class AffiliateProfileController {
     public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateAffiliateProfileRequestDTO request) {
         String affiliateId = extractAffiliateId();
         AffiliateService.UpdateProfileResult result = affiliateService.updateProfile(affiliateId, request);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("user_id", result.userId());
+        data.put("email", result.email());
+        data.put("phone", result.phone());
+        data.put("account_type", result.accountType());
         return ResponseEntity.ok(Map.of(
                 "message", "Profile updated successfully",
                 "status_code", 200,
                 "status", "OK",
-                "data", Map.of(
-                        "user_id", result.userId(),
-                        "email", result.email() != null ? result.email() : "",
-                        "phone", result.phone() != null ? result.phone() : "",
-                        "account_type", result.accountType() != null ? result.accountType() : ""
-                )
+                "data", data
         ));
     }
 

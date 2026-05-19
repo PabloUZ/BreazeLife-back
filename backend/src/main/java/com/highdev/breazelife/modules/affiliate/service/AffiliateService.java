@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.ConflictException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
@@ -68,7 +70,7 @@ public class AffiliateService {
         private ProfitabilityHistoryRepository profitabilityHistoryRepository;
 
         @Autowired
-        private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+        private PasswordEncoder passwordEncoder;
 
         @Transactional
         public UpdateProfileResult updateProfile(String affiliateId, UpdateAffiliateProfileRequestDTO request) {
