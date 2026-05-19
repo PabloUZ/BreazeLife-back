@@ -35,7 +35,11 @@ import java.util.stream.Collectors;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 
+import com.highdev.breazelife.common.exceptions.http.BadRequestException;
+import com.highdev.breazelife.common.exceptions.http.ConflictException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.common.exceptions.http.UnauthorizedException;
+import com.highdev.breazelife.modules.affiliate.dto.request.UpdateAffiliateProfileRequestDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
@@ -62,6 +66,74 @@ public class AffiliateService {
 
         @Autowired
         private ProfitabilityHistoryRepository profitabilityHistoryRepository;
+
+        @Autowired
+        private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+        @Transactional
+        public UpdateProfileResult updateProfile(String affiliateId, UpdateAffiliateProfileRequestDTO request) {
+                Affiliate affiliate = affiliateRepository.findById(affiliateId)
+                        .orElseThrow(() -> new NotFoundException("AFFILIATE_NOT_FOUND",
+                                "Affiliate not found"));
+
+                if (request.email() == null && request.phone() == null
+                        && request.newPassword() == null && request.accountType() == null) {
+                        throw new BadRequestException("NO_FIELDS_TO_UPDATE",
+                                "At least one field must be provided");
+                }
+
+                User user = affiliate.getUser();
+                Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                        .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND",
+                                "Pension account not found for this affiliate"));
+
+                if (request.email() != null && !request.email().equals(user.getEmail())) {
+                        if (userRepository.existsByEmail(request.email())) {
+                                throw new ConflictException("EMAIL_ALREADY_IN_USE",
+                                        "Email is already in use");
+                        }
+                        user.setEmail(request.email());
+                }
+
+                if (request.phone() != null && !request.phone().equals(affiliate.getPhoneNumber())) {
+                        if (affiliateRepository.existsByPhoneNumber(request.phone())) {
+                                throw new ConflictException("PHONE_ALREADY_IN_USE",
+                                        "Phone number is already registered by another affiliate");
+                        }
+                        affiliate.setPhoneNumber(request.phone());
+                }
+
+                if (request.newPassword() != null) {
+                        if (request.currentPassword() == null) {
+                                throw new BadRequestException("CURRENT_PASSWORD_REQUIRED",
+                                        "Current password is required to set a new password");
+                        }
+                        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                                throw new UnauthorizedException("INVALID_CURRENT_PASSWORD",
+                                        "Current password is incorrect");
+                        }
+                        user.setPassword(passwordEncoder.encode(request.newPassword()));
+                }
+
+                if (request.accountType() != null) {
+                        try {
+                                account.setAccountType(Account.AccountType.valueOf(request.accountType()));
+                        } catch (IllegalArgumentException e) {
+                                throw new BadRequestException("INVALID_ACCOUNT_TYPE",
+                                        "Invalid account type. Allowed values: CONSERVATIVE, MODERATE, RISKY");
+                        }
+                        accountRepository.save(account);
+                }
+
+                userRepository.save(user);
+                affiliateRepository.save(affiliate);
+
+                return new UpdateProfileResult(user.getId(), user.getEmail(),
+                        affiliate.getPhoneNumber(),
+                        account.getAccountType() != null ? account.getAccountType().name() : null);
+        }
+
+        public record UpdateProfileResult(String userId, String email, String phone, String accountType) {}
 
         public AffiliateProfileResponseDTO getProfile(String affiliateId) {
                 Affiliate affiliate = affiliateRepository.findById(affiliateId)
