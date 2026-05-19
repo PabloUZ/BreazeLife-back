@@ -28,8 +28,8 @@ CREATE TABLE admins (
 -- ============================================
 CREATE TABLE employers (
     user_id            CHAR(36) PRIMARY KEY,
-    nit                VARCHAR(20) UNIQUE NOT NULL,
-    company_name       VARCHAR(50) NOT NULL,
+    nit                VARCHAR(20) UNIQUE,
+    company_name       VARCHAR(50),
     sector             VARCHAR(100),
     name_legal_rep     VARCHAR(50),
     id_legal_rep       VARCHAR(20),

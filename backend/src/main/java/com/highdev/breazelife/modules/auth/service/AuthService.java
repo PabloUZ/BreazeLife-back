@@ -13,6 +13,7 @@ import com.highdev.breazelife.modules.auth.exception.InvalidRefreshTokenExceptio
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.exception.EmailAlreadyExistsException;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
+import com.highdev.breazelife.modules.employer.service.EmployerService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,11 +27,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmployerService employerService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, EmployerService employerService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+        this.jwtService = jwtService; 
+        this.employerService = employerService;
     }
 
     public SignupResponse signup(SignupRequest request) {
@@ -49,6 +52,12 @@ public class AuthService {
         user.setRole(request.role());
         user.setVerified(false);
         userRepository.save(user);
+
+        // Si el usuario es un employer, crear un perfil vacío
+        if (user.getRole() == User.Role.EMPLOYER) {
+            employerService.createEmptyProfile(user.getId());
+        }
+
         return new SignupResponse(user.getId(), user.getEmail(), false);
     }
 
