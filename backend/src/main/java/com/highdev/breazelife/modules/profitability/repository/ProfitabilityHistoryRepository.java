@@ -17,5 +17,6 @@ public interface ProfitabilityHistoryRepository extends JpaRepository<Profitabil
     Optional<ProfitabilityHistory> findTopByAccountIdOrderByDateDesc(String accountId);
 
     Page<ProfitabilityHistory> findByAccountIdAndDateBetweenOrderByDateDesc(String accountId, LocalDate from, LocalDate to, Pageable pageable);
-        
+
+    boolean existsByDateBetween(LocalDate from, LocalDate to);
 }
