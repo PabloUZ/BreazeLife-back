@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.highdev.breazelife.modules.user.entity.User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,11 +25,11 @@ public class PayrollController {
 
     @PostMapping("/preview")
     public ResponseEntity<ApiResponse<PayrollPreviewResponse>> previewPayroll(
-        @AuthenticationPrincipal UserDetails userDetails,
+        @AuthenticationPrincipal User user,
         @RequestHeader(value = "X-Employer-Id", required = false) String headerEmployerId,
         @Valid @RequestBody PayrollPreviewRequest request) {
 
-        String employerUserId = userDetails != null ? userDetails.getUsername() : headerEmployerId;
+        String employerUserId = user != null ? user.getId() : headerEmployerId;
         if (employerUserId == null || employerUserId.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
