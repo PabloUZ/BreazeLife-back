@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.highdev.breazelife.modules.user.entity.User;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,9 +28,10 @@ public class EmployerController {
         @ApiResponse(responseCode = "404", description = "El empleador no existe en el sistema")
     })
     @GetMapping("/profile")
-    public ResponseEntity<EmployerProfileResponseDTO> getProfile() {
-        // En un paso real, obtendrás el ID del token JWT
-        String userIdFromToken = "id-quemado-para-pruebas"; 
+    public ResponseEntity<EmployerProfileResponseDTO> getProfile(
+        @AuthenticationPrincipal User user) {
+        
+        String userIdFromToken = user != null ? user.getId() : "id-quemado-para-pruebas"; 
         
         return ResponseEntity.ok(employerService.getProfile(userIdFromToken));
     }
