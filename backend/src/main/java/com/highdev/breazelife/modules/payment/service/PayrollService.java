@@ -1,5 +1,7 @@
 package com.highdev.breazelife.modules.payment.service;
 
+import com.highdev.breazelife.modules.account.entity.Account;
+import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
@@ -8,14 +10,22 @@ import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.fund.entity.Fund;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.repository.FundRepository;
+import com.highdev.breazelife.modules.payment.dto.request.ExecutePayrollRequest;
 import com.highdev.breazelife.modules.payment.dto.request.PayrollPreviewRequest;
 import com.highdev.breazelife.modules.payment.dto.response.EmployeePayrollPreviewResponse;
+import com.highdev.breazelife.modules.payment.dto.response.ExecutePayrollResponse;
+import com.highdev.breazelife.modules.payment.dto.response.PaymentResultDTO;
 import com.highdev.breazelife.modules.payment.dto.response.PayrollPreviewResponse;
+import com.highdev.breazelife.modules.payment.entity.Payment;
 import com.highdev.breazelife.modules.payment.exceptions.NoActiveEmployeesException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollAlreadyProcessedException;
+import com.highdev.breazelife.modules.payment.exceptions.PayrollInsufficientFundsException;
 import com.highdev.breazelife.modules.payment.repository.PaymentRepository;
+import com.highdev.breazelife.modules.quote.entity.Quote;
+import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -25,6 +35,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PayrollService {
@@ -38,15 +49,21 @@ public class PayrollService {
     private final FundRepository fundRepository;
     private final EmployerRepository employerRepository;
     private final PaymentRepository paymentRepository;
+    private final QuoteRepository quoteRepository;
+    private final AccountRepository accountRepository;
 
     public PayrollService(ContractRepository contractRepository,
                           FundRepository fundRepository,
                           EmployerRepository employerRepository,
-                          PaymentRepository paymentRepository) {
+                          PaymentRepository paymentRepository,
+                          QuoteRepository quoteRepository,
+                          AccountRepository accountRepository) {
         this.contractRepository = contractRepository;
         this.fundRepository = fundRepository;
         this.employerRepository = employerRepository;
         this.paymentRepository = paymentRepository;
+        this.quoteRepository = quoteRepository;
+        this.accountRepository = accountRepository;
     }
 
     // ─── Preview ─────────────────────────────────────────────────────────────
@@ -119,7 +136,121 @@ public class PayrollService {
         return response;
     }
 
-    // ─── Execute (sprint 2) ──────────────────────────────────────────────────
+    // ─── Execute ─────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ExecutePayrollResponse execute(String employerUserId, ExecutePayrollRequest request) {
+        Employer employer = findEmployer(employerUserId);
+
+        validatePeriodNotProcessed(employerUserId, request.getPeriod());
+
+        List<Contract> contracts = getActiveContracts(employerUserId);
+        if (contracts.isEmpty()) {
+            throw new NoActiveEmployeesException();
+        }
+
+        // Calcular totales antes de tocar fondos
+        List<EmployeePayrollPreviewResponse> details = new ArrayList<>();
+        BigDecimal totalNetSalary      = BigDecimal.ZERO;
+        BigDecimal totalEmployerContrib = BigDecimal.ZERO;
+
+        for (Contract contract : contracts) {
+            EmployeePayrollPreviewResponse detail = buildEmployeeDetail(contract);
+            details.add(detail);
+            totalNetSalary       = totalNetSalary.add(detail.getNetSalary());
+            totalEmployerContrib = totalEmployerContrib.add(detail.getEmployerPensionContrib());
+        }
+
+        // Verificar saldos — si alguno es insuficiente, no persistir nada
+        BigDecimal payrollBalance = getFundBalance(employerUserId, FundType.PAYROLL);
+        BigDecimal pensionBalance = getFundBalance(employerUserId, FundType.PENSION);
+
+        if (payrollBalance.compareTo(totalNetSalary) < 0 || pensionBalance.compareTo(totalEmployerContrib) < 0) {
+            throw new PayrollInsufficientFundsException(
+                payrollBalance, totalNetSalary,
+                pensionBalance, totalEmployerContrib
+            );
+        }
+
+        // Cargar entidades Fund para debitar
+        Fund payrollFund = fundRepository.findByEmployerIdAndType(employerUserId, FundType.PAYROLL)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Payroll fund not found"));
+        Fund pensionFund = fundRepository.findByEmployerIdAndType(employerUserId, FundType.PENSION)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Pension fund not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        // Calcular base de IDs para quotes una sola vez antes del loop
+        long quoteBaseCount = quoteRepository.count();
+
+        List<PaymentResultDTO> paymentResults = new ArrayList<>();
+
+        for (int i = 0; i < contracts.size(); i++) {
+            Contract contract = contracts.get(i);
+            EmployeePayrollPreviewResponse detail = details.get(i);
+
+            // a. Debitar fondo PAYROLL (salario neto)
+            payrollFund.deductFunds(detail.getNetSalary());
+
+            // b. Debitar fondo PENSION (aporte patronal 12%)
+            pensionFund.deductFunds(detail.getEmployerPensionContrib());
+
+            // c. Persistir Payment
+            Payment payment = new Payment();
+            payment.setId(UUID.randomUUID().toString());
+            payment.setContract(contract);
+            payment.setNetSalary(detail.getNetSalary());
+            payment.setDate(now);
+            paymentRepository.save(payment);
+
+            // d. Crear Quote vinculada al Payment y a la Account del afiliado
+            Account account = accountRepository
+                .findByAffiliateUserId(contract.getAffiliate().getUserId())
+                .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR, "Account not found for affiliate"));
+
+            Quote quote = new Quote();
+            quote.setId(String.format("QTE-%06d", quoteBaseCount + i + 1));
+            quote.setAccount(account);
+            quote.setPayment(payment);
+            quote.setEmployerContrib(detail.getEmployerPensionContrib());
+            quote.setAffiliateContrib(detail.getEmployeePensionDeduction());
+            quote.setDaysContributed(30);
+            quote.setContribDate(now);
+            quote.setStatus(Quote.QuoteStatus.PENDING);
+            quoteRepository.save(quote);
+
+            PaymentResultDTO result = new PaymentResultDTO();
+            result.setPaymentId(payment.getId());
+            result.setContractId(contract.getId());
+            result.setAffiliateName(detail.getAffiliateName());
+            result.setDocument(detail.getDocument());
+            result.setNetSalary(detail.getNetSalary());
+            result.setQuoteId(quote.getId());
+            result.setStatus("PROCESSED");
+            paymentResults.add(result);
+        }
+
+        // Persistir fondos con los saldos ya debitados
+        fundRepository.saveAll(List.of(payrollFund, pensionFund));
+
+        ExecutePayrollResponse.Totals totals = new ExecutePayrollResponse.Totals();
+        totals.setTotalEmployees(contracts.size());
+        totals.setTotalNetSalaryPaid(totalNetSalary);
+        totals.setTotalPensionContrib(totalEmployerContrib);
+        totals.setTotalDebit(totalNetSalary.add(totalEmployerContrib));
+
+        ExecutePayrollResponse response = new ExecutePayrollResponse();
+        response.setPeriod(request.getPeriod());
+        response.setEmployerId(employerUserId);
+        response.setCompanyName(employer.getCompanyName());
+        response.setStatus("PROCESSED");
+        response.setPayments(paymentResults);
+        response.setTotals(totals);
+        response.setPayrollFundRemaining(payrollFund.getBalance());
+        response.setPensionFundRemaining(pensionFund.getBalance());
+
+        return response;
+    }
 
     // ─── Helpers privados ────────────────────────────────────────────────────
 
