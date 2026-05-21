@@ -35,6 +35,7 @@ public class UserController {
         this.userService = userService;
     }
 
+    
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponse>> create(@Valid @RequestBody CreateUserRequest request) {
         UserResponse data = userService.create(request);

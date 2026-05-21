@@ -14,7 +14,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
+import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
+import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
+import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -54,6 +56,12 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ex.getMessage(), "DOCUMENT_ALREADY_EXISTS", 409, "CONFLICT"));
     }
 
+    @ExceptionHandler(AffiliateNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAffiliateNotFound(AffiliateNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ex.getMessage(), "USER_NOT_FOUND", 404, "NOT_FOUND"));
+    }
+
     // ── HTTP helpers (BadRequestException / NotFoundException) ────────────────
 
     @ExceptionHandler(NotFoundException.class)
@@ -89,4 +97,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of("Internal server error", "INTERNAL_SERVER_ERROR", 500, "INTERNAL_SERVER_ERROR"));
     }
+
+
+
+
+    @ExceptionHandler(QuoteAlreadyProcessedException.class)
+    public ResponseEntity<ErrorResponse> handleQuoteAlreadyProcessed(QuoteAlreadyProcessedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(ex.getMessage(), "QUOTE_ALREADY_PROCESSED", 409, "CONFLICT"));
+    }
+
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDateRange(InvalidDateRangeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ex.getMessage(), "INVALID_DATE_RANGE", 400, "BAD_REQUEST"));
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.highdev.breazelife.modules.admin.controller;
 
+import com.highdev.breazelife.modules.admin.dto.response.AdminDashboardGraphsResponseDTO;
 import com.highdev.breazelife.modules.admin.dto.response.AdminDashboardSummaryResponseDTO;
 import com.highdev.breazelife.modules.admin.service.AdminDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,5 +30,14 @@ public class AdminDashboardController {
     @GetMapping("/summary")
     public ResponseEntity<AdminDashboardSummaryResponseDTO> getSummary() {
         return ResponseEntity.ok(adminDashboardService.getSummary());
+    }
+
+    @Operation(summary = "Obtener gráficas del dashboard administrativo", description = "Retorna datos agregados para las gráficas del panel de administración")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Datos gráficos obtenidos exitosamente")
+    })
+    @GetMapping("/graphs")
+    public ResponseEntity<AdminDashboardGraphsResponseDTO> getGraphs() {
+        return ResponseEntity.ok(adminDashboardService.getGraphs());
     }
 }

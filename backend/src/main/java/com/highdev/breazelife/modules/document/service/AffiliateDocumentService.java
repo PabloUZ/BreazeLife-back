@@ -374,12 +374,15 @@ public class AffiliateDocumentService {
         return date != null ? date.format(DATE_FMT) : "—";
     }
 
+
     private DocumentResponse toResponse(AffiliateDocument doc) {
         return new DocumentResponse(
             doc.getId(),
             doc.getType(),
             doc.getFileName(),
-            doc.getGeneratedAt(),
+            doc.getGeneratedAt() != null
+                ? doc.getGeneratedAt()
+                : java.time.LocalDateTime.now(),
             "api/v1/affiliates/documents/" + doc.getId() + "/download"
         );
     }
