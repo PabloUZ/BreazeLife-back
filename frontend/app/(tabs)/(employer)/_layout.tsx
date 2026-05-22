@@ -58,6 +58,18 @@ export default function EmployerTabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="register-employee"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

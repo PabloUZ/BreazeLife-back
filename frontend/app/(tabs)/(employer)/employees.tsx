@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { listEmployees } from "@/src/services/api/employeeService";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EmployeeCard from "@/src/components/employer/employeeCard";
+import { useFocusEffect } from "expo-router";
 import type {
   EmployeeStatus,
   EmployerEmployeeDto,
@@ -58,9 +59,11 @@ export default function EmployerEmployeesScreen() {
     []
   );
 
-  useEffect(() => {
-    fetchEmployees(0, selectedStatus, true);
-  }, [selectedStatus, fetchEmployees]);
+  useFocusEffect(
+    useCallback(() => {
+        fetchEmployees(0, selectedStatus, true);
+    }, [selectedStatus, fetchEmployees])
+);
 
   const handleStatusFilter = (status: EmployeeStatus | "ALL") => {
     if (status === selectedStatus) return;
@@ -113,7 +116,7 @@ export default function EmployerEmployeesScreen() {
         </View>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => router.push("/(tabs)/(admin)/employers")}
+          onPress={() => router.push("/(tabs)/(employer)/register-employee")}
         >
           <Text style={styles.addButtonText}>+ Registrar</Text>
         </TouchableOpacity>
