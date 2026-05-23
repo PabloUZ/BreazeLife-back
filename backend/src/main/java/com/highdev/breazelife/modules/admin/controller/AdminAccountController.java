@@ -1,20 +1,24 @@
 package com.highdev.breazelife.modules.admin.controller;
 
+import com.highdev.breazelife.modules.admin.dto.request.CreateAdminRequestDto;
 import com.highdev.breazelife.modules.admin.dto.request.SuspendAccountRequestDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountActionResponseDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountDetailDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountListItemDto;
+import com.highdev.breazelife.modules.admin.dto.response.CreateAdminResponseDto;
 import com.highdev.breazelife.modules.admin.service.AdminAccountService;
 import com.highdev.breazelife.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +36,21 @@ public class AdminAccountController {
 
     public AdminAccountController(AdminAccountService adminAccountService) {
         this.adminAccountService = adminAccountService;
+    }
+
+    @Operation(summary = "Crear administrador", description = "Crea un nuevo usuario con rol ADMIN. Solo puede ser ejecutado por un administrador autenticado")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "Administrador creado exitosamente"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "Datos inválidos o email ya en uso"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acceso denegado")
+    })
+    @PostMapping("/users")
+    public ResponseEntity<ApiResponse<CreateAdminResponseDto>> createAdmin(@Valid @RequestBody CreateAdminRequestDto request) {
+        CreateAdminResponseDto data = adminAccountService.createAdmin(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.of("Admin created successfully.", 201, "CREATED", data));
     }
 
     @Operation(summary = "Obtener cuentas administrables", description = "Retorna cuentas de afiliados y empleadores con filtros opcionales para gestión administrativa")

@@ -1,10 +1,13 @@
 package com.highdev.breazelife.modules.document.controller;
 
+import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
+import com.highdev.breazelife.modules.affiliate.service.AffiliateService;
 import com.highdev.breazelife.modules.document.dto.request.GenerateCertificateRequest;
 import com.highdev.breazelife.modules.document.dto.response.DocumentResponse;
 import com.highdev.breazelife.modules.document.service.AffiliateDocumentService;
 import com.highdev.breazelife.modules.document.service.AffiliateDocumentService.AffiliateData;
 import com.highdev.breazelife.modules.document.service.AffiliateDocumentService.PayslipData;
+import com.highdev.breazelife.modules.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -17,10 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +33,9 @@ import java.util.Map;
 public class AffiliateDocumentController {
 
     private final AffiliateDocumentService documentService;
+    private final AffiliateService affiliateService;
+
+    // ── GET /api/v1/affiliates/documents ──────────────────────────────────────
 
     @GetMapping
     @Operation(summary = "List affiliate documents")
@@ -40,9 +44,8 @@ public class AffiliateDocumentController {
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<Map<String, Object>> getDocuments(
-        @AuthenticationPrincipal UserDetails userDetails) {
-        String affiliateId = extractAffiliateId(userDetails);
-        List<DocumentResponse> documents = documentService.getDocuments(affiliateId);
+        @AuthenticationPrincipal User user) {
+        List<DocumentResponse> documents = documentService.getDocuments(user.getId());
         return ResponseEntity.ok(Map.of(
             "message", "Documents retrieved successfully",
             "status_code", 200,
@@ -51,20 +54,25 @@ public class AffiliateDocumentController {
         ));
     }
 
+    // ── POST /api/v1/affiliates/documents/certificate ─────────────────────────
+
     @PostMapping("/certificate")
     @Operation(summary = "Generate affiliate certificate",
-        description = "Type: AFFILIATION_CERTIFICATE | BALANCE_CERTIFICATE | ACCOUNT_STATEMENT. fromDate and toDate required only for ACCOUNT_STATEMENT.")
+        description = "Type: AFFILIATION_CERTIFICATE | BALANCE_CERTIFICATE | ACCOUNT_STATEMENT. " +
+            "fromDate and toDate required only for ACCOUNT_STATEMENT.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Certificate generated successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid request"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<Map<String, Object>> generateCertificate(
-        @AuthenticationPrincipal UserDetails userDetails,
+        @AuthenticationPrincipal User user,
         @Valid @RequestBody GenerateCertificateRequest request) {
-        String affiliateId = extractAffiliateId(userDetails);
-        AffiliateData data = buildAffiliateData(affiliateId);
-        DocumentResponse result = documentService.generateCertificate(affiliateId, request, data);
+
+        AffiliateData data = buildAffiliateData(user.getId());
+        DocumentResponse result = documentService.generateCertificate(
+            user.getId(), request, data);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "message", "Certificate generated successfully",
             "status_code", 201,
@@ -73,19 +81,17 @@ public class AffiliateDocumentController {
         ));
     }
 
-    // ── BLIFE-15: Listar colillas ─────────────────────────────────────────────
+    // ── GET /api/v1/affiliates/documents/payslips ─────────────────────────────
 
     @GetMapping("/payslips")
-    @Operation(summary = "List affiliate payslip history",
-        description = "Returns all payslip PDFs previously generated for the authenticated affiliate")
+    @Operation(summary = "List affiliate payslip history")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Payslips listed successfully"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<Map<String, Object>> getPayslips(
-        @AuthenticationPrincipal UserDetails userDetails) {
-        String affiliateId = extractAffiliateId(userDetails);
-        List<DocumentResponse> payslips = documentService.getPayslips(affiliateId);
+        @AuthenticationPrincipal User user) {
+        List<DocumentResponse> payslips = documentService.getPayslips(user.getId());
         return ResponseEntity.ok(Map.of(
             "message", "Payslips retrieved successfully",
             "status_code", 200,
@@ -94,20 +100,21 @@ public class AffiliateDocumentController {
         ));
     }
 
-    // ── BLIFE-15: Generar colilla ─────────────────────────────────────────────
+    // ── POST /api/v1/affiliates/documents/payslips ────────────────────────────
 
     @PostMapping("/payslips")
     @Operation(summary = "Generate affiliate payslip PDF",
-        description = "Generates a payslip PDF for the current pay period. TODO: connect with real payment data in Sprint 2.")
+        description = "Generates a payslip PDF. TODO: connect with real payment data in Sprint 2.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Payslip generated successfully"),
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<Map<String, Object>> generatePayslip(
-        @AuthenticationPrincipal UserDetails userDetails) {
-        String affiliateId = extractAffiliateId(userDetails);
-        PayslipData data = buildPayslipData(affiliateId);
-        DocumentResponse result = documentService.generatePayslip(affiliateId, data);
+        @AuthenticationPrincipal User user) {
+
+        PayslipData data = buildPayslipData(user.getId());
+        DocumentResponse result = documentService.generatePayslip(user.getId(), data);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
             "message", "Payslip generated successfully",
             "status_code", 201,
@@ -116,6 +123,8 @@ public class AffiliateDocumentController {
         ));
     }
 
+    // ── GET /api/v1/affiliates/documents/{document_id}/download ──────────────
+
     @GetMapping("/{document_id}/download")
     @Operation(summary = "Download affiliate document PDF")
     @ApiResponses({
@@ -123,43 +132,58 @@ public class AffiliateDocumentController {
         @ApiResponse(responseCode = "404", description = "Document not found")
     })
     public ResponseEntity<byte[]> downloadDocument(
-        @AuthenticationPrincipal UserDetails userDetails,
+        @AuthenticationPrincipal User user,
         @PathVariable("document_id") String documentId) {
-        String affiliateId = extractAffiliateId(userDetails);
-        byte[] pdfBytes = documentService.downloadDocument(documentId, affiliateId);
+
+        byte[] pdfBytes = documentService.downloadDocument(documentId, user.getId());
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", documentId + ".pdf");
         headers.setContentLength(pdfBytes.length);
+
         return ResponseEntity.ok().headers(headers).body(pdfBytes);
     }
 
-    private String extractAffiliateId(UserDetails userDetails) {
-        if (userDetails == null) return "test-affiliate-id";
-        return userDetails.getUsername();
-    }
+    // ── Helpers privados ──────────────────────────────────────────────────────
 
-    // MOCK — TODO: reemplazar con affiliateService + accountService (módulos 2/3)
+    // TODO Sprint 2: usar datos reales de accounts
     private AffiliateData buildAffiliateData(String affiliateId) {
+        AffiliateProfileResponseDTO profile = affiliateService.getProfile(affiliateId);
+
         return new AffiliateData(
-            "Laura", "Gómez", "1002456789",
-            LocalDate.of(1995, 3, 15),
-            LocalDate.of(2024, 1, 10),
-            "MODERATE", 4500000.0, 210,
-            List.of(), List.of()
+            profile.firstName(),
+            profile.lastName(),
+            profile.document(),
+            profile.birthDate(),
+            profile.affiliationDate(),
+            profile.account() != null ? profile.account().accountType() : null,
+            profile.account() != null && profile.account().balance() != null
+                ? profile.account().balance().doubleValue() : 0.0,
+            profile.account() != null && profile.account().quotedDays() != null
+                ? profile.account().quotedDays() : 0,
+            List.of(),
+            List.of()
         );
     }
 
-    // MOCK — TODO: reemplazar con datos reales de payments/contracts/quotes (módulo 7 Sprint 2)
+    // TODO Sprint 2: usar datos reales de contracts
     private PayslipData buildPayslipData(String affiliateId) {
+        AffiliateProfileResponseDTO profile = affiliateService.getProfile(affiliateId);
+
         return new PayslipData(
-            "Laura", "Gómez", "1002456789",
-            "Desarrolladora de Software",
-            "Tech Corp S.A.S.",
-            5, 2026,
-            2000000.0, 1920000.0,
-            240000.0, 320000.0,
-            "PAGADO"
+            profile.firstName(),
+            profile.lastName(),
+            profile.document(),
+            "—",           // cargo → disponible en Sprint 2 desde contracts
+            "—",           // empresa → disponible en Sprint 2 desde contracts
+            java.time.LocalDate.now().getMonthValue(),
+            java.time.LocalDate.now().getYear(),
+            0.0,           // grossSalary → disponible en Sprint 2
+            0.0,           // netSalary → disponible en Sprint 2
+            0.0,           // employerContrib → disponible en Sprint 2
+            0.0,           // totalContrib → disponible en Sprint 2
+            "PENDIENTE"
         );
     }
 }

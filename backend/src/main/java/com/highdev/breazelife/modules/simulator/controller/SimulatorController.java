@@ -11,7 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.highdev.breazelife.modules.user.entity.User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -54,7 +54,7 @@ public class SimulatorController {
         @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     public ResponseEntity<Map<String, Object>> simulate(
-        @AuthenticationPrincipal UserDetails userDetails,
+        @AuthenticationPrincipal User user,
         @Valid @RequestBody SimulatorRequest request) {
 
         SimulatorResponse result = simulatorService.simulate(request);

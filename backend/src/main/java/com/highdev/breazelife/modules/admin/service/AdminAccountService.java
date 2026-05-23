@@ -2,13 +2,17 @@ package com.highdev.breazelife.modules.admin.service;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.admin.dto.request.CreateAdminRequestDto;
 import com.highdev.breazelife.modules.admin.dto.request.SuspendAccountRequestDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountActionResponseDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountDetailDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminAccountListItemDto;
+import com.highdev.breazelife.modules.admin.dto.response.CreateAdminResponseDto;
+import com.highdev.breazelife.modules.admin.entity.Admin;
 import com.highdev.breazelife.modules.admin.exceptions.AdminAccountActionException;
 import com.highdev.breazelife.modules.admin.exceptions.AdminAccountDetailException;
 import com.highdev.breazelife.modules.admin.exceptions.AdminAccountListException;
+import com.highdev.breazelife.modules.admin.repository.AdminRepository;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.employer.entity.Employer;
@@ -18,10 +22,12 @@ import com.highdev.breazelife.modules.user.repository.UserRepository;
 import com.highdev.breazelife.shared.dto.PaginationMeta;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AdminAccountService {
@@ -31,15 +37,49 @@ public class AdminAccountService {
     private final UserRepository userRepository;
     private final AffiliateRepository affiliateRepository;
     private final EmployerRepository employerRepository;
+    private final AdminRepository adminRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AdminAccountService(
             UserRepository userRepository,
             AffiliateRepository affiliateRepository,
-            EmployerRepository employerRepository
+            EmployerRepository employerRepository,
+            AdminRepository adminRepository,
+            PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
+        this.adminRepository = adminRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional
+    public CreateAdminResponseDto createAdmin(CreateAdminRequestDto request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new BadRequestException("EMAIL_ALREADY_EXISTS", "Email already in use");
+        }
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setEmail(request.email());
+        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setRole(User.Role.ADMIN);
+        user.setVerified(true);
+        userRepository.save(user);
+
+        Admin admin = new Admin();
+        admin.setUser(user);
+        adminRepository.save(admin);
+
+        return new CreateAdminResponseDto(
+                user.getId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                user.getRole().name()
+        );
     }
 
     @Transactional(readOnly = true)
