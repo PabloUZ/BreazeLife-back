@@ -1,7 +1,9 @@
 package com.highdev.breazelife.shared.handlers;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
+import com.highdev.breazelife.common.exceptions.http.ConflictException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.common.exceptions.http.UnauthorizedException;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
 import com.highdev.breazelife.modules.auth.exception.InvalidCredentialsException;
 import com.highdev.breazelife.modules.auth.exception.InvalidRefreshTokenException;
@@ -62,18 +64,30 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(ex.getMessage(), "USER_NOT_FOUND", 404, "NOT_FOUND"));
     }
 
-    // ── HTTP helpers (BadRequestException / NotFoundException) ────────────────
+    // ── HTTP helpers (BadRequestException / NotFoundException / ConflictException / UnauthorizedException) ──
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of(ex.getMessage(), "NOT_FOUND", 404, "NOT_FOUND"));
+                .body(ErrorResponse.of(ex.getMessage(), ex.getCode(), 404, "NOT_FOUND"));
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of(ex.getMessage(), "BAD_REQUEST", 400, "BAD_REQUEST"));
+                .body(ErrorResponse.of(ex.getMessage(), ex.getCode(), 400, "BAD_REQUEST"));
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(ex.getMessage(), ex.getCode(), 409, "CONFLICT"));
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(ex.getMessage(), ex.getCode(), 401, "UNAUTHORIZED"));
     }
 
     // ── Validation ────────────────────────────────────────────────────────────

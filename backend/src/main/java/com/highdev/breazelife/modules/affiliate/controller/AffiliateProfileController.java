@@ -1,18 +1,23 @@
 package com.highdev.breazelife.modules.affiliate.controller;
 
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.affiliate.dto.request.UpdateAffiliateProfileRequestDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.affiliate.service.AffiliateService;
 import com.highdev.breazelife.modules.user.entity.User;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -38,6 +43,23 @@ public class AffiliateProfileController {
         } catch (Exception e) {
             throw new NotFoundException("ACCOUNT_NOT_FOUND", "Pension account not found for this affiliate");
         }
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateAffiliateProfileRequestDTO request) {
+        String affiliateId = extractAffiliateId();
+        AffiliateService.UpdateProfileResult result = affiliateService.updateProfile(affiliateId, request);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("user_id", result.userId());
+        data.put("email", result.email());
+        data.put("phone", result.phone());
+        data.put("account_type", result.accountType());
+        return ResponseEntity.ok(Map.of(
+                "message", "Profile updated successfully",
+                "status_code", 200,
+                "status", "OK",
+                "data", data
+        ));
     }
 
     @GetMapping("/dashboard")
