@@ -52,6 +52,23 @@ export type EmployeeListResponseDto = {
     last: boolean;
 };
 
+export type EmployeeDetailDto = {
+    contractId: string;
+    affiliateId: string;
+    employerId: string;
+    companyName: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    document: string;
+    birthDate: string;
+    position: string;
+    baseSalary: number;
+    startDate: string;
+    endDate: string | null;
+    status: EmployeeStatus;
+};
+
 export type EmployeeListParamsDto = {
     page?: number;
     size?: number;
