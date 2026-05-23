@@ -15,14 +15,22 @@ import com.highdev.breazelife.modules.payment.dto.request.PayrollPreviewRequest;
 import com.highdev.breazelife.modules.payment.dto.response.EmployeePayrollPreviewResponse;
 import com.highdev.breazelife.modules.payment.dto.response.ExecutePayrollResponse;
 import com.highdev.breazelife.modules.payment.dto.response.PaymentResultDTO;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollDetailPaymentDTO;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollDetailResponse;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollHistoryItemDTO;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollHistoryResponse;
 import com.highdev.breazelife.modules.payment.dto.response.PayrollPreviewResponse;
 import com.highdev.breazelife.modules.payment.entity.Payment;
 import com.highdev.breazelife.modules.payment.exceptions.NoActiveEmployeesException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollAlreadyProcessedException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollInsufficientFundsException;
+import com.highdev.breazelife.modules.payment.exceptions.PayrollNotFoundException;
 import com.highdev.breazelife.modules.payment.repository.PaymentRepository;
+import com.highdev.breazelife.modules.payment.repository.PaymentRepository.PayrollSummaryProjection;
 import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -249,6 +257,126 @@ public class PayrollService {
         response.setPayrollFundRemaining(payrollFund.getBalance());
         response.setPensionFundRemaining(pensionFund.getBalance());
 
+        return response;
+    }
+
+    // ─── History ─────────────────────────────────────────────────────────────
+
+    public PayrollHistoryResponse getHistory(String employerUserId, int page, int limit, String period, String status) {
+        findEmployer(employerUserId);
+
+        // status filter: only PROCESSED payrolls exist (execute is transactional)
+        if (status != null && !status.equalsIgnoreCase("PROCESSED")) {
+            PayrollHistoryResponse empty = new PayrollHistoryResponse();
+            empty.setItems(List.of());
+            empty.setPagination(new PayrollHistoryResponse.Pagination(page, limit, 0));
+            return empty;
+        }
+
+        Page<PayrollSummaryProjection> resultPage = paymentRepository.findPayrollSummaries(
+            employerUserId,
+            period,
+            PageRequest.of(page - 1, limit)
+        );
+
+        List<PayrollHistoryItemDTO> items = resultPage.getContent().stream()
+            .map(proj -> {
+                BigDecimal netSalary = proj.getTotalNetSalary() != null ? proj.getTotalNetSalary() : BigDecimal.ZERO;
+                // Derive employer contrib (12%) and total pension contrib (16%) from net salary
+                BigDecimal ibc             = netSalary.divide(NET_SALARY_RATE, 10, RoundingMode.HALF_UP);
+                BigDecimal pensionContrib  = ibc.multiply(TOTAL_CONTRIBUTION_RATE).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal employerContrib = ibc.multiply(EMPLOYER_CONTRIBUTION_RATE).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal totalDebit      = netSalary.add(employerContrib).setScale(2, RoundingMode.HALF_UP);
+
+                PayrollHistoryItemDTO item = new PayrollHistoryItemDTO();
+                item.setPayrollId(proj.getPeriod());
+                item.setPeriod(proj.getPeriod());
+                item.setTotalEmployees(proj.getTotalEmployees() != null ? proj.getTotalEmployees() : 0L);
+                item.setTotalNetSalary(netSalary.setScale(2, RoundingMode.HALF_UP));
+                item.setTotalPensionContrib(pensionContrib);
+                item.setTotalDebit(totalDebit);
+                item.setStatus("PROCESSED");
+                item.setExecutedAt(proj.getExecutedAt());
+                return item;
+            })
+            .toList();
+
+        PayrollHistoryResponse response = new PayrollHistoryResponse();
+        response.setItems(items);
+        response.setPagination(new PayrollHistoryResponse.Pagination(page, limit, resultPage.getTotalElements()));
+        return response;
+    }
+
+    // ─── Detail ───────────────────────────────────────────────────────────────
+
+    public PayrollDetailResponse getDetail(String employerUserId, String payrollId) {
+        Employer employer = findEmployer(employerUserId);
+
+        List<Payment> payments = paymentRepository.findByEmployerAndPeriod(employerUserId, payrollId);
+        if (payments.isEmpty()) {
+            throw new PayrollNotFoundException();
+        }
+
+        BigDecimal totalGross              = BigDecimal.ZERO;
+        BigDecimal totalNetSalary          = BigDecimal.ZERO;
+        BigDecimal totalEmployerContrib    = BigDecimal.ZERO;
+        BigDecimal totalAffiliateContrib   = BigDecimal.ZERO;
+
+        List<PayrollDetailPaymentDTO> paymentDTOs = new ArrayList<>();
+
+        for (Payment payment : payments) {
+            Quote quote = quoteRepository.findByPayment_Id(payment.getId()).orElse(null);
+
+            BigDecimal employerContrib  = quote != null ? quote.getEmployerContrib()  : BigDecimal.ZERO;
+            BigDecimal affiliateContrib = quote != null ? quote.getAffiliateContrib() : BigDecimal.ZERO;
+            BigDecimal gross = employerContrib.add(affiliateContrib)
+                .divide(TOTAL_CONTRIBUTION_RATE, 10, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
+
+            PayrollDetailPaymentDTO dto = new PayrollDetailPaymentDTO();
+            dto.setPaymentId(payment.getId());
+            dto.setContractId(payment.getContract().getId());
+            dto.setAffiliateName(
+                payment.getContract().getAffiliate().getUser().getFirstName() + " " +
+                payment.getContract().getAffiliate().getUser().getLastName()
+            );
+            dto.setDocument(payment.getContract().getAffiliate().getDocument());
+            dto.setPosition(payment.getContract().getPosition());
+            dto.setBaseSalary(gross);
+            dto.setEmployeePensionDeduction(affiliateContrib.setScale(2, RoundingMode.HALF_UP));
+            dto.setNetSalary(payment.getNetSalary());
+            dto.setEmployerPensionContrib(employerContrib.setScale(2, RoundingMode.HALF_UP));
+            dto.setTotalPensionContrib(employerContrib.add(affiliateContrib).setScale(2, RoundingMode.HALF_UP));
+            dto.setDaysContributed(quote != null ? quote.getDaysContributed() : 30);
+            dto.setQuoteId(quote != null ? quote.getId() : null);
+            dto.setQuoteStatus(quote != null ? quote.getStatus().name() : null);
+            dto.setStatus("PROCESSED");
+            paymentDTOs.add(dto);
+
+            totalGross            = totalGross.add(gross);
+            totalNetSalary        = totalNetSalary.add(payment.getNetSalary());
+            totalEmployerContrib  = totalEmployerContrib.add(employerContrib);
+            totalAffiliateContrib = totalAffiliateContrib.add(affiliateContrib);
+        }
+
+        PayrollDetailResponse.Totals totals = new PayrollDetailResponse.Totals();
+        totals.setTotalEmployees(payments.size());
+        totals.setTotalGrossSalary(totalGross.setScale(2, RoundingMode.HALF_UP));
+        totals.setTotalNetSalary(totalNetSalary.setScale(2, RoundingMode.HALF_UP));
+        totals.setTotalEmployerPensionContrib(totalEmployerContrib.setScale(2, RoundingMode.HALF_UP));
+        totals.setTotalEmployeePensionDeduction(totalAffiliateContrib.setScale(2, RoundingMode.HALF_UP));
+        totals.setTotalPensionContrib(totalEmployerContrib.add(totalAffiliateContrib).setScale(2, RoundingMode.HALF_UP));
+        totals.setTotalDebit(totalNetSalary.add(totalEmployerContrib).setScale(2, RoundingMode.HALF_UP));
+
+        PayrollDetailResponse response = new PayrollDetailResponse();
+        response.setPayrollId(payrollId);
+        response.setPeriod(payrollId);
+        response.setEmployerId(employerUserId);
+        response.setCompanyName(employer.getCompanyName());
+        response.setStatus("PROCESSED");
+        response.setExecutedAt(payments.get(0).getDate());
+        response.setPayments(paymentDTOs);
+        response.setTotals(totals);
         return response;
     }
 

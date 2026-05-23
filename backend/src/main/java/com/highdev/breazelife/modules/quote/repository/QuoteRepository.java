@@ -26,6 +26,8 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
         BigDecimal getTotalContribution();
     }
 
+    Optional<Quote> findByPayment_Id(String paymentId);
+
     Page<Quote> findByStatus(Quote.QuoteStatus status, Pageable pageable);
 
     Page<Quote> findByStatusOrderByContribDateDesc(Quote.QuoteStatus status, Pageable pageable);
