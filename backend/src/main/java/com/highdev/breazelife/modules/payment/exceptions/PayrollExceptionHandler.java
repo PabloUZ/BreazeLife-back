@@ -24,6 +24,26 @@ public class PayrollExceptionHandler {
             .body(errorBody(ex.getMessage(), "NO_ACTIVE_EMPLOYEES", 400, "BAD_REQUEST"));
     }
 
+    @ExceptionHandler(PayrollInsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientFunds(PayrollInsufficientFundsException ex) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("payroll_fund_balance", ex.getPayrollFundBalance());
+        data.put("payroll_fund_required", ex.getPayrollFundRequired());
+        data.put("pension_fund_balance", ex.getPensionFundBalance());
+        data.put("pension_fund_required", ex.getPensionFundRequired());
+        data.put("payroll_fund_sufficient", ex.getPayrollFundBalance().compareTo(ex.getPayrollFundRequired()) >= 0);
+        data.put("pension_fund_sufficient", ex.getPensionFundBalance().compareTo(ex.getPensionFundRequired()) >= 0);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", ex.getMessage());
+        body.put("message_code", "INSUFFICIENT_FUNDS");
+        body.put("status_code", 422);
+        body.put("status", "UNPROCESSABLE_ENTITY");
+        body.put("data", data);
+
+        return ResponseEntity.status(422).body(body);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
