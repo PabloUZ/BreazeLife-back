@@ -148,10 +148,15 @@ export default function EmployerEmployeesScreen() {
       <FlatList
         data={employees}
         keyExtractor={(item) => item.contractId}
-        renderItem={({ item }) => <EmployeeCard employee={item} />}
-        contentContainerStyle={
-          employees.length === 0 ? styles.emptyContainer : styles.listContent
-        }
+        renderItem={({ item }) => (
+          <EmployeeCard
+            employee={item}
+            onPress={() => router.push({
+              pathname: "/(tabs)/(employer)/employee-detail",
+              params: { contractId: item.contractId },
+            })}
+          />
+        )}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         ListEmptyComponent={

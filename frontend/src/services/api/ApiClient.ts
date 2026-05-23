@@ -9,7 +9,18 @@ export type ApiRequestConfig = {
 
 // Reemplazar con implementación real cuando el módulo de auth esté listo
 
-const MOCK_EMPLOYEES_BASE = [
+const MOCK_EMPLOYEES_BASE: {
+  contractId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  document: string;
+  position: string;
+  baseSalary: number;
+  startDate: string;
+  birthDate: string;
+  status: "ACTIVE" | "INACTIVE";
+}[] = [
   {
     contractId: "1",
     firstName: "Laura",
@@ -19,7 +30,8 @@ const MOCK_EMPLOYEES_BASE = [
     position: "Desarrolladora Frontend",
     baseSalary: 4500000,
     startDate: "2024-01-15",
-    status: "ACTIVE" as const,
+    birthDate: "1995-03-22",
+    status: "ACTIVE",
   },
   {
     contractId: "2",
@@ -30,7 +42,8 @@ const MOCK_EMPLOYEES_BASE = [
     position: "Diseñador UX",
     baseSalary: 3800000,
     startDate: "2023-06-01",
-    status: "ACTIVE" as const,
+    birthDate: "1990-07-15",
+    status: "ACTIVE",
   },
   {
     contractId: "3",
@@ -41,7 +54,8 @@ const MOCK_EMPLOYEES_BASE = [
     position: "Analista de Datos",
     baseSalary: 5200000,
     startDate: "2022-03-10",
-    status: "INACTIVE" as const,
+    birthDate: "1988-11-30",
+    status: "INACTIVE",
   },
 ];
 
@@ -91,6 +105,33 @@ export class ApiClient {
       };
       mockEmployees.push(newEmployee);
       return newEmployee as TResponse;
+    }
+
+    if (config.method === "GET" && config.endpoint.includes("/employee-detail/")) {
+      const parts = config.endpoint.split("/");
+      const contractId = parts[parts.length - 1];
+      const found = mockEmployees.find((e) => e.contractId === contractId);
+
+      if (!found) {
+        throw new Error("EMPLOYEE_NOT_FOUND");
+      }
+
+      return {
+        contractId: found.contractId,
+        affiliateId: "affiliate-" + found.contractId,
+        employerId: "placeholder-employer-id",
+        companyName: "BreazeLife S.A.",
+        firstName: found.firstName,
+        lastName: found.lastName,
+        email: found.email,
+        document: found.document,
+        birthDate: found.birthDate || "1990-01-01",
+        position: found.position,
+        baseSalary: found.baseSalary,
+        startDate: found.startDate,
+        endDate: null,
+        status: found.status,
+      } as TResponse;
     }
 
     throw new Error("ApiClient.request: endpoint not mocked.");

@@ -70,6 +70,12 @@ export default function EmployerTabsLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="employee-detail"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

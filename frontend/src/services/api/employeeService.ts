@@ -1,5 +1,6 @@
 import { apiClient } from "@/src/services/api/ApiClient";
 import type {
+    EmployeeDetailDto,
     EmployeeListParamsDto,
     EmployeeListResponseDto,
     RegisterEmployeeDto,
@@ -39,5 +40,15 @@ export async function listEmployees(
     return apiClient.request<EmployeeListResponseDto>({
         method: "GET",
         endpoint,
+    });
+}
+
+export async function getEmployeeDetail(
+    employerId: string,
+    contractId: string
+): Promise<EmployeeDetailDto> {
+    return apiClient.request<EmployeeDetailDto>({
+        method: "GET",
+        endpoint: `${BASE_PATH}/${employerId}/employee-detail/${contractId}`,
     });
 }

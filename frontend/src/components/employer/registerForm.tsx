@@ -128,7 +128,7 @@ export default function RegisterEmployeeForm() {
             Alert.alert(
                 "¡Empleado registrado!",
                 `${payload.firstName} ${payload.lastName} fue registrado exitosamente.`,
-                [{ text: "Ver lista", onPress: () => router.back() }]
+                [{ text: "Ver lista", onPress: () => router.replace("/(tabs)/(employer)/employees") }]
             );
         } catch {
             Alert.alert("Error", "No se pudo registrar el empleado. Intenta de nuevo.");
