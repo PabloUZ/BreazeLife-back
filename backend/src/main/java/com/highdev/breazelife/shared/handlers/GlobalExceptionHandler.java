@@ -6,6 +6,8 @@ import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.common.exceptions.http.UnauthorizedException;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
 import com.highdev.breazelife.modules.auth.exception.InvalidCredentialsException;
+import com.highdev.breazelife.modules.notification.exceptions.ForbiddenNotificationException;
+import com.highdev.breazelife.modules.notification.exceptions.NotificationNotFoundException;
 import com.highdev.breazelife.modules.auth.exception.InvalidRefreshTokenException;
 import com.highdev.breazelife.modules.user.exception.EmailAlreadyExistsException;
 import com.highdev.breazelife.modules.user.exception.UserNotFoundException;
@@ -62,6 +64,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAffiliateNotFound(AffiliateNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ex.getMessage(), "USER_NOT_FOUND", 404, "NOT_FOUND"));
+    }
+
+    // ── Notification ──────────────────────────────────────────────────────────
+
+    @ExceptionHandler(NotificationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotificationNotFound(NotificationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(ex.getMessage(), "NOTIFICATION_NOT_FOUND", 404, "NOT_FOUND"));
+    }
+
+    @ExceptionHandler(ForbiddenNotificationException.class)
+    public ResponseEntity<ErrorResponse> handleForbiddenNotification(ForbiddenNotificationException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(ex.getMessage(), "FORBIDDEN_NOTIFICATION", 403, "FORBIDDEN"));
     }
 
     // ── HTTP helpers (BadRequestException / NotFoundException / ConflictException / UnauthorizedException) ──
