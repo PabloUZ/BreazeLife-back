@@ -1,6 +1,7 @@
 import { httpClient } from "@/src/config/http";
 import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import type {
+  AdminAlertsResponseDto,
   AdminDashboardGraphsDto,
   AdminDashboardSummaryDto,
 } from "@/src/dtos/admin/admin.dtos";
@@ -45,6 +46,17 @@ export async function getAdminDashboardGraphs(): Promise<AdminDashboardGraphsDto
   try {
     const response = await httpClient.get<AdminDashboardGraphsDto>(
       `${BASE_PATH}/graphs`
+    );
+    return response.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+}
+
+export async function getAdminDashboardAlerts(): Promise<AdminAlertsResponseDto> {
+  try {
+    const response = await httpClient.get<AdminAlertsResponseDto>(
+      `${BASE_PATH}/alerts`
     );
     return response.data;
   } catch (error) {

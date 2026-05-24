@@ -144,6 +144,33 @@ export interface AdminQuoteListParamsDto {
   status?: QuoteStatus;
 }
 
+export type AdminAlertSeverity = "INFO" | "WARNING" | "ERROR" | "SUCCESS";
+
+export interface AdminAlertItemDto {
+  type: string;
+  severity: AdminAlertSeverity;
+  message: string;
+  count?: number;
+}
+
+export interface AdminAlertsResponseDto {
+  alerts: AdminAlertItemDto[];
+}
+
+export interface AdminNotificationDto {
+  id: string;
+  userId: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface AdminNotificationListParamsDto {
+  page?: number;
+  limit?: number;
+  read?: boolean;
+}
+
 export type AdminDashboardDto = AdminDashboardSummaryDto;
 
 export type AdminAffiliateDto = Record<string, never>;
@@ -153,5 +180,3 @@ export type AdminEmployerDto = Record<string, never>;
 export type AdminReportDto = Record<string, never>;
 
 export type AdminSettingsDto = Record<string, never>;
-
-export type AdminNotificationDto = Record<string, never>;
