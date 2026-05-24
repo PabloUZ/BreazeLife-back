@@ -64,7 +64,7 @@ export default function AdminTabsLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: "Reportes",
+          title: "Gráficas",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart-outline" size={size} color={color} />
           ),

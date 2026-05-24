@@ -1,6 +1,9 @@
 import { httpClient } from "@/src/config/http";
 import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
-import type { AdminDashboardSummaryDto } from "@/src/dtos/admin/admin.dtos";
+import type {
+  AdminDashboardGraphsDto,
+  AdminDashboardSummaryDto,
+} from "@/src/dtos/admin/admin.dtos";
 
 const BASE_PATH = "/api/v1/admin/dashboard";
 
@@ -31,6 +34,17 @@ export async function getAdminDashboardSummary(): Promise<AdminDashboardSummaryD
   try {
     const response = await httpClient.get<AdminDashboardSummaryDto>(
       `${BASE_PATH}/summary`
+    );
+    return response.data;
+  } catch (error) {
+    throw extractApiError(error);
+  }
+}
+
+export async function getAdminDashboardGraphs(): Promise<AdminDashboardGraphsDto> {
+  try {
+    const response = await httpClient.get<AdminDashboardGraphsDto>(
+      `${BASE_PATH}/graphs`
     );
     return response.data;
   } catch (error) {
