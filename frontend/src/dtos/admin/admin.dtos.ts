@@ -1,4 +1,12 @@
-export type AdminDashboardDto = Record<string, never>;
+export interface AdminDashboardSummaryDto {
+  activeAffiliates: number;
+  activeEmployers: number;
+  pendingContributions: number;
+  managedBalance: number;
+  monthlyContributions: number;
+}
+
+export type AdminDashboardDto = AdminDashboardSummaryDto;
 
 export type AdminAffiliateDto = Record<string, never>;
 

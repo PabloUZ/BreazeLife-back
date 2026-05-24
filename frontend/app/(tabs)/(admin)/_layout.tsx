@@ -1,7 +1,28 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuthContext } from "@/src/context/AuthContext";
+
+const ROLE_ROUTES = {
+  affiliate: "/(tabs)/(affiliate)/dashboard",
+  employer: "/(tabs)/(employer)/dashboard",
+  guest: "/(auth)/login",
+} as const;
 
 export default function AdminTabsLayout() {
+  const { isLoading, state } = useAuthContext();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!state.isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (state.role !== "admin") {
+    return <Redirect href={ROLE_ROUTES[state.role] as never} />;
+  }
+
   return (
     <Tabs screenOptions={{ headerShown: true }}>
       <Tabs.Screen
