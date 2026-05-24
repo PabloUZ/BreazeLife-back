@@ -164,10 +164,11 @@ CREATE TABLE quotes (
 -- ============================================
 CREATE TABLE notifications (
     id          VARCHAR(20) PRIMARY KEY,
-    user        CHAR(36),
-    message     TEXT,
-    read        BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (user) REFERENCES users(id)
+    user_id     CHAR(36) NOT NULL,
+    message     TEXT NOT NULL,
+    is_read     BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ============================================

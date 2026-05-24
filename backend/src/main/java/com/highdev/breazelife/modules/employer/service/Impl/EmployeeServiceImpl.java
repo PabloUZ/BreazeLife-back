@@ -7,8 +7,11 @@ import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
 import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
+import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeResponse;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
@@ -139,5 +142,64 @@ public class EmployeeServiceImpl implements EmployeeService {
             response.setStatus(contract.getAffiliate().getStatus().name());
             return response;
         });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EmployeeDetailResponse getEmployeeDetail(String employerId, String contractId) {
+
+        Contract contract = contractRepository.findByIdAndEmployerUserId(contractId, employerId)
+            .orElseThrow(() -> new NotFoundException("EMPLOYEE_NOT_FOUND",
+                "Employee not found with contract id: " + contractId));
+
+        EmployeeDetailResponse response = new EmployeeDetailResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(contract.getAffiliate().getUserId());
+        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setCompanyName(contract.getEmployer().getCompanyName());
+        response.setFirstName(contract.getAffiliate().getUser().getFirstName());
+        response.setLastName(contract.getAffiliate().getUser().getLastName());
+        response.setEmail(contract.getAffiliate().getUser().getEmail());
+        response.setDocument(contract.getAffiliate().getDocument());
+        response.setBirthDate(contract.getAffiliate().getBirthDate());
+        response.setPosition(contract.getPosition());
+        response.setBaseSalary(contract.getBaseSalary());
+        response.setStartDate(contract.getStartDate());
+        response.setEndDate(contract.getEndDate());
+        response.setStatus(contract.getAffiliate().getStatus().name());
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public UpdateEmployeeResponse updateEmployee(String employerId, String contractId, UpdateEmployeeRequest request) {
+
+        Contract contract = contractRepository.findByIdAndEmployerUserId(contractId, employerId)
+            .orElseThrow(() -> new NotFoundException("EMPLOYEE_NOT_FOUND",
+                "Employee not found with contract id: " + contractId));
+
+        Affiliate affiliate = contract.getAffiliate();
+        User user = affiliate.getUser();
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        affiliate.setBirthDate(request.getBirthDate());
+
+        UpdateEmployeeResponse response = new UpdateEmployeeResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(affiliate.getUserId());
+        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setEmail(user.getEmail());
+        response.setDocument(affiliate.getDocument());
+        response.setBirthDate(affiliate.getBirthDate());
+        response.setPosition(contract.getPosition());
+        response.setBaseSalary(contract.getBaseSalary());
+        response.setStartDate(contract.getStartDate());
+        response.setStatus(affiliate.getStatus().name());
+
+        return response;
     }
 }

@@ -16,7 +16,21 @@ import java.util.Optional;
 @Repository
 public interface QuoteRepository extends JpaRepository<Quote, String> {
 
+    interface QuoteStatusCountProjection {
+        Quote.QuoteStatus getStatus();
+        Long getCount();
+    }
+
+    interface MonthlyContributionProjection {
+        String getMonth();
+        BigDecimal getTotalContribution();
+    }
+
+    Optional<Quote> findByPayment_Id(String paymentId);
+
     Page<Quote> findByStatus(Quote.QuoteStatus status, Pageable pageable);
+
+    Page<Quote> findByStatusOrderByContribDateDesc(Quote.QuoteStatus status, Pageable pageable);
 
     Page<Quote> findByAccountAffiliateUserIdOrderByContribDateDesc(String affiliateUserId, Pageable pageable);
 
@@ -54,4 +68,44 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );
+
+    @Query("""
+            select q.status as status, count(q) as count
+            from Quote q
+            group by q.status
+            """)
+    List<QuoteStatusCountProjection> countQuotesGroupedByStatus();
+
+    @Query("""
+            select function('date_format', q.contribDate, '%Y-%m') as month,
+                   coalesce(sum(q.employerContrib), 0) + coalesce(sum(q.affiliateContrib), 0) as totalContribution
+            from Quote q
+            where q.status = :status
+              and q.contribDate is not null
+            group by function('date_format', q.contribDate, '%Y-%m')
+            order by function('date_format', q.contribDate, '%Y-%m')
+            """)
+    List<MonthlyContributionProjection> sumMonthlyContributionsByStatus(
+            @Param("status") Quote.QuoteStatus status
+    );
+
+        Page<Quote> findByAccountAffiliateUserIdAndPaymentIsNotNullOrderByContribDateDesc(String affiliateId, Pageable pageable);
+
+        @Query("SELECT q FROM Quote q WHERE q.account.affiliate.userId = :affiliateId " +
+        "AND q.payment IS NOT NULL " +
+        "AND (:from IS NULL OR q.contribDate >= :from) " +
+        "AND (:to IS NULL OR q.contribDate <= :to) " +
+        "ORDER BY q.contribDate DESC")
+        Page<Quote> findPayslipsByFilters(
+            @Param("affiliateId") String affiliateId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable
+    );
+
+
+    @Query("SELECT q FROM Quote q WHERE q.account.affiliate.userId = :affiliateId " +
+        "AND q.status = 'ACCEPTED' " +
+        "ORDER BY q.contribDate ASC")
+    List<Quote> findAllAcceptedQuotesByAffiliateAsc(@Param("affiliateId") String affiliateId);
 }

@@ -1,12 +1,17 @@
 package com.highdev.breazelife.modules.fund.controller;
 
+import com.highdev.breazelife.modules.fund.dto.request.DeductFundsRequest;
 import com.highdev.breazelife.modules.fund.dto.request.RechargeFundRequest;
+import com.highdev.breazelife.modules.fund.dto.request.ValidateFundsRequest;
 import com.highdev.breazelife.modules.fund.dto.response.ApiResponse;
 import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
+import com.highdev.breazelife.modules.fund.dto.response.FundValidationResponse;
 import com.highdev.breazelife.modules.fund.dto.response.MovementPageResponse;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.service.FundsService;
 import com.highdev.breazelife.modules.user.entity.User;
+
+import java.util.Map;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -115,6 +120,37 @@ public class FundsController {
             ApiResponse.success("Movements retrieved successfully", 200, "OK", data));
     }
     
+    @PostMapping("/validate")
+    @PreAuthorize("hasAnyRole('EMPLOYER')")
+    public ResponseEntity<ApiResponse<FundValidationResponse>> validateFunds(
+            @PathVariable("employer_id") String employerId,
+            @Valid @RequestBody ValidateFundsRequest request) {
 
-    
+        validateOwnership(employerId);
+
+        FundValidationResponse data = fundsService.validateFunds(employerId, request);
+        return ResponseEntity.ok(
+            ApiResponse.success("Funds are sufficient to execute payroll", 200, "OK", data));
+    }
+
+    @PostMapping("/deduct")
+    @PreAuthorize("hasAnyRole('EMPLOYER')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deductFunds(
+            @PathVariable("employer_id") String employerId,
+            @Valid @RequestBody DeductFundsRequest request) {
+
+        validateOwnership(employerId);
+
+        fundsService.deductFunds(employerId, request);
+
+        FundResponse payroll = fundsService.getFundByType(employerId, FundType.PAYROLL);
+        FundResponse pension = fundsService.getFundByType(employerId, FundType.PENSION);
+
+        Map<String, Object> data = Map.of(
+            "payroll_fund", payroll,
+            "pension_fund", pension
+        );
+
+        return ResponseEntity.ok(ApiResponse.success("Funds deducted successfully", 200, "OK", data));
+    }
 }

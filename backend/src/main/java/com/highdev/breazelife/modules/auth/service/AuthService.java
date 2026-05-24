@@ -1,6 +1,5 @@
 package com.highdev.breazelife.modules.auth.service;
 
-import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.config.JwtService;
 import com.highdev.breazelife.modules.auth.dto.request.LoginRequest;
 import com.highdev.breazelife.modules.auth.dto.request.RefreshTokenRequest;
@@ -37,9 +36,6 @@ public class AuthService {
     }
 
     public SignupResponse signup(SignupRequest request) {
-        if (request.role() == User.Role.ADMIN) {
-            throw new BadRequestException("INVALID_INPUT", "Invalid input data");
-        }
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException();
         }

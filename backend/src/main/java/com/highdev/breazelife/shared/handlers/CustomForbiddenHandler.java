@@ -23,7 +23,7 @@ public class CustomForbiddenHandler implements AccessDeniedHandler {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json");
 
-        ErrorResponse body = new ErrorResponse(
+        ErrorResponse body = ErrorResponse.of(
                 "You do not have permission to access this resource",
                 "FORBIDDEN",
                 403,
