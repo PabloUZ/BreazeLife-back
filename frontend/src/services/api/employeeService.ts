@@ -1,4 +1,4 @@
-import { apiClient } from "@/src/services/api/ApiClient";
+import { httpClient } from "@/src/config/http";
 import type {
     EmployeeDetailDto,
     EmployeeListParamsDto,
@@ -15,11 +15,11 @@ export async function registerEmployee(
     employerId: string,
     data: RegisterEmployeeDto
 ): Promise<RegisterEmployeeResponseDto> {
-    return apiClient.request<RegisterEmployeeResponseDto>({
-        method: "POST",
-        endpoint: `${BASE_PATH}/${employerId}/employees`,
-        body: data,
-    });
+    const response = await httpClient.post<RegisterEmployeeResponseDto>(
+        `${BASE_PATH}/${employerId}/new-employee`,
+        data
+    );
+    return response.data;
 }
 
 export async function listEmployees(
@@ -36,23 +36,20 @@ export async function listEmployees(
         query.append("status", params.status);
 
     const queryString = query.toString();
-    const endpoint = `${BASE_PATH}/${employerId}/employees${queryString ? `?${queryString}` : ""
-        }`;
+    const endpoint = `${BASE_PATH}/${employerId}/list-employees${queryString ? `?${queryString}` : ""}`;
 
-    return apiClient.request<EmployeeListResponseDto>({
-        method: "GET",
-        endpoint,
-    });
+    const response = await httpClient.get<EmployeeListResponseDto>(endpoint);
+    return response.data;
 }
 
 export async function getEmployeeDetail(
     employerId: string,
     contractId: string
 ): Promise<EmployeeDetailDto> {
-    return apiClient.request<EmployeeDetailDto>({
-        method: "GET",
-        endpoint: `${BASE_PATH}/${employerId}/employee-detail/${contractId}`,
-    });
+    const response = await httpClient.get<EmployeeDetailDto>(
+        `${BASE_PATH}/${employerId}/employee-detail/${contractId}`
+    );
+    return response.data;
 }
 
 export async function updateEmployee(
@@ -60,9 +57,9 @@ export async function updateEmployee(
     contractId: string,
     data: UpdateEmployeeDto
 ): Promise<UpdateEmployeeResponseDto> {
-    return apiClient.request<UpdateEmployeeResponseDto>({
-        method: "PUT",
-        endpoint: `${BASE_PATH}/${employerId}/update-employee/${contractId}`,
-        body: data,
-    });
+    const response = await httpClient.put<UpdateEmployeeResponseDto>(
+        `${BASE_PATH}/${employerId}/update-employee/${contractId}`,
+        data
+    );
+    return response.data;
 }

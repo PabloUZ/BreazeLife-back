@@ -1,36 +1,77 @@
-import { Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useAuthContext } from "@/src/context/AuthContext";
+import LoginForm from "@/src/components/auth/LoginForm";
+import { getMe } from "@/src/services/api/authService";
+import type { LoginResponseDto } from "@/src/dtos/auth/auth.dtos";
 
-import PlaceholderLinkButton from "@/src/components/navigation/PlaceholderLinkButton";
-import PlaceholderScreen from "@/src/components/placeholders/PlaceholderScreen";
+type LoginData = LoginResponseDto["data"];
+
+const ROLE_ROUTES = {
+  affiliate: "/(tabs)/(affiliate)/dashboard",
+  employer:  "/(tabs)/(employer)/dashboard",
+  admin:     "/(tabs)/(admin)/dashboard",
+} as const;
 
 export default function LoginScreen() {
+  const router = useRouter();
+  const { signIn } = useAuthContext();
+
+  const handleSuccess = async (data: LoginData) => {
+    const me = await getMe(data.access_token);
+    await signIn(data.access_token, data.refresh_token, me.data);
+    const role = me.data.role.toLowerCase() as keyof typeof ROLE_ROUTES;
+    router.replace((ROLE_ROUTES[role] ?? ROLE_ROUTES.affiliate) as never);
+  };
+
   return (
-    <PlaceholderScreen
-      title="Auth Login"
-      subtitle="Temporary entry point for the authentication module."
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
     >
-      <View style={{ gap: 12 }}>
-        <Text>
-          TODO: Implement form handling, JWT auth flow and role guards.
-        </Text>
-        <PlaceholderLinkButton href="/(auth)/register" label="Go to Register" />
-        <PlaceholderLinkButton
-          href="/(auth)/forgot-password"
-          label="Go to Forgot Password"
-        />
-        <PlaceholderLinkButton
-          href="/(tabs)/(affiliate)/dashboard"
-          label="Open Affiliate Module"
-        />
-        <PlaceholderLinkButton
-          href="/(tabs)/(employer)/dashboard"
-          label="Open Employer Module"
-        />
-        <PlaceholderLinkButton
-          href="/(tabs)/(admin)/dashboard"
-          label="Open Admin Module"
-        />
+      <LoginForm onSuccess={handleSuccess} />
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>¿No tienes cuenta?</Text>
+        <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
+          <Text style={styles.footerLink}>Regístrate</Text>
+        </TouchableOpacity>
       </View>
-    </PlaceholderScreen>
+
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
+          <Text style={styles.footerLink}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  content: {
+    padding: 24,
+    paddingTop: 40,
+    gap: 8,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 16,
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  footerLink: {
+    fontSize: 14,
+    color: "#369BC9",
+    fontWeight: "600",
+  },
+});
