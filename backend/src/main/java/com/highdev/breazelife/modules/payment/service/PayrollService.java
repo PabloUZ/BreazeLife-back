@@ -24,6 +24,12 @@ import com.highdev.breazelife.modules.payment.entity.Payment;
 import com.highdev.breazelife.modules.payment.exceptions.NoActiveEmployeesException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollAlreadyProcessedException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollInsufficientFundsException;
+import com.highdev.breazelife.modules.payment.dto.response.AffiliatePaymentHistoryResponse;
+import com.highdev.breazelife.modules.payment.dto.response.AffiliatePaymentItemDTO;
+import com.highdev.breazelife.modules.payment.dto.response.PaymentDetailResponse;
+import com.highdev.breazelife.modules.payment.exceptions.PaymentAccessDeniedException;
+import com.highdev.breazelife.modules.payment.exceptions.PaymentDateRangeException;
+import com.highdev.breazelife.modules.payment.exceptions.PaymentNotFoundException;
 import com.highdev.breazelife.modules.payment.exceptions.PayrollNotFoundException;
 import com.highdev.breazelife.modules.payment.repository.PaymentRepository;
 import com.highdev.breazelife.modules.payment.repository.PaymentRepository.PayrollSummaryProjection;
@@ -38,6 +44,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -377,6 +384,112 @@ public class PayrollService {
         response.setExecutedAt(payments.get(0).getDate());
         response.setPayments(paymentDTOs);
         response.setTotals(totals);
+        return response;
+    }
+
+    // ─── Payment detail (Employer + Affiliate) ───────────────────────────────
+
+    public PaymentDetailResponse getPaymentDetail(String userId, String userRole, String paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+            .orElseThrow(PaymentNotFoundException::new);
+
+        if ("AFFILIATE".equals(userRole)) {
+            if (!payment.getContract().getAffiliate().getUserId().equals(userId)) {
+                throw new PaymentAccessDeniedException();
+            }
+        } else {
+            if (!payment.getContract().getEmployer().getUserId().equals(userId)) {
+                throw new PaymentAccessDeniedException();
+            }
+        }
+
+        Quote quote = quoteRepository.findByPayment_Id(paymentId).orElse(null);
+
+        BigDecimal employerContrib  = quote != null ? quote.getEmployerContrib()  : BigDecimal.ZERO;
+        BigDecimal affiliateContrib = quote != null ? quote.getAffiliateContrib() : BigDecimal.ZERO;
+        BigDecimal baseSalary = employerContrib.add(affiliateContrib)
+            .divide(TOTAL_CONTRIBUTION_RATE, 10, RoundingMode.HALF_UP)
+            .setScale(2, RoundingMode.HALF_UP);
+
+        String period = payment.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        PaymentDetailResponse response = new PaymentDetailResponse();
+        response.setPaymentId(payment.getId());
+        response.setPeriod(period);
+        response.setCompanyName(payment.getContract().getEmployer().getCompanyName());
+        response.setAffiliateName(
+            payment.getContract().getAffiliate().getUser().getFirstName() + " " +
+            payment.getContract().getAffiliate().getUser().getLastName()
+        );
+        response.setDocument(payment.getContract().getAffiliate().getDocument());
+        response.setPosition(payment.getContract().getPosition());
+        response.setBaseSalary(baseSalary);
+        response.setEmployeePensionDeduction(affiliateContrib.setScale(2, RoundingMode.HALF_UP));
+        response.setNetSalary(payment.getNetSalary());
+        response.setEmployerPensionContrib(employerContrib.setScale(2, RoundingMode.HALF_UP));
+        response.setTotalPensionContrib(employerContrib.add(affiliateContrib).setScale(2, RoundingMode.HALF_UP));
+        response.setDaysContributed(quote != null && quote.getDaysContributed() != null ? quote.getDaysContributed() : 30);
+        response.setQuoteId(quote != null ? quote.getId() : null);
+        response.setQuoteStatus(quote != null ? quote.getStatus().name() : null);
+        response.setStatus("PROCESSED");
+        response.setPaidAt(payment.getDate());
+        return response;
+    }
+
+    // ─── Affiliate payment history ────────────────────────────────────────────
+
+    public AffiliatePaymentHistoryResponse getAffiliatePayments(
+            String affiliateUserId, int page, int limit,
+            LocalDate from, LocalDate to, String status) {
+
+        if (status != null && !status.equalsIgnoreCase("PROCESSED")) {
+            AffiliatePaymentHistoryResponse empty = new AffiliatePaymentHistoryResponse();
+            empty.setItems(List.of());
+            empty.setPagination(new AffiliatePaymentHistoryResponse.Pagination(page, limit, 0));
+            return empty;
+        }
+
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new PaymentDateRangeException();
+        }
+
+        Page<Payment> resultPage;
+        PageRequest pageable = PageRequest.of(page - 1, limit);
+
+        if (from != null && to != null) {
+            LocalDateTime fromDt = from.atStartOfDay();
+            LocalDateTime toDt   = to.atTime(23, 59, 59);
+            resultPage = paymentRepository.findByContractAffiliateUserIdAndDateBetweenOrderByDateDesc(
+                affiliateUserId, fromDt, toDt, pageable);
+        } else {
+            resultPage = paymentRepository.findByContractAffiliateUserIdOrderByDateDesc(affiliateUserId, pageable);
+        }
+
+        List<AffiliatePaymentItemDTO> items = resultPage.getContent().stream()
+            .map(p -> {
+                BigDecimal net = p.getNetSalary() != null ? p.getNetSalary() : BigDecimal.ZERO;
+                BigDecimal ibc            = net.divide(NET_SALARY_RATE, 10, RoundingMode.HALF_UP);
+                BigDecimal pensionContrib = ibc.multiply(TOTAL_CONTRIBUTION_RATE).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal base           = ibc.setScale(2, RoundingMode.HALF_UP);
+                String period = p.getDate().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+                AffiliatePaymentItemDTO dto = new AffiliatePaymentItemDTO();
+                dto.setPaymentId(p.getId());
+                dto.setPeriod(period);
+                dto.setCompanyName(p.getContract().getEmployer().getCompanyName());
+                dto.setPosition(p.getContract().getPosition());
+                dto.setBaseSalary(base);
+                dto.setNetSalary(net.setScale(2, RoundingMode.HALF_UP));
+                dto.setTotalPensionContrib(pensionContrib);
+                dto.setStatus("PROCESSED");
+                dto.setPaidAt(p.getDate());
+                return dto;
+            })
+            .toList();
+
+        AffiliatePaymentHistoryResponse response = new AffiliatePaymentHistoryResponse();
+        response.setItems(items);
+        response.setPagination(new AffiliatePaymentHistoryResponse.Pagination(page, limit, resultPage.getTotalElements()));
         return response;
     }
 

@@ -50,6 +50,24 @@ public class PayrollExceptionHandler {
             .body(errorBody(ex.getMessage(), "PAYROLL_NOT_FOUND", 404, "NOT_FOUND"));
     }
 
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentNotFound(PaymentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(errorBody(ex.getMessage(), "PAYMENT_NOT_FOUND", 404, "NOT_FOUND"));
+    }
+
+    @ExceptionHandler(PaymentAccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentAccessDenied(PaymentAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(errorBody(ex.getMessage(), "ACCESS_DENIED", 403, "FORBIDDEN"));
+    }
+
+    @ExceptionHandler(PaymentDateRangeException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentDateRange(PaymentDateRangeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(errorBody(ex.getMessage(), "INVALID_DATE_RANGE", 400, "BAD_REQUEST"));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
