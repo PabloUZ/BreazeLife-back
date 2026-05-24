@@ -10,6 +10,41 @@ import {
 import { signup } from "@/src/services/api/authService";
 import type { UserRole } from "@/src/dtos/auth/auth.dtos";
 
+// Traduce los mensajes de validación de Spring Boot al español
+const FIELD_LABELS: Record<string, string> = {
+    first_name:      "Nombre",
+    last_name:       "Apellido",
+    email:           "Correo electrónico",
+    password:        "Contraseña",
+    confirmPassword: "Confirmar contraseña",
+    role:            "Tipo de cuenta",
+};
+
+function translateDetail(raw: string): string {
+    if (raw.includes("must not be blank") || raw.includes("must not be null"))
+        return "Campo requerido";
+    if (raw.includes("well-formed email"))
+        return "Correo electrónico inválido";
+    if (raw.includes("size must be between 8"))
+        return "Mínimo 8 caracteres";
+    if (raw.includes("size must be between 1") && raw.includes("30"))
+        return "Debe tener entre 1 y 30 caracteres";
+    // fallback: devolver el mensaje original
+    return raw;
+}
+
+function mapApiDetails(
+    details: Record<string, string>
+): Partial<Record<keyof FormFields, string>> {
+    const mapped: Partial<Record<keyof FormFields, string>> = {};
+    for (const [field, message] of Object.entries(details)) {
+        if (field in FIELD_LABELS) {
+            mapped[field as keyof FormFields] = translateDetail(message);
+        }
+    }
+    return mapped;
+}
+
 type Props = {
     onSuccess: () => void;
 };
@@ -37,6 +72,7 @@ const INITIAL_FORM: FormFields = {
 const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
     { label: "Afiliado", value: "AFFILIATE" },
     { label: "Empleador", value: "EMPLOYER" },
+    { label: "Administrador", value: "ADMIN" },
 ];
 
 function validateForm(form: FormFields): FormErrors {
@@ -98,8 +134,11 @@ export default function SignupForm({ onSuccess }: Props) {
             });
             onSuccess();
         } catch (error: unknown) {
-            const apiErr = error as { message?: string; message_code?: string };
-            if (apiErr.message_code === "EMAIL_ALREADY_EXISTS") {
+            const apiErr = error as { message?: string; message_code?: string; details?: Record<string, string> };
+            if (apiErr.message_code === "INVALID_INPUT" && apiErr.details) {
+                // Muestra los errores por campo directamente en el formulario
+                setErrors((prev) => ({ ...prev, ...mapApiDetails(apiErr.details!) }));
+            } else if (apiErr.message_code === "EMAIL_ALREADY_EXISTS") {
                 setApiError("Ya existe una cuenta con este correo.");
             } else {
                 setApiError(apiErr.message ?? "Error al registrarse. Intenta de nuevo.");
@@ -358,12 +397,13 @@ const styles = StyleSheet.create({
     },
     roleOptions: {
         flexDirection: "row",
+        flexWrap: "wrap",
         gap: 12,
         marginTop: 4,
     },
     roleChip: {
-        flex: 1,
         paddingVertical: 10,
+        paddingHorizontal: 20,
         borderRadius: 8,
         borderWidth: 1,
         borderColor: "#E5E7EB",
