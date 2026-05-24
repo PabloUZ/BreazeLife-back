@@ -87,10 +87,16 @@ export class NotificationSocket {
     this.client.activate();
   }
 
-  /** Desconecta limpiamente del broker. */
+  /**
+   * Desconecta del broker.
+   * Usa `force: true` para cerrar el WebSocket de forma inmediata sin esperar
+   * el handshake DISCONNECT, lo que evita sesiones fantasma cuando React
+   * StrictMode (desarrollo) desmonta y vuelve a montar el componente antes de
+   * que el servidor procese el DISCONNECT.
+   */
   disconnect(): void {
     if (this.client?.active) {
-      this.client.deactivate();
+      this.client.deactivate({ force: true });
     }
     this.client = null;
   }
