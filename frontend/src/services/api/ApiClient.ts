@@ -134,6 +134,41 @@ export class ApiClient {
       } as TResponse;
     }
 
+    if (config.method === "PUT" && config.endpoint.includes("/update-employee/")) {
+      const parts = config.endpoint.split("/");
+      const contractId = parts[parts.length - 1];
+      const body = config.body as Record<string, unknown>;
+
+      const index = mockEmployees.findIndex((e) => e.contractId === contractId);
+
+      if (index === -1) {
+        throw new Error("EMPLOYEE_NOT_FOUND");
+      }
+
+      mockEmployees[index] = {
+        ...mockEmployees[index],
+        firstName: body.firstName as string,
+        lastName: body.lastName as string,
+        email: body.email as string,
+        birthDate: body.birthDate as string,
+      };
+
+      return {
+        contractId: mockEmployees[index].contractId,
+        affiliateId: "affiliate-" + mockEmployees[index].contractId,
+        employerId: "placeholder-employer-id",
+        firstName: mockEmployees[index].firstName,
+        lastName: mockEmployees[index].lastName,
+        email: mockEmployees[index].email,
+        document: mockEmployees[index].document,
+        birthDate: mockEmployees[index].birthDate,
+        position: mockEmployees[index].position,
+        baseSalary: mockEmployees[index].baseSalary,
+        startDate: mockEmployees[index].startDate,
+        status: mockEmployees[index].status,
+      } as TResponse;
+    }
+
     throw new Error("ApiClient.request: endpoint not mocked.");
   }
 }

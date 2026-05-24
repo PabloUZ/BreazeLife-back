@@ -1,8 +1,9 @@
-import {ScrollView,StyleSheet,Text,View,} from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
 
 type EmployeeDetailProps = {
     employee: EmployeeDetailDto;
+    onEdit: () => void;
 };
 
 function formatSalary(amount: number): string {
@@ -36,7 +37,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-export default function EmployeeDetail({ employee }: EmployeeDetailProps) {
+export default function EmployeeDetail({ employee, onEdit }: EmployeeDetailProps) {
     return (
         <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
@@ -55,6 +56,9 @@ export default function EmployeeDetail({ employee }: EmployeeDetailProps) {
                         {getStatusLabel(employee.status)}
                     </Text>
                 </View>
+                <TouchableOpacity style={styles.editButton} onPress={onEdit}>
+                    <Text style={styles.editButtonText}>Editar información</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Datos personales */}
@@ -97,7 +101,7 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: "#369BC9",
+        backgroundColor: "#4EA351",
         alignItems: "center",
         justifyContent: "center",
         marginBottom: 12,
@@ -126,6 +130,18 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 13,
         fontWeight: "600",
+    },
+    editButton: {
+        marginTop: 16,
+        backgroundColor: "#369BC9",
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    editButtonText: {
+        color: "#FFFFFF",
+        fontWeight: "600",
+        fontSize: 14,
     },
     section: {
         backgroundColor: "#FFFFFF",
