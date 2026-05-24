@@ -73,6 +73,12 @@ public class EmployerService {
         Employer employer = employerRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Employer not found with ID: " + userId));
         
+        // Imprime en la consola para confirmar qué valor está cruzando la puerta del backend
+        System.out.println("=== DEPURACIÓN ENDPOINT ===");
+        System.out.println("NIT en el DTO: " + dto.getNit());
+        System.out.println("==========================");
+        
+        if (dto.getNit() != null) employer.setNit(dto.getNit());
         if (dto.getNameLegalRep() != null) employer.setNameLegalRep(dto.getNameLegalRep());
         if (dto.getIdLegalRep() != null) employer.setIdLegalRep(dto.getIdLegalRep());
         
