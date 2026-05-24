@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthContext } from "@/src/context/AuthContext";
 import { notificationSocket } from "@/src/services/ws/notificationSocket";
 import {
+  deleteNotification as deleteNotificationApi,
   getNotifications,
   markNotificationAsRead,
 } from "@/src/services/api/notificationService";
@@ -13,6 +14,7 @@ type UseNotificationsReturn = {
   isLoading: boolean;
   isConnected: boolean;
   markAsRead: (notificationId: string) => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -103,6 +105,25 @@ export function useNotifications(): UseNotificationsReturn {
     [state.role]
   );
 
+  // ─── Eliminar notificación ─────────────────────────────────────────────────
+
+  const deleteNotification = useCallback(
+    async (notificationId: string) => {
+      // Optimistic update: quitar de la lista inmediatamente
+      setNotifications((prev) =>
+        prev.filter((n) => n.notification_id !== notificationId)
+      );
+
+      try {
+        await deleteNotificationApi(state.role, notificationId);
+      } catch {
+        // Si falla, recargar el historial desde el servidor
+        loadNotifications();
+      }
+    },
+    [state.role, loadNotifications]
+  );
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return {
@@ -111,6 +132,7 @@ export function useNotifications(): UseNotificationsReturn {
     isLoading,
     isConnected,
     markAsRead,
+    deleteNotification,
     refresh: loadNotifications,
   };
 }

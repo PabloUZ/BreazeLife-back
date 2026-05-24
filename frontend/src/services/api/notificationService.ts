@@ -35,6 +35,17 @@ export async function fireTestNotification(): Promise<void> {
 }
 
 /**
+ * Elimina una notificación permanentemente.
+ */
+export async function deleteNotification(
+  role: AppRole,
+  notificationId: string
+): Promise<void> {
+  const path = ROLE_PATH[role as Exclude<AppRole, "guest">];
+  await httpClient.delete(`/api/v1/${path}/notifications/${notificationId}`);
+}
+
+/**
  * Marca una notificación como leída.
  */
 export async function markNotificationAsRead(

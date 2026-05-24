@@ -59,6 +59,17 @@ public class NotificationService {
         return MarkReadResponse.from(notificationRepository.save(notification));
     }
 
+    public void deleteNotification(String userId, String notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new ForbiddenNotificationException();
+        }
+
+        notificationRepository.delete(notification);
+    }
+
     public void createNotification(String userId, String message) {
         User user = userRepository.getReferenceById(userId);
 

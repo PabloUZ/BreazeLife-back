@@ -1,18 +1,105 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import * as Haptics from "expo-haptics";
+import { Ionicons } from "@expo/vector-icons";
 import { useNotifications } from "@/src/hooks/useNotifications";
 import { fireTestNotification } from "@/src/services/api/notificationService";
+import type { NotificationDto } from "@/src/dtos/notification/notification.dtos";
+
+// ─── SwipeableCard ────────────────────────────────────────────────────────────
+
+type SwipeableCardProps = {
+  item: NotificationDto;
+  onMarkRead: (id: string) => void;
+  onDelete: (id: string) => void;
+};
+
+function SwipeableCard({ item, onMarkRead, onDelete }: SwipeableCardProps) {
+  const swipeRef = useRef<Swipeable>(null);
+
+  function handleDelete() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    swipeRef.current?.close();
+    onDelete(item.notification_id);
+  }
+
+  function renderRightActions(
+    _progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) {
+    const scale = dragX.interpolate({
+      inputRange: [-80, 0],
+      outputRange: [1, 0.7],
+      extrapolate: "clamp",
+    });
+
+    return (
+      <TouchableOpacity
+        style={styles.deleteAction}
+        onPress={handleDelete}
+        activeOpacity={0.8}
+      >
+        <Animated.View style={{ transform: [{ scale }] }}>
+          <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+        </Animated.View>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <Swipeable
+      ref={swipeRef}
+      renderRightActions={renderRightActions}
+      rightThreshold={40}
+      overshootRight={false}
+    >
+      <TouchableOpacity
+        style={[styles.card, !item.read && styles.cardUnread]}
+        activeOpacity={0.7}
+        onPress={() => {
+          if (!item.read) onMarkRead(item.notification_id);
+        }}
+      >
+        {!item.read && <View style={styles.unreadDot} />}
+
+        <View style={styles.cardContent}>
+          <Text
+            style={[styles.cardMessage, !item.read && styles.cardMessageUnread]}
+          >
+            {item.message}
+          </Text>
+          <Text style={styles.cardId}>{item.notification_id}</Text>
+        </View>
+
+        {!item.read && (
+          <Text style={styles.tapHint}>Toca para marcar como leída</Text>
+        )}
+      </TouchableOpacity>
+    </Swipeable>
+  );
+}
+
+// ─── NotificationList ─────────────────────────────────────────────────────────
 
 export default function NotificationList() {
-  const { notifications, unreadCount, isLoading, isConnected, markAsRead, refresh } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    isConnected,
+    markAsRead,
+    deleteNotification,
+    refresh,
+  } = useNotifications();
 
   const [firing, setFiring] = useState(false);
 
@@ -27,7 +114,7 @@ export default function NotificationList() {
     }
   }
 
-  // ─── Estados de carga y vacío ─────────────────────────────────────────────
+  // ─── Estado de carga ───────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -84,29 +171,11 @@ export default function NotificationList() {
           </View>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, !item.read && styles.cardUnread]}
-            activeOpacity={0.7}
-            onPress={() => {
-              if (!item.read) markAsRead(item.notification_id);
-            }}
-          >
-            {/* Punto de no leída */}
-            {!item.read && <View style={styles.unreadDot} />}
-
-            <View style={styles.cardContent}>
-              <Text
-                style={[styles.cardMessage, !item.read && styles.cardMessageUnread]}
-              >
-                {item.message}
-              </Text>
-              <Text style={styles.cardId}>{item.notification_id}</Text>
-            </View>
-
-            {!item.read && (
-              <Text style={styles.tapHint}>Toca para marcar como leída</Text>
-            )}
-          </TouchableOpacity>
+          <SwipeableCard
+            item={item}
+            onMarkRead={markAsRead}
+            onDelete={deleteNotification}
+          />
         )}
       />
 
@@ -117,10 +186,11 @@ export default function NotificationList() {
         disabled={firing}
         activeOpacity={0.8}
       >
-        {firing
-          ? <ActivityIndicator size="small" color="#FFFFFF" />
-          : <Text style={styles.fabTestText}>🧪 Disparar notif</Text>
-        }
+        {firing ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <Text style={styles.fabTestText}>🧪 Disparar notif</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -279,6 +349,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#369BC9",
     marginTop: 8,
+  },
+
+  // Acción de eliminar (swipe)
+  deleteAction: {
+    backgroundColor: "#EF4444",
+    justifyContent: "center",
+    alignItems: "center",
+    width: 72,
+    borderRadius: 12,
+    marginLeft: 8,
+    marginVertical: 0,
   },
 
   // Botón flotante de prueba
