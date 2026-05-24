@@ -119,13 +119,36 @@ export interface AdminAccountListParamsDto {
   search?: string;
 }
 
+export interface AdminQuoteDto {
+  quoteId: string;
+  accountId: string;
+  paymentId: string;
+  employerContribution: number;
+  affiliateContribution: number;
+  totalContribution: number;
+  daysContributed: number;
+  contributionDate: string;
+  status: QuoteStatus;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  comment?: string | null;
+}
+
+export interface ReviewQuoteRequestDto {
+  comment?: string;
+}
+
+export interface AdminQuoteListParamsDto {
+  page?: number;
+  limit?: number;
+  status?: QuoteStatus;
+}
+
 export type AdminDashboardDto = AdminDashboardSummaryDto;
 
 export type AdminAffiliateDto = Record<string, never>;
 
 export type AdminEmployerDto = Record<string, never>;
-
-export type AdminQuoteDto = Record<string, never>;
 
 export type AdminReportDto = Record<string, never>;
 

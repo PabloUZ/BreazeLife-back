@@ -91,6 +91,7 @@ export default function AdminTabsLayout() {
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="account-detail" options={{ href: null }} />
+      <Tabs.Screen name="quote-detail" options={{ href: null }} />
     </Tabs>
   );
 }
