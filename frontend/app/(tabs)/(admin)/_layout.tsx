@@ -37,7 +37,7 @@ export default function AdminTabsLayout() {
       <Tabs.Screen
         name="affiliates"
         options={{
-          title: "Afiliados",
+          title: "Cuentas",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-outline" size={size} color={color} />
           ),
@@ -90,6 +90,7 @@ export default function AdminTabsLayout() {
       />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="account-detail" options={{ href: null }} />
     </Tabs>
   );
 }
