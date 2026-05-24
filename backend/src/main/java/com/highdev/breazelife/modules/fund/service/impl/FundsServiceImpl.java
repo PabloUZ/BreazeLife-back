@@ -17,8 +17,12 @@ import com.highdev.breazelife.modules.fund.exceptions.InsufficientFundsException
 import com.highdev.breazelife.modules.fund.repository.FundRepository;
 import com.highdev.breazelife.modules.fund.repository.MovementRepository;
 import com.highdev.breazelife.modules.fund.service.FundsService;
+import com.highdev.breazelife.modules.notification.events.InsufficientFundsEvent;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.context.ApplicationEventPublisher;
+
 
 import lombok.RequiredArgsConstructor;
 
@@ -42,14 +46,17 @@ public class FundsServiceImpl implements FundsService {
     private final FundRepository fundRepository;
     private final MovementRepository movementRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public FundsServiceImpl(
             FundRepository fundRepository,
             MovementRepository movementRepository,
-            @Autowired(required = false) SimpMessagingTemplate messagingTemplate) {
+            @Autowired(required = false) SimpMessagingTemplate messagingTemplate,
+            ApplicationEventPublisher eventPublisher) {
         this.fundRepository = fundRepository;
         this.movementRepository = movementRepository;
         this.messagingTemplate = messagingTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     //nos ayudará a emitir eventos en tiempo real cuando hayan cambios en los fondos
@@ -165,23 +172,27 @@ public class FundsServiceImpl implements FundsService {
         }
 
         if (!shortages.isEmpty()) {
-            //emitimos alerta WebSocket si hay fondos insuficientes
-            emitWebSocketEvent(employerId, "INSUFFICIENT_FUNDS_ALERT", Map.of(
-                "insufficient_funds", shortages.stream().map(s -> Map.of(
-                    "fund_type", s.fundType(),
-                    "current_balance", s.currentBalance(),
-                    "required", s.required(),
-                    "shortage", s.shortage()
-                )).toList()
-            ));
+            // Publicar un evento por cada fondo insuficiente
+            for (FundValidationResponse.InsufficientFundDetail shortage : shortages) {
+                InsufficientFundsEvent.FundType eventFundType = switch (shortage.fundType()) {
+                    case "PAYROLL" -> InsufficientFundsEvent.FundType.PAYROLL;
+                    case "PENSION" -> InsufficientFundsEvent.FundType.EMPLOYER_CONTRIBUTIONS;
+                    default -> throw new IllegalArgumentException("Unknown fund type: " + shortage.fundType());
+                };
+
+                eventPublisher.publishEvent(new InsufficientFundsEvent(
+                    employerId,
+                    eventFundType
+                ));
+            }
 
             List<InsufficientFundsException.FundShortage> excShortages = shortages.stream()
                 .map(s -> new InsufficientFundsException.FundShortage(
                     FundType.valueOf(s.fundType()), s.currentBalance(),
                     s.required(), s.shortage()))
                 .toList();
-            throw new InsufficientFundsException(excShortages);
-        }
+            throw new InsufficientFundsException(excShortages); 
+            }
 
         return new FundValidationResponse(
                 true,
