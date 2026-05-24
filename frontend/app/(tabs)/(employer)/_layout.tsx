@@ -59,6 +59,15 @@ export default function EmployerTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Perfil",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="register-employee"
         options={{
           href: null,
