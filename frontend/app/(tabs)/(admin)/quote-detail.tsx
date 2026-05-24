@@ -1,18 +1,20 @@
-import { useCallback, useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import AdminQuoteDetail from "@/src/components/admin/quotes/AdminQuoteDetail";
 import QuoteReviewActionModal from "@/src/components/admin/quotes/QuoteReviewActionModal";
-import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
+import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import type { AdminQuoteDto } from "@/src/dtos/admin/admin.dtos";
+import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import { useAuth } from "@/src/hooks/useAuth";
 import {
   approveAdminQuote,
@@ -78,6 +80,10 @@ export default function AdminQuoteDetailScreen() {
     await signOut();
     router.replace("/(auth)/login");
   }, [router, signOut]);
+
+  const handleGoBack = useCallback(() => {
+    router.replace("/(tabs)/(admin)/quotes");
+  }, [router]);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
@@ -159,26 +165,37 @@ export default function AdminQuoteDetailScreen() {
       />
 
       <ScreenContainer>
-        {loading && (
+        {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#369BC9" />
             <Text style={styles.loadingText}>Cargando cotizacion...</Text>
           </View>
-        )}
-
-        {error && !loading && (
+        ) : error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchQuoteDetail}>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        ) : quote ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+              <Ionicons name="chevron-back" size={18} color="#369BC9" />
+              <Text style={styles.backButtonText}>Volver a cotizaciones</Text>
+            </TouchableOpacity>
 
-        {quote && !loading && !error && (
-          <View style={styles.content}>
             <AdminQuoteDetail quote={quote} />
 
-            {canReview && (
+            {canReview ? (
               <View style={styles.actionsCard}>
-                <Text style={styles.actionsTitle}>Revision de cotizacion</Text>
+                <Text style={styles.actionsTitle}>Revision administrativa</Text>
+                <Text style={styles.actionsSubtitle}>
+                  Aprueba o rechaza esta cotizacion y agrega un comentario si lo
+                  necesitas para dejar trazabilidad.
+                </Text>
                 <View style={styles.actionsList}>
                   <TouchableOpacity
                     style={[
@@ -189,7 +206,7 @@ export default function AdminQuoteDetailScreen() {
                     disabled={actionLoading}
                     onPress={() => setActiveAction("approve")}
                   >
-                    <Text style={styles.actionButtonText}>Aprobar</Text>
+                    <Text style={styles.actionButtonText}>Aprobar cotizacion</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -201,13 +218,13 @@ export default function AdminQuoteDetailScreen() {
                     disabled={actionLoading}
                     onPress={() => setActiveAction("reject")}
                   >
-                    <Text style={styles.actionButtonText}>Rechazar</Text>
+                    <Text style={styles.actionButtonText}>Rechazar cotizacion</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-          </View>
-        )}
+            ) : null}
+          </ScrollView>
+        ) : null}
       </ScreenContainer>
 
       <QuoteReviewActionModal
@@ -230,8 +247,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    paddingBottom: 24,
+    gap: 16,
   },
   loadingText: {
     fontSize: 14,
@@ -243,31 +261,62 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 24,
   },
+  retryButton: {
+    backgroundColor: "#369BC9",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "#EFF6FF",
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#369BC9",
+  },
   actionsCard: {
     backgroundColor: "#FFFFFF",
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 24,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E5EEF5",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
-    gap: 12,
+    gap: 8,
   },
   actionsTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: "#111827",
   },
+  actionsSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 19,
+  },
   actionsList: {
-    gap: 10,
+    gap: 12,
+    marginTop: 6,
   },
   actionButton: {
-    minHeight: 46,
-    borderRadius: 10,
+    minHeight: 50,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 16,

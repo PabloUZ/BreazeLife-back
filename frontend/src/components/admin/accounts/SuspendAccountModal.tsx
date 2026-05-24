@@ -122,15 +122,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     color: "#111827",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F9FAFB",
   },
   actionsRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
     gap: 10,
   },
   secondaryButton: {
-    minWidth: 110,
+    flex: 1,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,
@@ -144,7 +143,7 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   primaryButton: {
-    minWidth: 110,
+    flex: 1,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,

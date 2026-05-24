@@ -24,12 +24,12 @@ export default function QuoteStatusBadge({ status }: QuoteStatusBadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     alignSelf: "flex-start",
   },
   label: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

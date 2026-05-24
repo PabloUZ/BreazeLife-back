@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
@@ -12,14 +13,41 @@ import DashboardMetricCard from "@/src/components/admin/DashboardMetricCard";
 import { useAdminModule } from "@/src/hooks/useAdminModule";
 
 function formatCurrency(amount: number): string {
-  return `$${new Intl.NumberFormat("en-US", {
+  return `$${new Intl.NumberFormat("es-CO", {
     maximumFractionDigits: 0,
   }).format(amount)}`;
 }
 
+function formatCompactMetricValue(amount: number): string {
+  const absoluteAmount = Math.abs(amount);
+  const units = [
+    { divisor: 1_000_000_000, suffix: "B" },
+    { divisor: 1_000_000, suffix: "M" },
+    { divisor: 1_000, suffix: "K" },
+  ];
+
+  for (const unit of units) {
+    if (absoluteAmount >= unit.divisor) {
+      const scaledAmount = amount / unit.divisor;
+
+      return `${new Intl.NumberFormat("es-CO", {
+        maximumFractionDigits: Number.isInteger(scaledAmount) ? 0 : 1,
+      }).format(scaledAmount)}${unit.suffix}`;
+    }
+  }
+
+  return new Intl.NumberFormat("es-CO", {
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function AdminDashboardScreen() {
+  const { width } = useWindowDimensions();
   const { error, isEmpty, isLoading, isRefreshing, refresh, summary } =
     useAdminModule();
+  const horizontalPadding = 40;
+  const gridGap = 12;
+  const metricCardWidth = Math.max((width - horizontalPadding - gridGap) / 2, 140);
 
   if (isLoading) {
     return (
@@ -57,39 +85,50 @@ export default function AdminDashboardScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Resumen general</Text>
           <Text style={styles.subtitle}>
-            Consulta el estado actual de la plataforma desde la app móvil.
+            Consulta el estado actual de la plataforma desde la app movil.
           </Text>
         </View>
 
         {isEmpty && (
           <View style={styles.emptyBanner}>
             <Text style={styles.emptyBannerText}>
-              Aún no hay movimientos para mostrar. Los indicadores aparecerán en
-              cero hasta que exista información registrada.
+              Aun no hay movimientos para mostrar. Los indicadores apareceran en
+              cero hasta que exista informacion registrada.
             </Text>
           </View>
         )}
 
         <View style={styles.metricsGrid}>
           <DashboardMetricCard
+            cardWidth={metricCardWidth}
             label="Afiliados activos"
             value={summary.activeAffiliates.toString()}
+            iconName="people-outline"
           />
           <DashboardMetricCard
+            cardWidth={metricCardWidth}
             label="Empleadores activos"
             value={summary.activeEmployers.toString()}
+            iconName="business-outline"
           />
           <DashboardMetricCard
+            cardWidth={metricCardWidth}
             label="Aportes pendientes"
             value={summary.pendingContributions.toString()}
+            iconName="time-outline"
           />
           <DashboardMetricCard
+            cardWidth={metricCardWidth}
             label="Balance administrado"
-            value={formatCurrency(summary.managedBalance)}
+            value={formatCompactMetricValue(summary.managedBalance)}
+            helperText={formatCurrency(summary.managedBalance)}
+            iconName="wallet-outline"
           />
           <DashboardMetricCard
             label="Aportes mensuales"
-            value={formatCurrency(summary.monthlyContributions)}
+            value={formatCompactMetricValue(summary.monthlyContributions)}
+            helperText={formatCurrency(summary.monthlyContributions)}
+            iconName="cash-outline"
             fullWidth
           />
         </View>
@@ -128,10 +167,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 24,
-    gap: 16,
+    gap: 18,
   },
   header: {
-    gap: 4,
+    gap: 6,
   },
   title: {
     fontSize: 24,
@@ -147,8 +186,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
   },
   emptyBannerText: {
     fontSize: 13,
@@ -160,5 +199,6 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: 12,
+    marginHorizontal: -4,
   },
 });

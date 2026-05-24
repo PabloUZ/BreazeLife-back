@@ -1,5 +1,5 @@
-import { Redirect, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { Redirect, Tabs } from "expo-router";
 import { useAuthContext } from "@/src/context/AuthContext";
 
 const ROLE_ROUTES = {
@@ -24,7 +24,7 @@ export default function AdminTabsLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
+    <Tabs screenOptions={{ headerShown: true, tabBarHideOnKeyboard: true }}>
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -43,15 +43,7 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="employers"
-        options={{
-          title: "Empleadores",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="business-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="employers" options={{ href: null }} />
       <Tabs.Screen
         name="quotes"
         options={{
@@ -64,7 +56,7 @@ export default function AdminTabsLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: "Gráficas",
+          title: "Graficas",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart-outline" size={size} color={color} />
           ),

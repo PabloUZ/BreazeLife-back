@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { AdminAlertItemDto } from "@/src/dtos/admin/admin.dtos";
 import {
+  formatAlertType,
   getAlertSeverityColors,
   getAlertSeverityLabel,
 } from "@/src/components/admin/notifications/notificationUtils";
@@ -13,38 +14,46 @@ export default function AdminAlertCard({ alert }: AdminAlertCardProps) {
   const colors = getAlertSeverityColors(alert.severity);
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.backgroundColor,
+          borderColor: colors.borderColor,
+        },
+      ]}
+    >
       <View style={styles.header}>
         <View style={styles.headerInfo}>
-          <Text style={styles.type}>{alert.type}</Text>
+          <Text style={[styles.type, { color: colors.color }]}>
+            {formatAlertType(alert.type)}
+          </Text>
           <Text style={styles.message}>{alert.message}</Text>
         </View>
 
-        <View style={[styles.severityBadge, { backgroundColor: colors.backgroundColor }]}>
-          <Text style={[styles.severityText, { color: colors.color }]}>
-            {getAlertSeverityLabel(alert.severity)}
-          </Text>
+        <View style={styles.badgesColumn}>
+          <View style={[styles.severityBadge, { backgroundColor: "#FFFFFF99" }]}>
+            <Text style={[styles.severityText, { color: colors.color }]}>
+              {getAlertSeverityLabel(alert.severity)}
+            </Text>
+          </View>
+          {alert.count !== undefined ? (
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{alert.count}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
-
-      {alert.count !== undefined && (
-        <Text style={styles.countText}>Cantidad: {alert.count}</Text>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
     gap: 10,
   },
   header: {
@@ -55,18 +64,23 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
   type: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#6B7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   message: {
     fontSize: 14,
     color: "#111827",
     lineHeight: 20,
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  badgesColumn: {
+    alignItems: "flex-end",
+    gap: 8,
   },
   severityBadge: {
     borderRadius: 999,
@@ -75,11 +89,20 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-  countText: {
+  countBadge: {
+    minWidth: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  countBadgeText: {
     fontSize: 13,
-    color: "#4B5563",
-    fontWeight: "600",
+    fontWeight: "700",
+    color: "#111827",
   },
 });

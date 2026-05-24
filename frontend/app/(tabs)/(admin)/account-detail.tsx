@@ -1,20 +1,29 @@
-import { useCallback, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import AdminAccountDetail from "@/src/components/admin/accounts/AdminAccountDetail";
 import AdminAccountActions from "@/src/components/admin/accounts/AdminAccountActions";
+import AdminAccountDetail from "@/src/components/admin/accounts/AdminAccountDetail";
+import { getAccountDisplayName } from "@/src/components/admin/accounts/accountUtils";
 import SuspendAccountModal from "@/src/components/admin/accounts/SuspendAccountModal";
+import type { AdminAccountDetailDto } from "@/src/dtos/admin/admin.dtos";
+import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
+import { useAuth } from "@/src/hooks/useAuth";
 import {
   activateAdminAccount,
   getAdminAccountById,
   suspendAdminAccount,
   verifyAdminAccount,
 } from "@/src/services/api/adminAccountService";
-import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
-import type { AdminAccountDetailDto } from "@/src/dtos/admin/admin.dtos";
-import { useAuth } from "@/src/hooks/useAuth";
-import { getAccountDisplayName } from "@/src/components/admin/accounts/accountUtils";
 
 function mapErrorToMessage(error: ApiErrorResponseDto): string {
   if (error.status_code === 401) {
@@ -48,6 +57,10 @@ export default function AdminAccountDetailScreen() {
     await signOut();
     router.replace("/(auth)/login");
   }, [router, signOut]);
+
+  const handleGoBack = useCallback(() => {
+    router.replace("/(tabs)/(admin)/affiliates");
+  }, [router]);
 
   const fetchAccountDetail = useCallback(async () => {
     if (!userId) {
@@ -171,21 +184,28 @@ export default function AdminAccountDetailScreen() {
       />
 
       <ScreenContainer>
-        {loading && (
+        {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#369BC9" />
             <Text style={styles.loadingText}>Cargando informacion...</Text>
           </View>
-        )}
-
-        {error && !loading && (
+        ) : error ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchAccountDetail}>
+              <Text style={styles.retryButtonText}>Reintentar</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        ) : account ? (
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+              <Ionicons name="chevron-back" size={18} color="#369BC9" />
+              <Text style={styles.backButtonText}>Volver a cuentas</Text>
+            </TouchableOpacity>
 
-        {account && !loading && !error && (
-          <View style={styles.content}>
             <AdminAccountDetail account={account} />
             <AdminAccountActions
               account={account}
@@ -194,8 +214,8 @@ export default function AdminAccountDetailScreen() {
               onActivate={confirmActivate}
               onOpenSuspend={() => setSuspendModalVisible(true)}
             />
-          </View>
-        )}
+          </ScrollView>
+        ) : null}
       </ScreenContainer>
 
       <SuspendAccountModal
@@ -215,8 +235,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    paddingBottom: 24,
+    gap: 16,
   },
   loadingText: {
     fontSize: 14,
@@ -227,5 +248,31 @@ const styles = StyleSheet.create({
     color: "#EF4444",
     textAlign: "center",
     paddingHorizontal: 24,
+  },
+  retryButton: {
+    backgroundColor: "#369BC9",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  backButton: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: "#EFF6FF",
+  },
+  backButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#369BC9",
   },
 });

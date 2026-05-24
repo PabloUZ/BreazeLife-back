@@ -11,10 +11,10 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import AdminAccountCard from "@/src/components/admin/accounts/AdminAccountCard";
-import { listAdminAccounts } from "@/src/services/api/adminAccountService";
-import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import type { AdminAccountListItemDto } from "@/src/dtos/admin/admin.dtos";
+import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import { useAuth } from "@/src/hooks/useAuth";
+import { listAdminAccounts } from "@/src/services/api/adminAccountService";
 
 const PAGE_SIZE = 20;
 
@@ -142,7 +142,8 @@ export default function AdminAffiliatesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Gestion de cuentas</Text>
         <Text style={styles.subtitle}>
-          {total} cuenta{total !== 1 ? "s" : ""} de afiliados y empleadores.
+          Administra {total} cuenta{total !== 1 ? "s" : ""} de afiliados y
+          empleadores desde una sola vista.
         </Text>
       </View>
 
@@ -167,10 +168,11 @@ export default function AdminAffiliatesScreen() {
         onRefresh={handleRetry}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.centered}>
             <Text style={styles.emptyIcon}>[]</Text>
-            <Text style={styles.emptyTitle}>No accounts found</Text>
+            <Text style={styles.emptyTitle}>No se encontraron cuentas</Text>
             <Text style={styles.emptySubtitle}>
               No hay cuentas administrables disponibles en este momento.
             </Text>
@@ -220,7 +222,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 16,
-    gap: 4,
+    gap: 6,
   },
   title: {
     fontSize: 24,
@@ -230,6 +232,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
+    lineHeight: 20,
   },
   listContent: {
     paddingBottom: 24,

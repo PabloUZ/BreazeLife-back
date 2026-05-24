@@ -9,13 +9,13 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import AdminQuoteCard from "@/src/components/admin/quotes/AdminQuoteCard";
-import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
+import { sortQuotesForReview } from "@/src/components/admin/quotes/quoteUtils";
+import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import type { AdminQuoteDto } from "@/src/dtos/admin/admin.dtos";
+import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import { useAuth } from "@/src/hooks/useAuth";
 import { getAdminQuotes } from "@/src/services/api/adminQuoteService";
-import { sortQuotesForReview } from "@/src/components/admin/quotes/quoteUtils";
 
 const PAGE_SIZE = 20;
 
@@ -149,8 +149,8 @@ export default function AdminQuotesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Revision de cotizaciones</Text>
         <Text style={styles.subtitle}>
-          {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""} para revisar
-          y {total} cotizacion{total !== 1 ? "es" : ""} en total.
+          {pendingCount} pendiente{pendingCount !== 1 ? "s" : ""} para revisar y{" "}
+          {total} cotizacion{total !== 1 ? "es" : ""} disponibles.
         </Text>
       </View>
 
@@ -175,12 +175,14 @@ export default function AdminQuotesScreen() {
         onRefresh={handleRetry}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.centered}>
             <Text style={styles.emptyIcon}>[]</Text>
-            <Text style={styles.emptyTitle}>No pending quotes found</Text>
+            <Text style={styles.emptyTitle}>No hay cotizaciones para revisar</Text>
             <Text style={styles.emptySubtitle}>
-              No hay cotizaciones disponibles para revision en este momento.
+              Cuando existan cotizaciones disponibles para revision, apareceran
+              aqui.
             </Text>
           </View>
         }
@@ -228,7 +230,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 16,
-    gap: 4,
+    gap: 6,
   },
   title: {
     fontSize: 24,
@@ -238,6 +240,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
+    lineHeight: 20,
   },
   listContent: {
     paddingBottom: 24,

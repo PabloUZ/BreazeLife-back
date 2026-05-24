@@ -9,24 +9,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import AdminAlertCard from "@/src/components/admin/notifications/AdminAlertCard";
 import AdminNotificationCard from "@/src/components/admin/notifications/AdminNotificationCard";
-import {
-  getAdminDashboardAlerts,
-} from "@/src/services/api/adminDashboardService";
-import {
-  getAdminNotifications,
-  markAdminNotificationAsRead,
-} from "@/src/services/api/adminNotificationService";
-import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
+import { sortNotifications } from "@/src/components/admin/notifications/notificationUtils";
+import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import type {
   AdminAlertItemDto,
   AdminNotificationDto,
 } from "@/src/dtos/admin/admin.dtos";
+import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useFocusEffect, useRouter } from "expo-router";
-import { sortNotifications } from "@/src/components/admin/notifications/notificationUtils";
+import { getAdminDashboardAlerts } from "@/src/services/api/adminDashboardService";
+import {
+  getAdminNotifications,
+  markAdminNotificationAsRead,
+} from "@/src/services/api/adminNotificationService";
 
 const NOTIFICATIONS_PAGE_SIZE = 20;
 
@@ -202,18 +200,19 @@ export default function AdminNotificationsScreen() {
         }
       >
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerText}>
             <Text style={styles.title}>Alertas y notificaciones</Text>
             <Text style={styles.subtitle}>
-              Revisa eventos administrativos y notificaciones recientes desde la app.
+              Revisa eventos administrativos, pendientes y avisos recientes desde
+              la app.
             </Text>
           </View>
 
-          {unreadCount > 0 && (
+          {unreadCount > 0 ? (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
             </View>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -236,7 +235,7 @@ export default function AdminNotificationsScreen() {
             </View>
           ) : alerts.length === 0 ? (
             <View style={styles.sectionCentered}>
-              <Text style={styles.emptyTitle}>No alerts available</Text>
+              <Text style={styles.emptyTitle}>No hay alertas disponibles</Text>
               <Text style={styles.emptySubtitle}>
                 No hay alertas administrativas activas en este momento.
               </Text>
@@ -273,7 +272,7 @@ export default function AdminNotificationsScreen() {
             </View>
           ) : sortedNotifications.length === 0 ? (
             <View style={styles.sectionCentered}>
-              <Text style={styles.emptyTitle}>No notifications available</Text>
+              <Text style={styles.emptyTitle}>No hay notificaciones</Text>
               <Text style={styles.emptySubtitle}>
                 No hay notificaciones para mostrar en este momento.
               </Text>
@@ -315,6 +314,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 16,
   },
+  headerText: {
+    flex: 1,
+    gap: 4,
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
@@ -323,13 +326,12 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: "#6B7280",
-    marginTop: 4,
     lineHeight: 20,
   },
   unreadBadge: {
-    minWidth: 34,
-    height: 34,
-    borderRadius: 17,
+    minWidth: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
@@ -350,7 +352,9 @@ const styles = StyleSheet.create({
   },
   sectionCentered: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E5EEF5",
     padding: 20,
     alignItems: "center",
     justifyContent: "center",

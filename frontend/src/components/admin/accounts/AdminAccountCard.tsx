@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { AdminAccountListItemDto } from "@/src/dtos/admin/admin.dtos";
 import {
@@ -25,7 +26,7 @@ export default function AdminAccountCard({
   const displayName = getAccountDisplayName(account);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -36,11 +37,11 @@ export default function AdminAccountCard({
         <View style={styles.headerInfo}>
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.email}>{account.email}</Text>
-          {account.role === "EMPLOYER" && (
+          {account.role === "EMPLOYER" ? (
             <Text style={styles.secondaryName}>
-              {account.firstName} {account.lastName}
+              Responsable: {account.firstName} {account.lastName}
             </Text>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -72,11 +73,16 @@ export default function AdminAccountCard({
         </View>
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.identifierText}>
-          {account.role === "AFFILIATE" ? "Documento" : "NIT"}: {identifier ?? "N/A"}
+      <View style={styles.identifierCard}>
+        <Text style={styles.identifierLabel}>
+          {account.role === "AFFILIATE" ? "Documento" : "NIT"}
         </Text>
+        <Text style={styles.identifierValue}>{identifier ?? "N/A"}</Text>
+      </View>
+
+      <View style={styles.footer}>
         <Text style={styles.detailLink}>Ver detalle</Text>
+        <Ionicons name="chevron-forward" size={18} color="#369BC9" />
       </View>
     </TouchableOpacity>
   );
@@ -85,9 +91,11 @@ export default function AdminAccountCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5EEF5",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -98,11 +106,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     gap: 12,
+    alignItems: "center",
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#369BC9",
     alignItems: "center",
     justifyContent: "center",
@@ -114,7 +123,7 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   name: {
     fontSize: 16,
@@ -123,11 +132,11 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#4B5563",
   },
   secondaryName: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: "#6B7280",
   },
   tagsRow: {
     flexDirection: "row",
@@ -154,16 +163,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  identifierCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+  },
+  identifierLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  identifierValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
-  },
-  identifierText: {
-    fontSize: 12,
-    color: "#6B7280",
-    flex: 1,
   },
   detailLink: {
     fontSize: 13,

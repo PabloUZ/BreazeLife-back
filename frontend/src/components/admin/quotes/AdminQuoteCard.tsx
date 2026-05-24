@@ -1,10 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { AdminQuoteDto } from "@/src/dtos/admin/admin.dtos";
 import QuoteStatusBadge from "@/src/components/admin/quotes/QuoteStatusBadge";
 import {
   formatCurrency,
   formatDateTime,
 } from "@/src/components/admin/quotes/quoteUtils";
+import type { AdminQuoteDto } from "@/src/dtos/admin/admin.dtos";
 
 type AdminQuoteCardProps = {
   onPress: () => void;
@@ -16,7 +17,7 @@ export default function AdminQuoteCard({
   quote,
 }: AdminQuoteCardProps) {
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.header}>
         <View style={styles.headerInfo}>
           <Text style={styles.quoteId}>{quote.quoteId}</Text>
@@ -27,7 +28,9 @@ export default function AdminQuoteCard({
 
       <View style={styles.totalBlock}>
         <Text style={styles.totalLabel}>Aporte total</Text>
-        <Text style={styles.totalValue}>{formatCurrency(quote.totalContribution)}</Text>
+        <Text style={styles.totalValue}>
+          {formatCurrency(quote.totalContribution)}
+        </Text>
       </View>
 
       <View style={styles.metricsRow}>
@@ -46,10 +49,16 @@ export default function AdminQuoteCard({
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Fecha: {formatDateTime(quote.contributionDate)}
-        </Text>
-        <Text style={styles.footerText}>Dias: {quote.daysContributed}</Text>
+        <View style={styles.footerMeta}>
+          <Text style={styles.footerText}>
+            Fecha: {formatDateTime(quote.contributionDate)}
+          </Text>
+          <Text style={styles.footerText}>Dias: {quote.daysContributed}</Text>
+        </View>
+        <View style={styles.detailCta}>
+          <Text style={styles.detailLink}>Ver detalle</Text>
+          <Ionicons name="chevron-forward" size={18} color="#369BC9" />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -58,9 +67,11 @@ export default function AdminQuoteCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E5EEF5",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -114,6 +125,8 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 12,
     color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   metricValue: {
     fontSize: 14,
@@ -121,6 +134,9 @@ const styles = StyleSheet.create({
     color: "#374151",
   },
   footer: {
+    gap: 10,
+  },
+  footerMeta: {
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 12,
@@ -129,5 +145,16 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: "#6B7280",
+  },
+  detailCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+  },
+  detailLink: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#369BC9",
   },
 });

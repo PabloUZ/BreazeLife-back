@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import QuotesByStatusChart from "@/src/components/admin/charts/QuotesByStatusChart";
-import MonthlyContributionsChart from "@/src/components/admin/charts/MonthlyContributionsChart";
 import AffiliatesByFundTypeChart from "@/src/components/admin/charts/AffiliatesByFundTypeChart";
 import FundDistributionChart from "@/src/components/admin/charts/FundDistributionChart";
+import MonthlyContributionsChart from "@/src/components/admin/charts/MonthlyContributionsChart";
+import QuotesByStatusChart from "@/src/components/admin/charts/QuotesByStatusChart";
+import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import { useAdminDashboardGraphs } from "@/src/hooks/useAdminDashboardGraphs";
 
 export default function AdminReportsScreen() {
@@ -23,7 +23,7 @@ export default function AdminReportsScreen() {
       <ScreenContainer>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#369BC9" />
-          <Text style={styles.loadingText}>Cargando gráficas del dashboard...</Text>
+          <Text style={styles.loadingText}>Cargando graficas del dashboard...</Text>
         </View>
       </ScreenContainer>
     );
@@ -52,21 +52,21 @@ export default function AdminReportsScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Gráficas del sistema</Text>
+          <Text style={styles.title}>Graficas del sistema</Text>
           <Text style={styles.subtitle}>
-            Analiza cotizaciones, aportes, afiliados y distribución de fondos
+            Analiza cotizaciones, aportes, afiliados y distribucion de fondos
             desde una sola vista.
           </Text>
         </View>
 
-        {isEmpty && (
+        {isEmpty ? (
           <View style={styles.emptyBanner}>
             <Text style={styles.emptyBannerText}>
-              Todavía no hay datos gráficos para mostrar. Cuando existan
-              registros en el sistema, aparecerán aquí.
+              Todavia no hay datos graficos para mostrar. Cuando existan
+              registros en el sistema, apareceran aqui.
             </Text>
           </View>
-        )}
+        ) : null}
 
         <View style={styles.chartsList}>
           <QuotesByStatusChart data={graphs.quotesByStatus} />
@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 24,
-    gap: 16,
+    gap: 18,
   },
   header: {
-    gap: 4,
+    gap: 6,
   },
   title: {
     fontSize: 24,
@@ -128,8 +128,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
   },
   emptyBannerText: {
     fontSize: 13,

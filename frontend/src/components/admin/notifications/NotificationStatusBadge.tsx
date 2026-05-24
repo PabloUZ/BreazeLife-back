@@ -20,7 +20,7 @@ export default function NotificationStatusBadge({
           isRead ? styles.labelRead : styles.labelUnread,
         ]}
       >
-        {isRead ? "Leida" : "No leida"}
+        {isRead ? "Leida" : "Sin leer"}
       </Text>
     </View>
   );
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   labelUnread: {
     color: "#1D4ED8",
