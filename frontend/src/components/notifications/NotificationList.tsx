@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -12,7 +12,7 @@ import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useNotifications } from "@/src/hooks/useNotifications";
-import { fireTestNotification } from "@/src/services/api/notificationService";
+// import { fireTestNotification } from "@/src/services/api/notificationService";
 import type { NotificationDto } from "@/src/dtos/notification/notification.dtos";
 
 // ─── SwipeableCard ────────────────────────────────────────────────────────────
@@ -101,19 +101,6 @@ export default function NotificationList() {
     refresh,
   } = useNotifications();
 
-  const [firing, setFiring] = useState(false);
-
-  async function handleFireTest() {
-    try {
-      setFiring(true);
-      await fireTestNotification();
-    } catch {
-      // El error no es crítico; el botón vuelve a su estado normal
-    } finally {
-      setFiring(false);
-    }
-  }
-
   // ─── Estado de carga ───────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -179,8 +166,8 @@ export default function NotificationList() {
         )}
       />
 
-      {/* Botón de prueba flotante */}
-      <TouchableOpacity
+      {/* Botón de prueba flotante — comentado hasta que se necesite en desarrollo */}
+      {/* <TouchableOpacity
         style={[styles.fabTest, firing && styles.fabTestDisabled]}
         onPress={handleFireTest}
         disabled={firing}
@@ -191,7 +178,7 @@ export default function NotificationList() {
         ) : (
           <Text style={styles.fabTestText}>🧪 Disparar notif</Text>
         )}
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }
