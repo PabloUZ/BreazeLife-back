@@ -5,6 +5,8 @@ import type {
     EmployeeListResponseDto,
     RegisterEmployeeDto,
     RegisterEmployeeResponseDto,
+    UpdateEmployeeDto,
+    UpdateEmployeeResponseDto
 } from "@/src/dtos/employer/employee.dtos";
 
 const BASE_PATH = "/api/v1/employers";
@@ -50,5 +52,17 @@ export async function getEmployeeDetail(
     return apiClient.request<EmployeeDetailDto>({
         method: "GET",
         endpoint: `${BASE_PATH}/${employerId}/employee-detail/${contractId}`,
+    });
+}
+
+export async function updateEmployee(
+    employerId: string,
+    contractId: string,
+    data: UpdateEmployeeDto
+): Promise<UpdateEmployeeResponseDto> {
+    return apiClient.request<UpdateEmployeeResponseDto>({
+        method: "PUT",
+        endpoint: `${BASE_PATH}/${employerId}/update-employee/${contractId}`,
+        body: data,
     });
 }

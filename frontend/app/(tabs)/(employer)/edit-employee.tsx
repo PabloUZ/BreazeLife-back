@@ -1,26 +1,23 @@
-import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import EmployeeDetail from "@/src/components/employer/employeeDetail";
+import EditEmployeeForm from "@/src/components/employer/editEmployeeForm";
 import { getEmployeeDetail } from "@/src/services/api/employeeService";
-import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
+import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos.ts";
 
 const EMPLOYER_ID = "placeholder-employer-id";
 
-export default function EmployeeDetailScreen() {
-    const router = useRouter();
+export default function EditEmployeeScreen() {
     const { contractId } = useLocalSearchParams<{ contractId: string }>();
     const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!contractId) return;
-            fetchDetail();
-        }, [contractId])
-    );
+    useEffect(() => {
+        if (!contractId) return;
+        fetchDetail();
+    }, [contractId]);
 
     const fetchDetail = async () => {
         try {
@@ -28,14 +25,8 @@ export default function EmployeeDetailScreen() {
             setError(null);
             const data = await getEmployeeDetail(EMPLOYER_ID, contractId);
             setEmployee(data);
-        } catch (err: any) {
-            if (err.message === "EMPLOYEE_NOT_FOUND") {
-                setError("Empleado no encontrado.");
-            } else if (err.message === "UNAUTHORIZED") {
-                setError("No tienes permiso para ver este empleado.");
-            } else {
-                setError("No se pudo cargar el detalle. Intenta de nuevo.");
-            }
+        } catch {
+            setError("No se pudo cargar la información del empleado.");
         } finally {
             setLoading(false);
         }
@@ -45,9 +36,7 @@ export default function EmployeeDetailScreen() {
         <>
             <Stack.Screen
                 options={{
-                    title: employee
-                        ? `${employee.firstName} ${employee.lastName}`
-                        : "Detalle empleado",
+                    title: "Editar empleado",
                     headerShown: true,
                 }}
             />
@@ -66,13 +55,7 @@ export default function EmployeeDetailScreen() {
                 )}
 
                 {employee && !loading && !error && (
-                    <EmployeeDetail
-                        employee={employee}
-                        onEdit={() => router.push({
-                            pathname: "/(tabs)/(employer)/edit-employee" as any,
-                            params: { contractId: employee.contractId },
-                        })}
-                    />
+                    <EditEmployeeForm employee={employee} />
                 )}
             </ScreenContainer>
         </>

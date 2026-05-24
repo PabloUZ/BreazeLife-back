@@ -69,6 +69,28 @@ export type EmployeeDetailDto = {
     status: EmployeeStatus;
 };
 
+export type UpdateEmployeeDto = {
+    firstName: string;
+    lastName: string;
+    email: string;
+    birthDate: string;
+};
+
+export type UpdateEmployeeResponseDto = {
+    contractId: string;
+    affiliateId: string;
+    employerId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    document: string;
+    birthDate: string;
+    position: string;
+    baseSalary: number;
+    startDate: string;
+    status: string;
+};
+
 export type EmployeeListParamsDto = {
     page?: number;
     size?: number;
