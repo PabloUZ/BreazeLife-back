@@ -21,6 +21,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateNotFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.InvalidDateRangeException;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -110,8 +113,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> details = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(
+                        fe -> toSnakeCase(fe.getField()),
+                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "invalid value",
+                        (first, second) -> first
+                ));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of("Invalid input data", "INVALID_INPUT", 400, "BAD_REQUEST"));
+                .body(ErrorResponse.of("Invalid input data", "INVALID_INPUT", 400, "BAD_REQUEST", details));
+    }
+
+    private String toSnakeCase(String camelCase) {
+        return camelCase.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

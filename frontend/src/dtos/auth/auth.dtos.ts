@@ -77,4 +77,6 @@ export type ApiErrorResponseDto = {
   message_code: string;
   status_code: number;
   status: string;
+  /** Presente en errores INVALID_INPUT: claves = nombre del campo, valor = motivo en inglés */
+  details?: Record<string, string>;
 };

@@ -34,9 +34,6 @@ public class AuthService {
     }
 
     public SignupResponse signup(SignupRequest request) {
-        if (request.role() == User.Role.ADMIN) {
-            throw new BadRequestException("INVALID_INPUT", "Invalid input data");
-        }
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException();
         }
