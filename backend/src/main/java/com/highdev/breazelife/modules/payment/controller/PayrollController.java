@@ -3,6 +3,8 @@ package com.highdev.breazelife.modules.payment.controller;
 import com.highdev.breazelife.modules.payment.dto.request.ExecutePayrollRequest;
 import com.highdev.breazelife.modules.payment.dto.request.PayrollPreviewRequest;
 import com.highdev.breazelife.modules.payment.dto.response.ExecutePayrollResponse;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollDetailResponse;
+import com.highdev.breazelife.modules.payment.dto.response.PayrollHistoryResponse;
 import com.highdev.breazelife.modules.payment.dto.response.PayrollPreviewResponse;
 import com.highdev.breazelife.modules.payment.service.PayrollService;
 import com.highdev.breazelife.modules.user.entity.User;
@@ -54,5 +56,38 @@ public class PayrollController {
         ExecutePayrollResponse data = payrollService.execute(employerUserId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.of("Payroll executed successfully", 201, "CREATED", data));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PayrollHistoryResponse>> getPayrollHistory(
+        @AuthenticationPrincipal User user,
+        @RequestHeader(value = "X-Employer-Id", required = false) String headerEmployerId,
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "10") int limit,
+        @RequestParam(required = false) String period,
+        @RequestParam(required = false) String status) {
+
+        String employerUserId = user != null ? user.getId() : headerEmployerId;
+        if (employerUserId == null || employerUserId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        PayrollHistoryResponse data = payrollService.getHistory(employerUserId, page, limit, period, status);
+        return ResponseEntity.ok(ApiResponse.of("Payroll history retrieved successfully", 200, "OK", data));
+    }
+
+    @GetMapping("/{payroll_id}")
+    public ResponseEntity<ApiResponse<PayrollDetailResponse>> getPayrollDetail(
+        @AuthenticationPrincipal User user,
+        @RequestHeader(value = "X-Employer-Id", required = false) String headerEmployerId,
+        @PathVariable("payroll_id") String payrollId) {
+
+        String employerUserId = user != null ? user.getId() : headerEmployerId;
+        if (employerUserId == null || employerUserId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        PayrollDetailResponse data = payrollService.getDetail(employerUserId, payrollId);
+        return ResponseEntity.ok(ApiResponse.of("Payroll detail retrieved successfully", 200, "OK", data));
     }
 }

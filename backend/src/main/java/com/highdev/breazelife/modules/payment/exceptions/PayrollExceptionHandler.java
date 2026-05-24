@@ -44,6 +44,12 @@ public class PayrollExceptionHandler {
         return ResponseEntity.status(422).body(body);
     }
 
+    @ExceptionHandler(PayrollNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePayrollNotFound(PayrollNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(errorBody(ex.getMessage(), "PAYROLL_NOT_FOUND", 404, "NOT_FOUND"));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
