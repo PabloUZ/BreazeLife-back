@@ -20,9 +20,9 @@ export async function getNotifications(role: AppRole): Promise<NotificationDto[]
   const response = await httpClient.get(`/api/v1/${path}/notifications`);
   const body = response.data;
 
-  // Employer devuelve un array plano; affiliate y admin devuelven { data: { items } }
-  if (Array.isArray(body)) return body as NotificationDto[];
-  if (Array.isArray(body?.data?.items)) return body.data.items as NotificationDto[];
+  // El backend devuelve { data: [...items], pagination: {...} }
+  // `data` es el array directamente, no un objeto { items: [] }
+  if (Array.isArray(body?.data)) return body.data as NotificationDto[];
   return [];
 }
 

@@ -62,7 +62,7 @@ public class NotificationService {
     public void createNotification(String userId, String message) {
         User user = userRepository.getReferenceById(userId);
 
-        long count = notificationRepository.count() + 1;
+        long count = notificationRepository.findMaxSequence() + 1;
         String id = String.format("NOT-%06d", count);
 
         Notification notification = new Notification();

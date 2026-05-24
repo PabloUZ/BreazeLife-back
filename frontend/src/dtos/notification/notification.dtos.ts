@@ -8,14 +8,12 @@ export type NotificationsResponseDto = {
   message: string;
   status_code: number;
   status: string;
-  data: {
-    items: NotificationDto[];
-    pagination?: {
-      page: number;
-      limit: number;
-      total_items: number;
-      total_pages: number;
-    };
+  data: NotificationDto[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
   };
 };
 
