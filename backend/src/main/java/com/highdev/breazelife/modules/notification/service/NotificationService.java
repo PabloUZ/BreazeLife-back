@@ -1,5 +1,7 @@
 package com.highdev.breazelife.modules.notification.service;
 
+import com.highdev.breazelife.common.exceptions.http.BadRequestException;
+import com.highdev.breazelife.modules.notification.dto.response.AdminNotificationResponseDto;
 import com.highdev.breazelife.modules.notification.dto.response.MarkReadResponse;
 import com.highdev.breazelife.modules.notification.dto.response.NotificationResponse;
 import com.highdev.breazelife.modules.notification.entity.Notification;
@@ -33,7 +35,11 @@ public class NotificationService {
 
     public record NotificationsPage(List<NotificationResponse> items, PaginationMeta pagination) {}
 
+    public record AdminNotificationsPage(List<AdminNotificationResponseDto> items, PaginationMeta pagination) {}
+
     public NotificationsPage getNotifications(String userId, int page, int limit, Boolean read) {
+        validatePagination(page, limit);
+
         PageRequest pageable = PageRequest.of(page - 1, limit);
         Page<Notification> result = (read != null)
                 ? notificationRepository.findByUserIdAndReadOrderByIdDesc(userId, read, pageable)
@@ -47,25 +53,46 @@ public class NotificationService {
         return new NotificationsPage(items, pagination);
     }
 
-    public MarkReadResponse markAsRead(String userId, String notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(NotificationNotFoundException::new);
+    public AdminNotificationsPage getAdminNotifications(String userId, int page, int limit, Boolean read) {
+        validatePagination(page, limit);
 
-        if (!notification.getUser().getId().equals(userId)) {
-            throw new ForbiddenNotificationException();
+        PageRequest pageable = PageRequest.of(page - 1, limit);
+        Page<Notification> result = (read != null)
+                ? notificationRepository.findByUserIdAndReadOrderByCreatedAtDescIdDesc(userId, read, pageable)
+                : notificationRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
+
+        List<AdminNotificationResponseDto> items = result.getContent().stream()
+                .map(AdminNotificationResponseDto::from)
+                .toList();
+        PaginationMeta pagination = new PaginationMeta(page, limit, result.getTotalElements());
+
+        return new AdminNotificationsPage(items, pagination);
+    }
+
+    public MarkReadResponse markAsRead(String userId, String notificationId) {
+        Notification notification = findOwnedNotification(userId, notificationId);
+
+        if (!Boolean.TRUE.equals(notification.getRead())) {
+            notification.setRead(true);
+            notification = notificationRepository.save(notification);
         }
 
-        notification.setRead(true);
-        return MarkReadResponse.from(notificationRepository.save(notification));
+        return MarkReadResponse.from(notification);
+    }
+
+    public AdminNotificationResponseDto markAdminNotificationAsRead(String userId, String notificationId) {
+        Notification notification = findOwnedNotification(userId, notificationId);
+
+        if (!Boolean.TRUE.equals(notification.getRead())) {
+            notification.setRead(true);
+            notification = notificationRepository.save(notification);
+        }
+
+        return AdminNotificationResponseDto.from(notification);
     }
 
     public void deleteNotification(String userId, String notificationId) {
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(NotificationNotFoundException::new);
-
-        if (!notification.getUser().getId().equals(userId)) {
-            throw new ForbiddenNotificationException();
-        }
+        Notification notification = findOwnedNotification(userId, notificationId);
 
         notificationRepository.delete(notification);
     }
@@ -88,5 +115,26 @@ public class NotificationService {
                 "/queue/notifications",
                 NotificationResponse.from(saved)
         );
+    }
+
+    public long countUnreadNotifications(String userId) {
+        return notificationRepository.countByUserIdAndReadFalse(userId);
+    }
+
+    private Notification findOwnedNotification(String userId, String notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(NotificationNotFoundException::new);
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new ForbiddenNotificationException();
+        }
+
+        return notification;
+    }
+
+    private void validatePagination(int page, int limit) {
+        if (page < 1 || limit < 1) {
+            throw new BadRequestException("INVALID_PAGINATION", "Page and limit must be greater than zero");
+        }
     }
 }
