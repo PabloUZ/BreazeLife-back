@@ -27,6 +27,8 @@ import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.affiliate.exceptions.AffiliateAlreadyExistsException;
 
 import com.highdev.breazelife.modules.affiliate.dto.request.AffiliateRequestDTO;
+import com.highdev.breazelife.modules.affiliate.dto.response.ProgressResponseDTO;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.highdev.breazelife.modules.account.service.AccumulationService; // Asegúrate de la ruta
@@ -149,5 +151,18 @@ public class AffiliateController {
         ));}catch (AffiliateNotFoundException e) {
             throw new NotFoundException("AFFILIATE_NOT_FOUND", e.getMessage());
         }
-}
+    }
+
+    @PreAuthorize("hasAnyRole('AFFILIATE', 'ADMIN')")
+    @GetMapping("/{affiliate_id}/progress")
+    public ResponseEntity<?> getAffiliateProgress(@PathVariable("affiliate_id") String affiliateId) {
+        ProgressResponseDTO result = affiliateService.getAffiliateProgress(affiliateId);
+        
+        return ResponseEntity.ok(Map.of(
+                "message", "Affiliate progress retrieved successfully",
+                "status_code", 200,
+                "status", "OK",
+                "data", result
+        ));
+    }
 }
