@@ -1,9 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import Constants from "expo-constants";
 import { secureStoreService } from "@/src/services/storage/SecureStoreService";
 
 const BASE_URL: string =
-  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:8000";
+  process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ─── Token storage keys ──────────────────────────────────────────────────────
 
