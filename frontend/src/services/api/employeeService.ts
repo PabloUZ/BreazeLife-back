@@ -1,4 +1,4 @@
-import { apiClient } from "@/src/services/api/ApiClient";
+import { httpClient } from "@/src/config/http";
 import type {
     EmployeeListParamsDto,
     EmployeeListResponseDto,
@@ -12,32 +12,20 @@ export async function registerEmployee(
     employerId: string,
     data: RegisterEmployeeDto
 ): Promise<RegisterEmployeeResponseDto> {
-    return apiClient.request<RegisterEmployeeResponseDto>({
-        method: "POST",
-        endpoint: `${BASE_PATH}/${employerId}/employees`,
-        body: data,
-    });
+    const response = await httpClient.post<RegisterEmployeeResponseDto>(
+        `${BASE_PATH}/${employerId}/new-employee`,
+        data
+    );
+    return response.data;
 }
 
 export async function listEmployees(
     employerId: string,
     params?: EmployeeListParamsDto
 ): Promise<EmployeeListResponseDto> {
-    const query = new URLSearchParams();
-
-    if (params?.page !== undefined)
-        query.append("page", String(params.page));
-    if (params?.size !== undefined)
-        query.append("size", String(params.size));
-    if (params?.status)
-        query.append("status", params.status);
-
-    const queryString = query.toString();
-    const endpoint = `${BASE_PATH}/${employerId}/employees${queryString ? `?${queryString}` : ""
-        }`;
-
-    return apiClient.request<EmployeeListResponseDto>({
-        method: "GET",
-        endpoint,
-    });
+    const response = await httpClient.get<EmployeeListResponseDto>(
+        `${BASE_PATH}/${employerId}/list-employees`,
+        { params }
+    );
+    return response.data;
 }
