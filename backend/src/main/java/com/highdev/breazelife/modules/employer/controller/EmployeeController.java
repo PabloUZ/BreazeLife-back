@@ -2,9 +2,11 @@ package com.highdev.breazelife.modules.employer.controller;
 
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
 import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
+import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeResponse;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -50,6 +52,16 @@ public class EmployeeController {
         @PathVariable String contractId){
 
         EmployeeDetailResponse response = employeeService.getEmployeeDetail(employerId, contractId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{employerId}/update-employee/{contractId}")
+    public ResponseEntity<UpdateEmployeeResponse> updateEmployee(
+        @PathVariable String employerId,
+        @PathVariable String contractId,
+        @Valid @RequestBody UpdateEmployeeRequest request) {
+
+        UpdateEmployeeResponse response = employeeService.updateEmployee(employerId, contractId, request);
         return ResponseEntity.ok(response);
     }
 }
