@@ -9,9 +9,9 @@ import type {
     RegisterEmployeeResponseDto,
     UpdateEmployeeDto,
     UpdateEmployeeResponseDto,
-    SalaryHistoryPageDto
+    SalaryHistoryPageDto,
+    DeactivateEmployeeResponseDto
 } from "@/src/dtos/employer/employee.dtos";
-import { apiClient } from "@/src/services/api/ApiClient";
 
 const BASE_PATH = "/api/v1/employers";
 
@@ -88,6 +88,16 @@ export async function getSalaryHistory(
 ): Promise<SalaryHistoryPageDto> {
     const response = await httpClient.get<SalaryHistoryPageDto>(
         `${BASE_PATH}/${employerId}/salary-history/${contractId}?page=${page}&size=${size}`
+    );
+    return response.data;
+}
+
+export async function deactivateEmployee(
+    employerId: string,
+    contractId: string
+): Promise<DeactivateEmployeeResponseDto> {
+    const response = await httpClient.delete<DeactivateEmployeeResponseDto>(
+        `${BASE_PATH}/${employerId}/desactivate-employee/${contractId}`
     );
     return response.data;
 }

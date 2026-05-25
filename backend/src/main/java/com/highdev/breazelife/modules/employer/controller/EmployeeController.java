@@ -90,4 +90,14 @@ public class EmployeeController {
         return ResponseEntity.ok(history);
     }
 
+    @DeleteMapping("/{employerId}/desactivate-employee/{contractId}")
+    @Operation(summary = "Deactivate an employee by contract ID")
+    public ResponseEntity<DeactivateEmployeeResponse> deactivateEmployee(
+        @PathVariable String employerId,
+        @PathVariable String contractId) {
+
+        DeactivateEmployeeResponse response = employeeService.deactivateEmployee(employerId, contractId);
+        return ResponseEntity.ok(response);
+    }
+
 }

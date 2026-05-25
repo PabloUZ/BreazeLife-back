@@ -91,7 +91,15 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Configuracion",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="account-detail" options={{ href: null }} />
       <Tabs.Screen name="quote-detail" options={{ href: null }} />

@@ -15,4 +15,5 @@ public interface EmployeeService {
     UpdateEmployeeResponse updateEmployee(String employerId, String contractId, UpdateEmployeeRequest request);
     ChangeSalaryPositionResponse changeSalaryPosition(String employerId, String contractId, ChangeSalaryPositionRequest request);
     Page<SalaryHistoryResponse> getSalaryHistory(String employerId, String contractId, Pageable pageable);
+    DeactivateEmployeeResponse deactivateEmployee(String employerId, String contractId);
 }

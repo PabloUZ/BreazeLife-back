@@ -11,6 +11,8 @@ type EmployeeDetailProps = {
   onBack: () => void;
   onEdit: () => void;
   onViewHistory: () => void;
+  onDeactivate: () => void;
+  deactivating?: boolean;
 };
 
 function formatSalary(amount: number): string {
@@ -31,11 +33,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text
-        style={styles.infoValue}
-        numberOfLines={2}
-        ellipsizeMode="tail"
-      >
+      <Text style={styles.infoValue} numberOfLines={2} ellipsizeMode="tail">
         {value}
       </Text>
     </View>
@@ -47,6 +45,8 @@ export default function EmployeeDetail({
   onBack,
   onEdit,
   onViewHistory,
+  onDeactivate,
+  deactivating = false,
 }: EmployeeDetailProps) {
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -61,7 +61,7 @@ export default function EmployeeDetail({
 
       <AppHeader
         title="Detalle del empleado"
-        subtitle="Consulta los datos personales, laborales y de contrato del empleado."
+        subtitle="Consulta los datos personales, laborales y del contrato del empleado."
       />
 
       <AppCard style={styles.heroCard}>
@@ -78,6 +78,7 @@ export default function EmployeeDetail({
         <AppStatusBadge
           label={employee.status === "ACTIVE" ? "Activo" : "Inactivo"}
           tone={employee.status === "ACTIVE" ? "success" : "danger"}
+          style={styles.statusBadge}
         />
 
         <View style={styles.actions}>
@@ -86,6 +87,13 @@ export default function EmployeeDetail({
             title="Historial salarial"
             variant="secondary"
             onPress={onViewHistory}
+            style={styles.actionButton}
+          />
+          <AppButton
+            title="Desvincular empleado"
+            variant="danger"
+            onPress={onDeactivate}
+            loading={deactivating}
             style={styles.actionButton}
           />
         </View>
@@ -151,6 +159,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
     textAlign: "center",
+  },
+  statusBadge: {
+    alignSelf: "center",
   },
   actions: {
     width: "100%",

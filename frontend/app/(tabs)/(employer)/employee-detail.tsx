@@ -1,12 +1,16 @@
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { Alert } from "react-native";
 import { useCallback, useState } from "react";
-import EmployeeDetail from "@/src/components/employer/employeeDetail";
 import AppErrorState from "@/src/components/common/AppErrorState";
 import AppLoadingState from "@/src/components/common/AppLoadingState";
+import EmployeeDetail from "@/src/components/employer/employeeDetail";
 import EmployerScreenContainer from "@/src/components/layout/EmployerScreenContainer";
 import { useAuthContext } from "@/src/context/AuthContext";
 import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
-import { getEmployeeDetail } from "@/src/services/api/employeeService";
+import {
+  deactivateEmployee,
+  getEmployeeDetail,
+} from "@/src/services/api/employeeService";
 
 export default function EmployeeDetailScreen() {
   const router = useRouter();
@@ -16,6 +20,7 @@ export default function EmployeeDetailScreen() {
   const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -42,6 +47,40 @@ export default function EmployeeDetailScreen() {
       fetchDetail();
     }, [contractId, fetchDetail])
   );
+
+  const handleDeactivate = useCallback(() => {
+    Alert.alert(
+      "Desvincular empleado",
+      `Estas seguro de que deseas desvincular a ${employee?.firstName ?? ""} ${employee?.lastName ?? ""}? Esta accion no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desvincular",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeactivating(true);
+              await deactivateEmployee(employerId, contractId);
+              Alert.alert("Exito", "Empleado desvinculado correctamente.", [
+                {
+                  text: "OK",
+                  onPress: () => router.push("/(tabs)/(employer)/employees" as any),
+                },
+              ]);
+            } catch (err: any) {
+              if (err.message === "CONFLICT") {
+                Alert.alert("Error", "El empleado ya esta inactivo.");
+              } else {
+                Alert.alert("Error", "No se pudo desvincular el empleado. Intenta de nuevo.");
+              }
+            } finally {
+              setDeactivating(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [contractId, employee?.firstName, employee?.lastName, employerId, router]);
 
   if (loading) {
     return (
@@ -76,6 +115,8 @@ export default function EmployeeDetailScreen() {
             params: { contractId: employee.contractId },
           })
         }
+        onDeactivate={handleDeactivate}
+        deactivating={deactivating}
       />
     </EmployerScreenContainer>
   );
