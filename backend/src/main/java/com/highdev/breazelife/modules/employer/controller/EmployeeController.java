@@ -1,12 +1,10 @@
 package com.highdev.breazelife.modules.employer.controller;
 
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
+import com.highdev.breazelife.modules.employer.dto.request.ChangeSalaryPositionRequest;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
-import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
-import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeResponse;
+import com.highdev.breazelife.modules.employer.dto.response.*;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -64,4 +62,15 @@ public class EmployeeController {
         UpdateEmployeeResponse response = employeeService.updateEmployee(employerId, contractId, request);
         return ResponseEntity.ok(response);
     }
+
+    @PatchMapping("/{employerId}/change-salary-position/{contractId}")
+    public ResponseEntity<ChangeSalaryPositionResponse> changeSalaryPosition(
+        @PathVariable String employerId,
+        @PathVariable String contractId,
+        @Valid @RequestBody ChangeSalaryPositionRequest request) {
+
+        ChangeSalaryPositionResponse response = employeeService.changeSalaryPosition(employerId, contractId, request);
+        return ResponseEntity.ok(response);
+    }
+
 }

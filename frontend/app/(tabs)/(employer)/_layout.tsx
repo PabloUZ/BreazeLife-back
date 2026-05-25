@@ -91,6 +91,12 @@ export default function EmployerTabsLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="change-salary-position"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

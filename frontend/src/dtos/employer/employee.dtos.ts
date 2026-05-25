@@ -1,4 +1,5 @@
 export type EmployeeStatus = "ACTIVE" | "INACTIVE";
+export type PensionFundType = "CONSERVATIVE" | "MODERATE" | "RISKY";
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ export type RegisterEmployeeDto = {
     position: string;
     baseSalary: number;
     startDate: string;   // "YYYY-MM-DD"
+    pensionFundType: PensionFundType; 
 };
 
 export type RegisterEmployeeResponseDto = {
@@ -96,4 +98,21 @@ export type EmployeeListParamsDto = {
     page?: number;
     size?: number;
     status?: EmployeeStatus;
+};
+
+export type ChangeSalaryPositionDto = {
+    position: string;
+    baseSalary: number;
+};
+
+export type ChangeSalaryPositionResponseDto = {
+    contractId: string;
+    affiliateId: string;
+    employerId: string;
+    firstName: string;
+    lastName: string;
+    position: string;
+    baseSalary: number;
+    startDate: string;
+    status: string;
 };

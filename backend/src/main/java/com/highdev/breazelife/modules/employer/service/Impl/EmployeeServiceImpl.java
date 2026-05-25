@@ -2,12 +2,16 @@ package com.highdev.breazelife.modules.employer.service.Impl;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.account.entity.Account;
+import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
+import com.highdev.breazelife.modules.employer.dto.request.ChangeSalaryPositionRequest;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.response.ChangeSalaryPositionResponse;
 import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
 import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
@@ -15,6 +19,8 @@ import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeRespon
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
+import com.highdev.breazelife.modules.history.entity.UpdateHistory;
+import com.highdev.breazelife.modules.history.repository.UpdateHistoryRepository;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -33,16 +39,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final AffiliateRepository affiliateRepository;
     private final EmployerRepository employerRepository;
     private final UserRepository userRepository;
+    private final UpdateHistoryRepository updateHistoryRepository;
+    private final AccountRepository accountRepository;
 
     public EmployeeServiceImpl(
         ContractRepository contractRepository,
         AffiliateRepository affiliateRepository,
         EmployerRepository employerRepository,
-        UserRepository userRepository) {
+        UserRepository userRepository,
+        UpdateHistoryRepository updateHistoryRepository,
+        AccountRepository accountRepository) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
         this.userRepository = userRepository;
+        this.updateHistoryRepository = updateHistoryRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -87,6 +99,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         affiliate.setAffiliationDate(request.getStartDate());
         affiliate.setStatus(Affiliate.Status.ACTIVE);
         affiliateRepository.save(affiliate);
+
+        // Crear la cuenta pensional
+        Account account = new Account();
+        account.setAffiliate(affiliate);
+        account.setAccountType(request.getPensionFundType());
+        accountRepository.save(account);
 
         // Crear el contrato
         Contract contract = new Contract();
@@ -199,6 +217,39 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setBaseSalary(contract.getBaseSalary());
         response.setStartDate(contract.getStartDate());
         response.setStatus(affiliate.getStatus().name());
+
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ChangeSalaryPositionResponse changeSalaryPosition(String employerId, String contractId, ChangeSalaryPositionRequest request) {
+
+        Contract contract = contractRepository.findByIdAndEmployerUserId(contractId, employerId)
+            .orElseThrow(() -> new NotFoundException("CONTRACT_NOT_FOUND",
+                "Contract not found with id: " + contractId));
+
+        UpdateHistory history = new UpdateHistory();
+        history.setContract(contract);
+        history.setDate(LocalDateTime.now());
+        history.setAction("SALARY_POSITION_CHANGE");
+        history.setPosition(request.getPosition());
+        history.setSalary(request.getBaseSalary());
+        updateHistoryRepository.save(history);
+
+        contract.setPosition(request.getPosition());
+        contract.setBaseSalary(request.getBaseSalary());
+
+        ChangeSalaryPositionResponse response = new ChangeSalaryPositionResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(contract.getAffiliate().getUserId());
+        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setFirstName(contract.getAffiliate().getUser().getFirstName());
+        response.setLastName(contract.getAffiliate().getUser().getLastName());
+        response.setPosition(contract.getPosition());
+        response.setBaseSalary(contract.getBaseSalary());
+        response.setStartDate(contract.getStartDate());
+        response.setStatus(contract.getAffiliate().getStatus().name());
 
         return response;
     }

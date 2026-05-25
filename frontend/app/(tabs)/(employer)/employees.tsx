@@ -4,13 +4,13 @@ import { useRouter } from "expo-router";
 import { listEmployees } from "@/src/services/api/employeeService";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EmployeeCard from "@/src/components/employer/employeeCard";
+import { useAuthContext } from "@/src/context/AuthContext";
 import { useFocusEffect } from "expo-router";
 import type {
   EmployeeStatus,
   EmployerEmployeeDto,
 } from "@/src/dtos/employer/employee.dtos";
 
-const EMPLOYER_ID = "placeholder-employer-id";
 const PAGE_SIZE = 10;
 
 const STATUS_FILTERS: { label: string; value: EmployeeStatus | "ALL" }[] = [
@@ -21,7 +21,8 @@ const STATUS_FILTERS: { label: string; value: EmployeeStatus | "ALL" }[] = [
 
 export default function EmployerEmployeesScreen() {
   const router = useRouter();
-
+  const { state } = useAuthContext();
+  const employerId = state.user?.user_id ?? "";
   const [employees, setEmployees] = useState<EmployerEmployeeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -37,7 +38,7 @@ export default function EmployerEmployeesScreen() {
         else setLoadingMore(true);
         setError(null);
 
-        const response = await listEmployees(EMPLOYER_ID, {
+        const response = await listEmployees(employerId, {
           page,
           size: PAGE_SIZE,
           status: status === "ALL" ? undefined : status,
