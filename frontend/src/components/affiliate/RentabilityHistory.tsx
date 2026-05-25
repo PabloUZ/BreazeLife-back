@@ -60,15 +60,23 @@ export function RentabilityHistory() {
       {history.length === 0 ? (
         <Text style={styles.emptyText}>Aun no tienes rendimientos aplicados.</Text>
       ) : (
-        <View>
+        <View style={styles.listWrap}>
           <ScrollView
             style={styles.scrollFixedContainer}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator
           >
-            {history.map((item) => (
-              <View key={item.id} style={styles.row}>
+            {history.map((item, index) => (
+              <View
+                key={item.id}
+                style={[styles.row, index === history.length - 1 ? styles.lastRow : null]}
+              >
                 <View style={styles.infoContainer}>
-                  <Text style={styles.dateText}>
+                  <Text
+                    style={styles.dateText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {new Date(item.date)
                       .toLocaleDateString("es-ES", {
                         month: "long",
@@ -76,7 +84,11 @@ export function RentabilityHistory() {
                       })
                       .toUpperCase()}
                   </Text>
-                  <Text style={styles.typeText}>
+                  <Text
+                    style={styles.typeText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     Fondo {getAccountTypeLabel(item.accountType)}
                   </Text>
                 </View>
@@ -84,8 +96,6 @@ export function RentabilityHistory() {
               </View>
             ))}
           </ScrollView>
-
-          <View style={styles.fadeOverlay} pointerEvents="none" />
         </View>
       )}
     </AppCard>
@@ -95,12 +105,11 @@ export function RentabilityHistory() {
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing.md,
-    overflow: "hidden",
   },
   title: {
     ...typography.cardTitle,
     color: colors.text,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   loader: {
     marginVertical: spacing.md,
@@ -111,42 +120,49 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: spacing.sm,
   },
+  listWrap: {
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    paddingHorizontal: spacing.md,
+  },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: spacing.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderMuted,
+  },
+  lastRow: {
+    borderBottomWidth: 0,
   },
   infoContainer: {
     flex: 1,
+    paddingRight: spacing.md,
+    gap: spacing.xs,
   },
   dateText: {
     ...typography.bodyStrong,
-    color: colors.neutralText,
+    color: colors.text,
+    lineHeight: 20,
   },
   typeText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 2,
+    ...typography.body,
+    color: colors.neutralText,
+    lineHeight: 20,
   },
   profitText: {
     ...typography.cardTitle,
     color: colors.success,
-    flexShrink: 1,
+    flexShrink: 0,
     textAlign: "right",
+    lineHeight: 22,
   },
   scrollFixedContainer: {
     maxHeight: 250,
   },
-  fadeOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 40,
-    backgroundColor: "rgba(255,255,255,0.75)",
+  scrollContent: {
+    paddingVertical: spacing.xs,
   },
 });
