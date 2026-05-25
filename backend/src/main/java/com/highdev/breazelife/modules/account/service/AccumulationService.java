@@ -1,51 +1,89 @@
 package com.highdev.breazelife.modules.account.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
+import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.account.entity.Account;
 import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.quote.entity.Quote;
-import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
-import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
+import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Service
 public class AccumulationService {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    public record AccumulationResult(
+            String affiliateId,
+            String accountId,
+            String quoteId,
+            BigDecimal accumulatedAmount,
+            BigDecimal newBalance
+    ) {}
 
-    @Autowired
-    private QuoteRepository quoteRepository;
+    private final AccountRepository accountRepository;
+    private final QuoteRepository quoteRepository;
+
+    public AccumulationService(AccountRepository accountRepository, QuoteRepository quoteRepository) {
+        this.accountRepository = accountRepository;
+        this.quoteRepository = quoteRepository;
+    }
 
     @Transactional
     public void processAccumulation(String affiliateId, String quoteId) {
-        // 1. Buscar la cotización
         Quote quote = quoteRepository.findById(quoteId)
-                .orElseThrow(() -> new NotFoundException("QUOTE_NOT_FOUND", 
-                        "Contribution quote not found with ID: " + quoteId));
+                .orElseThrow(() -> new NotFoundException(
+                        "QUOTE_NOT_FOUND",
+                        "Contribution quote not found with ID: " + quoteId
+                ));
 
-        // 2. Validar si ya fue procesada (Regla de negocio 3)
-        if (quote.isProcessed()) {
-            throw new QuoteAlreadyProcessedException(quoteId);
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new NotFoundException(
+                        "ACCOUNT_NOT_FOUND",
+                        "Pension account not found for affiliate ID: " + affiliateId
+                ));
+
+        accumulateQuote(quote, account);
+    }
+
+    @Transactional
+    public AccumulationResult processApprovedQuote(Quote quote) {
+        if (quote == null) {
+            throw new NotFoundException("QUOTE_NOT_FOUND", "Contribution quote not found");
         }
 
-        // 3. Buscar la cuenta del afiliado
-        Account account = accountRepository.findByAffiliateUserId(affiliateId)
-                .orElseThrow(() -> new NotFoundException("ACCOUNT_NOT_FOUND", 
-                        "Pension account not found for affiliate ID: " + affiliateId));
+        Account account = quote.getAccount();
+        if (account == null || account.getAffiliate() == null) {
+            throw new NotFoundException(
+                    "ACCOUNT_NOT_FOUND",
+                    "Pension account not found for quote ID: " + quote.getId()
+            );
+        }
 
-        // 4. Ejecutar lógica en el Modelo de Dominio Rico (Account)
-        // Aquí Account calcula el 16% del IBC y suma los días
-        account.accumulateContribution(quote.getIbc(), quote.getDaysContributed());
+        return accumulateQuote(quote, account);
+    }
 
-        // 5. Cambiar estado de la cotización
+    private AccumulationResult accumulateQuote(Quote quote, Account account) {
+        if (quote.isProcessed()) {
+            throw new QuoteAlreadyProcessedException(quote.getId());
+        }
+
+        BigDecimal accumulatedAmount = quote.getIbc() != null ? quote.getIbc() : BigDecimal.ZERO;
+        int contributedDays = quote.getDaysContributed() != null ? quote.getDaysContributed() : 0;
+
+        account.accumulateContribution(accumulatedAmount, contributedDays);
         quote.markAsProcessed();
 
-        // 6. Guardar cambios (Atomicidad por @Transactional)
-        accountRepository.save(account);
+        Account savedAccount = accountRepository.save(account);
         quoteRepository.save(quote);
+
+        return new AccumulationResult(
+                savedAccount.getAffiliate().getUserId(),
+                savedAccount.getId(),
+                quote.getId(),
+                accumulatedAmount,
+                savedAccount.getBalance()
+        );
     }
 }

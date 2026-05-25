@@ -1,7 +1,13 @@
 export type NotificationDto = {
   notification_id: string;
+  type?: string | null;
+  quote_id?: string | null;
+  account_id?: string | null;
+  accumulated_amount?: number | null;
+  new_balance?: number | null;
   message: string;
   read: boolean;
+  created_at?: string | null;
 };
 
 export type NotificationsResponseDto = {
