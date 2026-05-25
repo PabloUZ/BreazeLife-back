@@ -1,6 +1,6 @@
 package com.highdev.breazelife.modules.employer.controller;
 
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDto;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerRepresentativeDTO;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.service.EmployerService;
@@ -48,7 +48,7 @@ public class EmployerController {
     @PutMapping("/profile") 
     public ResponseEntity<EmployerProfileResponseDTO> updateProfile(
             @AuthenticationPrincipal User authenticatedUser,
-            @RequestBody UpdateEmployerProfileDTO dto) {
+            @RequestBody UpdateEmployerProfileDto dto) {
         
         String userIdFromToken = authenticatedUser.getId();
         EmployerProfileResponseDTO updated = employerService.updateProfile(userIdFromToken, dto);
