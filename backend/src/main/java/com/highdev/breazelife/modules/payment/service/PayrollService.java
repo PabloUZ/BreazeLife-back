@@ -138,8 +138,18 @@ public class PayrollService {
         totals.setTotalPensionFundDebit(totalPensionFundDebit);
         totals.setTotalDebit(totalDebit);
 
-        boolean payrollOk = payrollFundBalance.compareTo(totalPayrollFundDebit) >= 0;
-        boolean pensionOk = pensionFundBalance.compareTo(totalPensionFundDebit) >= 0;
+        // Validar fondos delega a FundsService que publica InsufficientFundsEvent si no alcanzan
+        boolean payrollOk = true;
+        boolean pensionOk = true;
+        try {
+            fundsService.validateFunds(employerUserId,
+                new ValidateFundsRequest(totalPayrollFundDebit, totalPensionFundDebit));
+        } catch (InsufficientFundsException ex) {
+            for (InsufficientFundsException.FundShortage s : ex.getShortages()) {
+                if (s.fundType() == FundType.PAYROLL) payrollOk = false;
+                if (s.fundType() == FundType.PENSION) pensionOk = false;
+            }
+        }
 
         PayrollPreviewResponse.FundStatus fundStatus = new PayrollPreviewResponse.FundStatus();
         fundStatus.setPayrollFundSufficient(payrollOk);
