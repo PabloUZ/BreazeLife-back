@@ -3,6 +3,9 @@
 import { httpClient } from "@/src/config/http";
 import type {
   ApiResponseDto,
+  AffiliateDashboardDto,
+  AffiliateProfileDto,
+  UpdateAffiliateProfileDto,
   ProgressResponseDto,
   PaginatedResponseDto,
   PayslipDto,
@@ -10,9 +13,27 @@ import type {
   PaymentDetailResponseDto,
 } from "@/src/dtos/affiliate/affiliate.dtos";
 
-
-
 const BASE_PATH = "/api/v1/affiliates";
+
+export async function getAffiliateDashboard(): Promise<AffiliateDashboardDto> {
+  const response = await httpClient.get<ApiResponseDto<AffiliateDashboardDto>>(
+    "/api/v1/affiliate/dashboard"
+  );
+  return response.data.data;
+}
+
+export async function getAffiliateProfile(): Promise<AffiliateProfileDto> {
+  const response = await httpClient.get<ApiResponseDto<AffiliateProfileDto>>(
+    "/api/v1/affiliate/profile"
+  );
+  return response.data.data;
+}
+
+export async function updateAffiliateProfile(
+  body: UpdateAffiliateProfileDto
+): Promise<void> {
+  await httpClient.patch("/api/v1/affiliate/profile", body);
+}
 
 export async function getAffiliateProgress(
   affiliateId: string
