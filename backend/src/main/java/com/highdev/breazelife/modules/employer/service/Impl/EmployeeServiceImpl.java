@@ -20,13 +20,16 @@ import com.highdev.breazelife.modules.history.repository.UpdateHistoryRepository
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -272,5 +275,36 @@ public class EmployeeServiceImpl implements EmployeeService {
                 response.setSalary(history.getSalary());
                 return response;
             });
+    }
+
+    @Override
+    public DeactivateEmployeeResponse deactivateEmployee(String employerId, String contractId) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (!contract.getEmployer().getUserId().equals(employerId)) {
+            throw new AccessDeniedException("Contract does not belong to this employer");
+        }
+
+        if (contract.getAffiliate().getStatus() == Affiliate.Status.INACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is already inactive");
+        }
+
+        contract.getAffiliate().setStatus(Affiliate.Status.INACTIVE);
+        contract.setEndDate(LocalDate.now());
+        contractRepository.save(contract);
+
+        Affiliate affiliate = contract.getAffiliate();
+        User user = affiliate.getUser();
+
+        DeactivateEmployeeResponse response = new DeactivateEmployeeResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(affiliate.getUserId());
+        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setStatus(contract.getAffiliate().getStatus().name());
+        response.setEndDate(contract.getEndDate());
+        return response;
     }
 }
