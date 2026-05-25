@@ -2,14 +2,14 @@ package com.highdev.breazelife.modules.employer.dto.request;
 
 import jakarta.validation.constraints.Size;
 
-public class UpdateEmployerProfileDTO {
+public class UpdateEmployerProfileDto {
     @Size(min = 2, max = 100)
     private String companyName = null;
 
     @Size(min = 2, max = 50)
     private String sector = null;
 
-    public UpdateEmployerProfileDTO() {}
+    public UpdateEmployerProfileDto() {}
 
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
