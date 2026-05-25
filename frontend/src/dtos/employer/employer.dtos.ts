@@ -58,6 +58,43 @@ export type PayrollPreviewResponseDto = {
   data: PayrollPreviewDataDto;
 };
 
+// ─── Payroll Execute ──────────────────────────────────────────────────────────
+
+export type PayrollPaymentResultDto = {
+  payment_id: string;
+  contract_id: string;
+  affiliate_name: string;
+  document: string;
+  net_salary: number;
+  quote_id: string;
+  status: string;
+};
+
+export type PayrollExecuteTotalsDto = {
+  total_employees: number;
+  total_net_salary_paid: number;
+  total_pension_contrib: number;
+  total_debit: number;
+};
+
+export type PayrollExecuteDataDto = {
+  period: string;
+  employer_id: string;
+  company_name: string;
+  status: string;
+  payments: PayrollPaymentResultDto[];
+  totals: PayrollExecuteTotalsDto;
+  payroll_fund_remaining: number;
+  pension_fund_remaining: number;
+};
+
+export type PayrollExecuteResponseDto = {
+  message: string;
+  status_code: number;
+  status: string;
+  data: PayrollExecuteDataDto;
+};
+
 export type EmployerFundDto = Record<string, never>;
 
 export type EmployerReportDto = Record<string, never>;

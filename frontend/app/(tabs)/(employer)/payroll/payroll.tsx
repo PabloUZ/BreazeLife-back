@@ -8,8 +8,11 @@ import {
   View,
 } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import { previewPayroll } from "@/src/services/api/payrollService";
-import type { PayrollPreviewDataDto } from "@/src/dtos/employer/employer.dtos";
+import { executePayroll, previewPayroll } from "@/src/services/api/payrollService";
+import type {
+  PayrollExecuteDataDto,
+  PayrollPreviewDataDto,
+} from "@/src/dtos/employer/employer.dtos";
 
 const MONTHS = [
   { label: "Ene", value: 1 },
@@ -29,6 +32,8 @@ const MONTHS = [
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR - 1, CURRENT_YEAR];
 
+type ScreenView = "selector" | "preview" | "confirm" | "result";
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -42,48 +47,291 @@ function getMonthLabel(month: number): string {
 }
 
 export default function EmployerPayrollScreen() {
+  const [view, setView] = useState<ScreenView>("selector");
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PayrollPreviewDataDto | null>(null);
 
+  const [executeLoading, setExecuteLoading] = useState(false);
+  const [executeError, setExecuteError] = useState<string | null>(null);
+  const [result, setResult] = useState<PayrollExecuteDataDto | null>(null);
+
+  const period = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+  const periodLabel = `${getMonthLabel(selectedMonth)} ${selectedYear}`;
+
   const handlePreview = async () => {
-    setLoading(true);
-    setError(null);
+    setPreviewLoading(true);
+    setPreviewError(null);
     try {
-      const period = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
-      const result = await previewPayroll({ period });
-      setPreview(result.data);
+      const res = await previewPayroll({ period });
+      setPreview(res.data);
+      setView("preview");
     } catch (err) {
       const code = (err as any)?.response?.data?.message_code;
       if (code === "NO_ACTIVE_EMPLOYEES") {
-        setError("No tienes empleados activos para este período.");
+        setPreviewError("No tienes empleados activos para este período.");
       } else if (code === "PAYROLL_ALREADY_PROCESSED") {
-        setError("La nómina de este período ya fue procesada.");
+        setPreviewError("La nómina de este período ya fue procesada.");
       } else {
-        setError("No se pudo generar la vista previa. Intenta de nuevo.");
+        setPreviewError("No se pudo generar la vista previa. Intenta de nuevo.");
       }
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
-  // ── Preview results ──────────────────────────────────────────────────────
-  if (preview) {
+  const handleExecute = async () => {
+    setExecuteLoading(true);
+    setExecuteError(null);
+    try {
+      const res = await executePayroll({ period });
+      setResult(res.data);
+      setView("result");
+    } catch (err) {
+      const code = (err as any)?.response?.data?.message_code;
+      if (code === "INSUFFICIENT_FUNDS") {
+        setExecuteError("Fondos insuficientes para ejecutar la nómina.");
+      } else if (code === "PAYROLL_ALREADY_PROCESSED") {
+        setExecuteError("La nómina de este período ya fue procesada.");
+      } else if (code === "NO_ACTIVE_EMPLOYEES") {
+        setExecuteError("No hay empleados activos para ejecutar.");
+      } else {
+        setExecuteError("No se pudo ejecutar la nómina. Intenta de nuevo.");
+      }
+    } finally {
+      setExecuteLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setView("selector");
+    setPreview(null);
+    setPreviewError(null);
+    setResult(null);
+    setExecuteError(null);
+  };
+
+  // ── Result ───────────────────────────────────────────────────────────────
+  if (view === "result" && result) {
+    return (
+      <ScreenContainer>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.successHeader}>
+            <Text style={styles.successIcon}>✓</Text>
+            <Text style={styles.successTitle}>Nómina ejecutada</Text>
+            <Text style={styles.successPeriod}>{periodLabel}</Text>
+            <Text style={styles.successCompany}>{result.company_name}</Text>
+          </View>
+
+          {/* Remaining balances */}
+          <View style={styles.remainingCard}>
+            <Text style={styles.remainingTitle}>Saldos restantes</Text>
+            <View style={styles.fundRow}>
+              <View style={styles.fundItem}>
+                <Text style={styles.fundLabel}>Fondo nómina</Text>
+                <Text style={styles.fundValue}>
+                  {formatCurrency(result.payroll_fund_remaining)}
+                </Text>
+              </View>
+              <View style={[styles.fundItem, styles.fundItemRight]}>
+                <Text style={styles.fundLabel}>Fondo pensión</Text>
+                <Text style={styles.fundValue}>
+                  {formatCurrency(result.pension_fund_remaining)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Totals */}
+          <Text style={styles.sectionTitle}>Resumen</Text>
+          <View style={styles.card}>
+            <View style={styles.totalsGrid}>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Empleados pagados</Text>
+                <Text style={styles.totalValue}>
+                  {result.totals.total_employees}
+                </Text>
+              </View>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total neto pagado</Text>
+                <Text style={styles.totalValue}>
+                  {formatCurrency(result.totals.total_net_salary_paid)}
+                </Text>
+              </View>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total pensión</Text>
+                <Text style={styles.totalValue}>
+                  {formatCurrency(result.totals.total_pension_contrib)}
+                </Text>
+              </View>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total debitado</Text>
+                <Text style={[styles.totalValue, styles.totalDebit]}>
+                  {formatCurrency(result.totals.total_debit)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Payment list */}
+          <Text style={styles.sectionTitle}>
+            Pagos procesados ({result.payments.length})
+          </Text>
+
+          {result.payments.map((payment) => (
+            <View key={payment.payment_id} style={styles.card}>
+              <View style={styles.empHeader}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {payment.affiliate_name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.empInfo}>
+                  <Text style={styles.empName}>{payment.affiliate_name}</Text>
+                  <Text style={styles.empPosition}>{payment.document}</Text>
+                </View>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusBadgeText}>{payment.status}</Text>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.empRow}>
+                <View style={styles.empRowItem}>
+                  <Text style={styles.empRowLabel}>Salario neto</Text>
+                  <Text style={[styles.empRowValue, styles.netText]}>
+                    {formatCurrency(payment.net_salary)}
+                  </Text>
+                </View>
+                <View style={styles.empRowItem}>
+                  <Text style={styles.empRowLabel}>Cotización</Text>
+                  <Text style={styles.empRowValue}>{payment.quote_id}</Text>
+                </View>
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity style={styles.newPayrollButton} onPress={handleReset}>
+            <Text style={styles.newPayrollButtonText}>Nueva nómina</Text>
+          </TouchableOpacity>
+
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
+
+  // ── Confirm ──────────────────────────────────────────────────────────────
+  if (view === "confirm" && preview) {
     return (
       <ScreenContainer>
         <ScrollView showsVerticalScrollIndicator={false}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => setPreview(null)}
+            onPress={() => {
+              setExecuteError(null);
+              setView("preview");
+            }}
+          >
+            <Text style={styles.backButtonText}>← Volver a vista previa</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.previewTitle}>Confirmar ejecución</Text>
+          <Text style={styles.previewSubtitle}>
+            {periodLabel} · {preview.company_name}
+          </Text>
+
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmQuestion}>
+              ¿Confirmas la ejecución de la nómina para{" "}
+              <Text style={styles.confirmPeriodBold}>{periodLabel}</Text>?
+            </Text>
+            <Text style={styles.confirmWarning}>
+              Esta acción debitará los fondos y registrará los pagos de{" "}
+              {preview.totals.total_employees} empleado
+              {preview.totals.total_employees !== 1 ? "s" : ""}. No se puede
+              deshacer.
+            </Text>
+
+            <View style={styles.divider} />
+
+            <View style={styles.totalsGrid}>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total a pagar (neto)</Text>
+                <Text style={styles.totalValue}>
+                  {formatCurrency(preview.totals.total_net_salary)}
+                </Text>
+              </View>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total pensión</Text>
+                <Text style={styles.totalValue}>
+                  {formatCurrency(preview.totals.total_pension_contrib)}
+                </Text>
+              </View>
+              <View style={styles.totalItem}>
+                <Text style={styles.totalLabel}>Total a debitar</Text>
+                <Text style={[styles.totalValue, styles.totalDebit]}>
+                  {formatCurrency(preview.totals.total_debit)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {executeError && (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorCardText}>{executeError}</Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.executeButton,
+              executeLoading && styles.executeButtonDisabled,
+            ]}
+            onPress={handleExecute}
+            disabled={executeLoading}
+          >
+            {executeLoading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.executeButtonText}>Confirmar y ejecutar</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => {
+              setExecuteError(null);
+              setView("preview");
+            }}
+            disabled={executeLoading}
+          >
+            <Text style={styles.cancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
+
+  // ── Preview ──────────────────────────────────────────────────────────────
+  if (view === "preview" && preview) {
+    return (
+      <ScreenContainer>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => setView("selector")}
           >
             <Text style={styles.backButtonText}>← Cambiar período</Text>
           </TouchableOpacity>
 
-          <Text style={styles.previewTitle}>
-            {getMonthLabel(selectedMonth)} {selectedYear}
-          </Text>
+          <Text style={styles.previewTitle}>{periodLabel}</Text>
           <Text style={styles.previewSubtitle}>{preview.company_name}</Text>
 
           {/* Fund status */}
@@ -225,17 +473,26 @@ export default function EmployerPayrollScreen() {
             </View>
           ))}
 
+          {preview.fund_status.can_execute && (
+            <TouchableOpacity
+              style={styles.executeButton}
+              onPress={() => setView("confirm")}
+            >
+              <Text style={styles.executeButtonText}>Ejecutar nómina →</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </ScreenContainer>
     );
   }
 
-  // ── Period selector ──────────────────────────────────────────────────────
+  // ── Selector ─────────────────────────────────────────────────────────────
   return (
     <ScreenContainer>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Vista previa de nómina</Text>
+        <Text style={styles.title}>Nómina</Text>
         <Text style={styles.subtitle}>
           Selecciona el período a previsualizar
         </Text>
@@ -283,21 +540,21 @@ export default function EmployerPayrollScreen() {
           ))}
         </View>
 
-        {error && (
+        {previewError && (
           <View style={styles.errorCard}>
-            <Text style={styles.errorCardText}>{error}</Text>
+            <Text style={styles.errorCardText}>{previewError}</Text>
           </View>
         )}
 
         <TouchableOpacity
           style={[
             styles.previewButton,
-            loading && styles.previewButtonDisabled,
+            previewLoading && styles.previewButtonDisabled,
           ]}
           onPress={handlePreview}
-          disabled={loading}
+          disabled={previewLoading}
         >
-          {loading ? (
+          {previewLoading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={styles.previewButtonText}>Previsualizar nómina</Text>
@@ -411,7 +668,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // ── Preview button ─────────────────────────────────────────────────────────
+  // ── Buttons ────────────────────────────────────────────────────────────────
   previewButton: {
     backgroundColor: "#369BC9",
     paddingVertical: 14,
@@ -427,8 +684,48 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  executeButton: {
+    backgroundColor: "#16A34A",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  executeButtonDisabled: {
+    backgroundColor: "#86EFAC",
+  },
+  executeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  cancelButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+  },
+  cancelButtonText: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  newPayrollButton: {
+    backgroundColor: "#369BC9",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  newPayrollButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  // ── Preview header ─────────────────────────────────────────────────────────
+  // ── Preview / Confirm header ───────────────────────────────────────────────
   backButton: {
     marginBottom: 12,
   },
@@ -488,7 +785,7 @@ const styles = StyleSheet.create({
   },
   fundValueInsufficient: { color: "#EF4444" },
 
-  // ── Totals card ────────────────────────────────────────────────────────────
+  // ── Totals ─────────────────────────────────────────────────────────────────
   totalsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -585,5 +882,90 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: "#374151",
+  },
+
+  // ── Status badge ───────────────────────────────────────────────────────────
+  statusBadge: {
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+
+  // ── Confirm card ───────────────────────────────────────────────────────────
+  confirmCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  confirmQuestion: {
+    fontSize: 16,
+    color: "#111827",
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  confirmPeriodBold: {
+    fontWeight: "700",
+  },
+  confirmWarning: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+
+  // ── Result header ──────────────────────────────────────────────────────────
+  successHeader: {
+    alignItems: "center",
+    paddingVertical: 24,
+    marginBottom: 8,
+  },
+  successIcon: {
+    fontSize: 48,
+    color: "#16A34A",
+    marginBottom: 8,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#15803D",
+    marginBottom: 4,
+  },
+  successPeriod: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  successCompany: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+
+  // ── Remaining balances ─────────────────────────────────────────────────────
+  remainingCard: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+  },
+  remainingTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#15803D",
+    marginBottom: 12,
   },
 });
