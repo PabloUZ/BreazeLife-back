@@ -40,11 +40,6 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={() => router.push("/(auth)/forgot-password")}>
-          <Text style={styles.footerLink}>¿Olvidaste tu contraseña?</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 }
