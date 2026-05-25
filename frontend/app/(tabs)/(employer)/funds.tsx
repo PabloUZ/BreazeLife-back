@@ -5,12 +5,14 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  Alert,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import RechargeFundModal from "@/src/components/fund/RechargeFundModal";
 import { getFunds } from "@/src/services/api/fundService";
 import { useAuthContext } from "@/src/context/AuthContext";
 import type { FundDto, FundType } from "@/src/dtos/fund/fund.dto";
@@ -29,12 +31,8 @@ function formatCOP(value: number): string {
 }
 
 function formatDate(iso: string | null | undefined): string {
-  // Si no hay fecha , retornamos un texto por defecto
   if (!iso) return "Sin actualizaciones";
-
   const date = new Date(iso);
-  
-  // Validación extra: Si por alguna razón la fecha es inválida
   if (isNaN(date.getTime())) return "Fecha no válida";
 
   return date.toLocaleDateString("es-CO", {
@@ -44,7 +42,13 @@ function formatDate(iso: string | null | undefined): string {
   });
 }
 
-function FundCard({ fund }: { fund: FundDto }) {
+function FundCard({
+  fund,
+  onRecharge,
+}: {
+  fund: FundDto;
+  onRecharge: (fund: FundDto) => void;
+}) {
   const isLow = fund.balance < 500_000;
 
   return (
@@ -56,6 +60,20 @@ function FundCard({ fund }: { fund: FundDto }) {
             {formatCOP(fund.balance)}
           </Text>
         </View>
+        <TouchableOpacity
+          style={[styles.rechargeBtn, isLow && styles.rechargeBtnUrgent]}
+          onPress={() => onRecharge(fund)}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="add-circle-outline"
+            size={16}
+            color={isLow ? "#FFFFFF" : "#369BC9"}
+          />
+          <Text style={[styles.rechargeBtnText, isLow && styles.rechargeBtnTextUrgent]}>
+            Recargar
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {isLow && (
@@ -83,6 +101,10 @@ export default function EmployerFundsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para el Modal de recarga
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFund, setSelectedFund] = useState<FundDto | null>(null);
 
   const fetchFunds = useCallback(async () => {
     if (!employerId) return;
@@ -107,6 +129,22 @@ export default function EmployerFundsScreen() {
   function handleRefresh() {
     setRefreshing(true);
     fetchFunds();
+  }
+
+  function handleRecharge(fund: FundDto) {
+    setSelectedFund(fund);
+    setModalVisible(true);
+  }
+
+  function handleRechargeSuccess(updatedFund: FundDto) {
+    // Actualizamos solo el fondo que se recargó para reflejar el nuevo saldo inmediatamente
+    setFunds((prev) =>
+      prev.map((f) => (f.type === updatedFund.type ? updatedFund : f))
+    );
+    Alert.alert(
+      "¡Recarga exitosa! :))", 
+      "El saldo del fondo se ha actualizado correctamente."
+    );
   }
 
   if (!employerId) {
@@ -163,9 +201,18 @@ export default function EmployerFundsScreen() {
         </View>
 
         {funds.map((fund) => (
-          <FundCard key={fund.type} fund={fund} />
+          <FundCard key={fund.type} fund={fund} onRecharge={handleRecharge} />
         ))}
       </ScrollView>
+
+      {/* Renderizado del Modal */}
+      <RechargeFundModal
+        visible={modalVisible}
+        employerId={employerId}
+        fund={selectedFund}
+        onClose={() => setModalVisible(false)}
+        onSuccess={handleRechargeSuccess}
+      />
     </ScreenContainer>
   );
 }
@@ -217,6 +264,23 @@ const styles = StyleSheet.create({
   fundCardBalance: { fontSize: 22, fontWeight: "700", color: "#111827" },
   fundCardBalanceLow: { color: "#B45309" },
   fundCardUpdated: { fontSize: 11, color: "#9CA3AF", marginTop: 6 },
+  rechargeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: "#F0F9FF",
+  },
+  rechargeBtnUrgent: {
+    backgroundColor: "#F59E0B",
+    borderColor: "#F59E0B",
+  },
+  rechargeBtnText: { fontSize: 13, color: "#369BC9", fontWeight: "600" },
+  rechargeBtnTextUrgent: { color: "#FFFFFF" },
   lowBanner: {
     flexDirection: "row",
     alignItems: "center",
