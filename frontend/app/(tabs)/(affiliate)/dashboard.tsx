@@ -30,6 +30,7 @@ function formatContribDate(isoDate: string): string {
   if (!isoDate) {
     return "Sin fecha";
   }
+
   try {
     return new Date(isoDate).toLocaleDateString("es-CO", {
       year: "numeric",
@@ -60,8 +61,11 @@ export default function AffiliateDashboardScreen() {
   const [error, setError] = useState<string | null>(null);
 
   async function load(isRefresh = false) {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
     setError(null);
 
@@ -97,7 +101,7 @@ export default function AffiliateDashboardScreen() {
   }
 
   const accountTypeLabel =
-    ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type ?? "Cuenta pensional";
+    ACCOUNT_TYPE_LABELS[dashboard.accountType] ?? dashboard.accountType ?? "Cuenta pensional";
 
   return (
     <AffiliateScreenContainer>
@@ -123,62 +127,60 @@ export default function AffiliateDashboardScreen() {
           <Text style={styles.balanceValue}>{formatCurrency(dashboard.balance)}</Text>
           <Text style={styles.balanceMeta}>
             {accountTypeLabel}
-            {dashboard.account_id ? ` · ${dashboard.account_id}` : ""}
+            {dashboard.accountId ? ` - ${dashboard.accountId}` : ""}
           </Text>
         </AppCard>
 
         <View style={styles.metricsRow}>
           <AppCard compact style={styles.metricCard}>
             <Text style={styles.metricLabel}>Semanas cotizadas</Text>
-            <Text style={styles.metricValue}>{formatDecimal(dashboard.quoted_weeks)}</Text>
+            <Text style={styles.metricValue}>{formatDecimal(dashboard.quotedWeeks)}</Text>
             <Text style={styles.metricHelper}>de 1.300</Text>
           </AppCard>
           <AppCard compact style={styles.metricCard}>
             <Text style={styles.metricLabel}>Semanas restantes</Text>
-            <Text style={styles.metricValue}>
-              {formatDecimal(dashboard.weeks_remaining)}
-            </Text>
+            <Text style={styles.metricValue}>{formatDecimal(dashboard.weeksRemaining)}</Text>
             <Text style={styles.metricHelper}>Para cumplir la meta</Text>
           </AppCard>
         </View>
 
         <PensionProgressWidget
           data={{
-            accumulatedWeeks: dashboard.quoted_weeks,
-            missingWeeks: dashboard.weeks_remaining,
-            progressPercentage: dashboard.progress_percentage,
+            accumulatedWeeks: dashboard.quotedWeeks,
+            missingWeeks: dashboard.weeksRemaining,
+            progressPercentage: dashboard.progressPercentage,
           }}
         />
 
-        {dashboard.monthly_profitability ? (
+        {dashboard.monthlyProfitability ? (
           <AppCard>
             <Text style={styles.cardLabel}>Rentabilidad del mes</Text>
             <Text style={styles.cardValue}>
-              {formatCurrency(dashboard.monthly_profitability.profit)}
+              {formatCurrency(dashboard.monthlyProfitability.profit)}
             </Text>
             <Text style={styles.cardHelper}>
-              Corte: {formatContribDate(dashboard.monthly_profitability.date)}
+              Corte: {formatContribDate(dashboard.monthlyProfitability.date)}
             </Text>
           </AppCard>
         ) : null}
 
-        {dashboard.last_contribution ? (
+        {dashboard.lastContribution ? (
           <AppCard>
             <View style={styles.cardHeader}>
               <View style={styles.cardHeaderCopy}>
                 <Text style={styles.cardLabel}>Ultimo aporte</Text>
                 <Text style={styles.cardHelper}>
-                  {formatContribDate(dashboard.last_contribution.contrib_date)}
+                  {formatContribDate(dashboard.lastContribution.contribDate)}
                 </Text>
               </View>
               <AppStatusBadge
-                label={dashboard.last_contribution.status || "UNKNOWN"}
-                tone={getContributionTone(dashboard.last_contribution.status)}
+                label={dashboard.lastContribution.status || "UNKNOWN"}
+                tone={getContributionTone(dashboard.lastContribution.status)}
               />
             </View>
 
             <Text style={styles.cardValue}>
-              {formatCurrency(dashboard.last_contribution.total_contribution)}
+              {formatCurrency(dashboard.lastContribution.totalContribution)}
             </Text>
 
             <View style={styles.divider} />
@@ -187,19 +189,19 @@ export default function AffiliateDashboardScreen() {
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Empleador</Text>
                 <Text style={styles.breakdownValue}>
-                  {formatCurrency(dashboard.last_contribution.employer_contrib)}
+                  {formatCurrency(dashboard.lastContribution.employerContrib)}
                 </Text>
               </View>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Afiliado</Text>
                 <Text style={styles.breakdownValue}>
-                  {formatCurrency(dashboard.last_contribution.affiliate_contrib)}
+                  {formatCurrency(dashboard.lastContribution.affiliateContrib)}
                 </Text>
               </View>
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Dias</Text>
                 <Text style={styles.breakdownValue}>
-                  {formatDecimal(dashboard.last_contribution.days_contributed, 0)}
+                  {formatDecimal(dashboard.lastContribution.daysContributed, 0)}
                 </Text>
               </View>
             </View>

@@ -1,16 +1,14 @@
-// src/services/api/affiliateService.ts
-
 import { httpClient } from "@/src/config/http";
 import type {
-  ApiResponseDto,
   AffiliateDashboardDto,
-  AffiliateProfileDto,
-  UpdateAffiliateProfileDto,
-  ProgressResponseDto,
-  PaginatedResponseDto,
-  PayslipDto,
   AffiliatePaymentHistoryResponseDto,
+  AffiliateProfileDto,
+  ApiResponseDto,
+  PaginatedResponseDto,
   PaymentDetailResponseDto,
+  PayslipDto,
+  ProgressResponseDto,
+  UpdateAffiliateProfileDto,
 } from "@/src/dtos/affiliate/affiliate.dtos";
 
 const BASE_PATH = "/api/v1/affiliates";
@@ -72,7 +70,35 @@ type RawAffiliateDashboardDto = {
   } | null;
 };
 
-function getFirstDefined<T>(...values: Array<T | null | undefined>): T | undefined {
+type RawAffiliateProfileDto = {
+  userId?: string | null;
+  user_id?: string | null;
+  firstName?: string | null;
+  first_name?: string | null;
+  lastName?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  role?: string | null;
+  verified?: boolean | null;
+  document?: string | null;
+  birthDate?: string | null;
+  birth_date?: string | null;
+  affiliationDate?: string | null;
+  affiliation_date?: string | null;
+  phone?: string | null;
+  status?: string | null;
+  account?: {
+    accountId?: string | null;
+    account_id?: string | null;
+    accountType?: string | null;
+    account_type?: string | null;
+    balance?: NumericValue;
+    quotedDays?: NumericValue;
+    quoted_days?: NumericValue;
+  } | null;
+};
+
+function getFirstDefined<T>(...values: (T | null | undefined)[]): T | undefined {
   return values.find((value) => value !== undefined && value !== null);
 }
 
@@ -119,49 +145,71 @@ function normalizeAffiliateDashboard(raw: RawAffiliateDashboardDto): AffiliateDa
     getFirstDefined(raw.lastContribution, raw.last_contribution) ?? null;
 
   return {
-    account_id: getFirstDefined(raw.account_id, raw.accountId) ?? "",
-    account_type: getFirstDefined(raw.account_type, raw.accountType) ?? "",
+    accountId: getFirstDefined(raw.accountId, raw.account_id) ?? "",
+    accountType: getFirstDefined(raw.accountType, raw.account_type) ?? "",
     balance: toSafeNumber(raw.balance),
-    quoted_weeks: quotedWeeks,
-    weeks_remaining: weeksRemaining,
-    progress_percentage: progressPercentage,
-    monthly_profitability: monthlyProfitability
+    quotedWeeks,
+    weeksRemaining,
+    progressPercentage,
+    monthlyProfitability: monthlyProfitability
       ? {
           profit: toSafeNumber(monthlyProfitability.profit),
           date: monthlyProfitability.date ?? "",
         }
       : null,
-    last_contribution: lastContribution
+    lastContribution: lastContribution
       ? {
-          quote_id:
-            getFirstDefined(lastContribution.quote_id, lastContribution.quoteId) ?? "",
-          employer_contrib: toSafeNumber(
+          quoteId: getFirstDefined(lastContribution.quoteId, lastContribution.quote_id) ?? "",
+          employerContrib: toSafeNumber(
             getFirstDefined(
-              lastContribution.employer_contrib,
-              lastContribution.employerContrib
+              lastContribution.employerContrib,
+              lastContribution.employer_contrib
             )
           ),
-          affiliate_contrib: toSafeNumber(
+          affiliateContrib: toSafeNumber(
             getFirstDefined(
-              lastContribution.affiliate_contrib,
-              lastContribution.affiliateContrib
+              lastContribution.affiliateContrib,
+              lastContribution.affiliate_contrib
             )
           ),
-          total_contribution: toSafeNumber(
+          totalContribution: toSafeNumber(
             getFirstDefined(
-              lastContribution.total_contribution,
-              lastContribution.totalContribution
+              lastContribution.totalContribution,
+              lastContribution.total_contribution
             )
           ),
-          days_contributed: toSafeNumber(
-            getFirstDefined(
-              lastContribution.days_contributed,
-              lastContribution.daysContributed
-            )
+          daysContributed: toSafeNumber(
+            getFirstDefined(lastContribution.daysContributed, lastContribution.days_contributed)
           ),
-          contrib_date:
-            getFirstDefined(lastContribution.contrib_date, lastContribution.contribDate) ?? "",
+          contribDate:
+            getFirstDefined(lastContribution.contribDate, lastContribution.contrib_date) ?? "",
           status: lastContribution.status ?? "UNKNOWN",
+        }
+      : null,
+  };
+}
+
+function normalizeAffiliateProfile(raw: RawAffiliateProfileDto): AffiliateProfileDto {
+  return {
+    userId: getFirstDefined(raw.userId, raw.user_id) ?? "",
+    firstName: getFirstDefined(raw.firstName, raw.first_name) ?? "",
+    lastName: getFirstDefined(raw.lastName, raw.last_name) ?? "",
+    email: raw.email ?? "",
+    role: raw.role ?? "",
+    verified: raw.verified ?? false,
+    document: raw.document ?? "",
+    birthDate: getFirstDefined(raw.birthDate, raw.birth_date) ?? "",
+    affiliationDate: getFirstDefined(raw.affiliationDate, raw.affiliation_date) ?? "",
+    phone: raw.phone ?? "",
+    status: raw.status ?? "",
+    account: raw.account
+      ? {
+          accountId: getFirstDefined(raw.account.accountId, raw.account.account_id) ?? "",
+          accountType: getFirstDefined(raw.account.accountType, raw.account.account_type) ?? "",
+          balance: toSafeNumber(raw.account.balance),
+          quotedDays: toSafeNumber(
+            getFirstDefined(raw.account.quotedDays, raw.account.quoted_days)
+          ),
         }
       : null,
   };
@@ -174,12 +222,11 @@ export async function getAffiliateDashboard(): Promise<AffiliateDashboardDto> {
   return normalizeAffiliateDashboard(response.data.data);
 }
 
-
 export async function getAffiliateProfile(): Promise<AffiliateProfileDto> {
-  const response = await httpClient.get<ApiResponseDto<AffiliateProfileDto>>(
+  const response = await httpClient.get<ApiResponseDto<RawAffiliateProfileDto>>(
     "/api/v1/affiliate/profile"
   );
-  return response.data.data;
+  return normalizeAffiliateProfile(response.data.data);
 }
 
 export async function updateAffiliateProfile(
@@ -191,16 +238,11 @@ export async function updateAffiliateProfile(
 export async function getAffiliateProgress(
   affiliateId: string
 ): Promise<ProgressResponseDto> {
-  // Tu backend devuelve la data envuelta en un objeto ApiResponse
   const response = await httpClient.get<ApiResponseDto<ProgressResponseDto>>(
     `${BASE_PATH}/${affiliateId}/progress`
   );
-  
-  // Retornamos directamente el objeto 'data' interno
   return response.data.data;
 }
-
-
 
 export async function getPayslips(
   affiliateId: string,
@@ -209,7 +251,6 @@ export async function getPayslips(
   from?: string,
   to?: string
 ): Promise<PaginatedResponseDto<PayslipDto>> {
-  
   const query = new URLSearchParams({
     page: String(page),
     size: String(size),
@@ -220,14 +261,12 @@ export async function getPayslips(
     query.append("to", to);
   }
 
-  // Ajusta la ruta según cómo tengas configurado tu axios
   const response = await httpClient.get(
     `/api/v1/affiliates/${affiliateId}/payslips?${query.toString()}`
   );
-  
+
   return response.data.data;
 }
-
 
 export async function getQuotes(
   affiliateId: string,
@@ -246,7 +285,7 @@ export async function getQuotes(
     query.append("from", from);
     query.append("to", to);
   }
-  
+
   if (status) {
     query.append("status", status);
   }
@@ -254,11 +293,15 @@ export async function getQuotes(
   const response = await httpClient.get(
     `/api/v1/affiliates/${affiliateId}/quotes?${query.toString()}`
   );
-  
-  return response.data.data; // Devuelve el PagedResponseDTO
+
+  return response.data.data;
 }
 
-export async function getRentabilities(affiliateId: string, page: number = 0, size: number = 5) {
+export async function getRentabilities(
+  affiliateId: string,
+  page: number = 0,
+  size: number = 5
+) {
   const response = await httpClient.get(
     `/api/v1/affiliates/${affiliateId}/rentabilities?page=${page}&size=${size}`
   );
