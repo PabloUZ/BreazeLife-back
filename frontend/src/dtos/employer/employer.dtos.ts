@@ -2,7 +2,61 @@ export type EmployerDashboardDto = Record<string, never>;
 
 export type EmployerEmployeeDto = Record<string, never>;
 
-export type EmployerPayrollDto = Record<string, never>;
+// ─── Payroll ──────────────────────────────────────────────────────────────────
+
+export type PayrollPeriodRequestDto = {
+  period: string;
+};
+
+export type PayrollPreviewEmployeeDto = {
+  contract_id: string;
+  affiliate_name: string;
+  document: string;
+  position: string;
+  base_salary: number;
+  employee_pension_deduction: number;
+  net_salary: number;
+  employer_pension_contrib: number;
+  total_pension_contrib: number;
+  payroll_fund_debit: number;
+  pension_fund_debit: number;
+};
+
+export type PayrollPreviewTotalsDto = {
+  total_employees: number;
+  total_gross_salary: number;
+  total_net_salary: number;
+  total_employer_pension_contrib: number;
+  total_employee_pension_deduction: number;
+  total_pension_contrib: number;
+  total_payroll_fund_debit: number;
+  total_pension_fund_debit: number;
+  total_debit: number;
+};
+
+export type PayrollFundStatusDto = {
+  payroll_fund_sufficient: boolean;
+  pension_fund_sufficient: boolean;
+  can_execute: boolean;
+};
+
+export type PayrollPreviewDataDto = {
+  period: string;
+  employer_id: string;
+  company_name: string;
+  payroll_fund_balance: number;
+  pension_fund_balance: number;
+  employees: PayrollPreviewEmployeeDto[];
+  totals: PayrollPreviewTotalsDto;
+  fund_status: PayrollFundStatusDto;
+};
+
+export type PayrollPreviewResponseDto = {
+  message: string;
+  status_code: number;
+  status: string;
+  data: PayrollPreviewDataDto;
+};
 
 export type EmployerFundDto = Record<string, never>;
 
