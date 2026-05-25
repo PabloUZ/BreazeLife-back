@@ -9,10 +9,9 @@ import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.fund.dto.request.DeductFundsRequest;
 import com.highdev.breazelife.modules.fund.dto.request.ValidateFundsRequest;
-import com.highdev.breazelife.modules.fund.entity.Fund;
+import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.exceptions.InsufficientFundsException;
-import com.highdev.breazelife.modules.fund.repository.FundRepository;
 import com.highdev.breazelife.modules.fund.service.FundsService;
 import com.highdev.breazelife.modules.payment.dto.request.ExecutePayrollRequest;
 import com.highdev.breazelife.modules.payment.dto.request.PayrollPreviewRequest;
@@ -65,22 +64,19 @@ public class PayrollService {
     private static final BigDecimal NET_SALARY_RATE            = new BigDecimal("0.96");
 
     private final ContractRepository contractRepository;
-    private final FundRepository fundRepository;
     private final FundsService fundsService;
     private final EmployerRepository employerRepository;
     private final PaymentRepository paymentRepository;
     private final QuoteRepository quoteRepository;
     private final AccountRepository accountRepository;
-
+ 
     public PayrollService(ContractRepository contractRepository,
-                          FundRepository fundRepository,
                           FundsService fundsService,
                           EmployerRepository employerRepository,
                           PaymentRepository paymentRepository,
                           QuoteRepository quoteRepository,
                           AccountRepository accountRepository) {
         this.contractRepository = contractRepository;
-        this.fundRepository = fundRepository;
         this.fundsService = fundsService;
         this.employerRepository = employerRepository;
         this.paymentRepository = paymentRepository;
@@ -194,9 +190,11 @@ public class PayrollService {
                 payrollBalance, totalNetSalary, pensionBalance, totalEmployerContrib);
         }
 
+        YearMonth ym = YearMonth.parse(request.getPeriod(), DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDateTime now = LocalDateTime.now();
-        // Calcular base de IDs para quotes una sola vez antes del loop
-        long quoteBaseCount = quoteRepository.count();
+        LocalDateTime paymentDate = ym.equals(YearMonth.from(now))
+            ? now
+            : ym.atEndOfMonth().atTime(now.toLocalTime());
 
         List<PaymentResultDTO> paymentResults = new ArrayList<>();
 
@@ -209,7 +207,7 @@ public class PayrollService {
             payment.setId(UUID.randomUUID().toString());
             payment.setContract(contract);
             payment.setNetSalary(detail.getNetSalary());
-            payment.setDate(now);
+            payment.setDate(paymentDate);
             paymentRepository.save(payment);
 
             // b. Crear Quote vinculada al Payment y a la Account del afiliado
@@ -219,13 +217,14 @@ public class PayrollService {
                     HttpStatus.INTERNAL_SERVER_ERROR, "Account not found for affiliate"));
 
             Quote quote = new Quote();
-            quote.setId(String.format("QTE-%06d", quoteBaseCount + i + 1));
+            String quoteId = "QTE-" + UUID.randomUUID().toString().replace("-", "").substring(0, 15).toUpperCase();
+            quote.setId(quoteId);
             quote.setAccount(account);
             quote.setPayment(payment);
             quote.setEmployerContrib(detail.getEmployerPensionContrib());
             quote.setAffiliateContrib(detail.getEmployeePensionDeduction());
             quote.setDaysContributed(30);
-            quote.setContribDate(now);
+            quote.setContribDate(paymentDate);
             quote.setStatus(Quote.QuoteStatus.PENDING);
             quoteRepository.save(quote);
 
@@ -539,8 +538,11 @@ public class PayrollService {
     }
 
     private BigDecimal getFundBalance(String employerUserId, FundType type) {
-        return fundRepository.findByEmployerIdAndType(employerUserId, type)
-            .map(Fund::getBalance)
-            .orElse(BigDecimal.ZERO);
+        try {
+            FundResponse res = fundsService.getFundByType(employerUserId, type);
+            return res != null ? res.balance() : BigDecimal.ZERO;
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
     }
 }

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   ScrollView,
@@ -8,11 +9,13 @@ import {
   View,
 } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import { executePayroll, previewPayroll } from "@/src/services/api/payrollService";
+import { executePayroll, previewPayroll, getPayrollHistory } from "@/src/services/api/payrollService";
 import type {
   PayrollExecuteDataDto,
   PayrollPreviewDataDto,
 } from "@/src/dtos/employer/employer.dtos";
+import { formatCurrency } from "@/src/utils/formatters";
+import PayrollEmployeeCard from "@/src/components/employer/payrollEmployeeCard";
 
 const MONTHS = [
   { label: "Ene", value: 1 },
@@ -34,22 +37,33 @@ const YEARS = [CURRENT_YEAR - 1, CURRENT_YEAR];
 
 type ScreenView = "selector" | "preview" | "confirm" | "result";
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
 function getMonthLabel(month: number): string {
   return MONTHS.find((m) => m.value === month)?.label ?? "";
 }
 
 export default function EmployerPayrollScreen() {
+  const router = useRouter();
   const [view, setView] = useState<ScreenView>("selector");
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+
+  const [processedPeriods, setProcessedPeriods] = useState<string[]>([]);
+
+  const fetchProcessedPeriods = useCallback(async () => {
+    try {
+      const res = await getPayrollHistory({ limit: 100 });
+      const periods = (res.data.items || []).map((item) => item.period);
+      setProcessedPeriods(periods);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProcessedPeriods();
+    }, [fetchProcessedPeriods])
+  );
 
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -90,6 +104,7 @@ export default function EmployerPayrollScreen() {
       const res = await executePayroll({ period });
       setResult(res.data);
       setView("result");
+      fetchProcessedPeriods();
     } catch (err) {
       const code = (err as any)?.response?.data?.message_code;
       if (code === "INSUFFICIENT_FUNDS") {
@@ -181,39 +196,21 @@ export default function EmployerPayrollScreen() {
             Pagos procesados ({result.payments.length})
           </Text>
 
-          {result.payments.map((payment) => (
-            <View key={payment.payment_id} style={styles.card}>
-              <View style={styles.empHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {payment.affiliate_name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.empInfo}>
-                  <Text style={styles.empName}>{payment.affiliate_name}</Text>
-                  <Text style={styles.empPosition}>{payment.document}</Text>
-                </View>
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusBadgeText}>{payment.status}</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.empRow}>
-                <View style={styles.empRowItem}>
-                  <Text style={styles.empRowLabel}>Salario neto</Text>
-                  <Text style={[styles.empRowValue, styles.netText]}>
-                    {formatCurrency(payment.net_salary)}
-                  </Text>
-                </View>
-                <View style={styles.empRowItem}>
-                  <Text style={styles.empRowLabel}>Cotización</Text>
-                  <Text style={styles.empRowValue}>{payment.quote_id}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
+          {result.payments.map((payment) => {
+            const cardData = {
+              affiliate_name: payment.affiliate_name,
+              document: payment.document,
+              base_salary: payment.net_salary / 0.96,
+              employee_pension_deduction: (payment.net_salary / 0.96) * 0.04,
+              net_salary: payment.net_salary,
+              employer_pension_contrib: (payment.net_salary / 0.96) * 0.12,
+              quote_id: payment.quote_id,
+              status: payment.status,
+            };
+            return (
+              <PayrollEmployeeCard key={payment.payment_id} data={cardData} />
+            );
+          })}
 
           <TouchableOpacity style={styles.newPayrollButton} onPress={handleReset}>
             <Text style={styles.newPayrollButtonText}>Nueva nómina</Text>
@@ -422,55 +419,7 @@ export default function EmployerPayrollScreen() {
           </Text>
 
           {preview.employees.map((emp) => (
-            <View key={emp.contract_id} style={styles.card}>
-              <View style={styles.empHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {emp.affiliate_name.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.empInfo}>
-                  <Text style={styles.empName}>{emp.affiliate_name}</Text>
-                  <Text style={styles.empPosition}>{emp.position}</Text>
-                </View>
-                <View style={styles.empDocBox}>
-                  <Text style={styles.empDocLabel}>Cédula</Text>
-                  <Text style={styles.empDocValue}>{emp.document}</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.empRow}>
-                <View style={styles.empRowItem}>
-                  <Text style={styles.empRowLabel}>Salario base</Text>
-                  <Text style={styles.empRowValue}>
-                    {formatCurrency(emp.base_salary)}
-                  </Text>
-                </View>
-                <View style={styles.empRowItem}>
-                  <Text style={styles.empRowLabel}>Ded. pensión</Text>
-                  <Text style={[styles.empRowValue, styles.deductionText]}>
-                    - {formatCurrency(emp.employee_pension_deduction)}
-                  </Text>
-                </View>
-                <View style={styles.empRowItem}>
-                  <Text style={styles.empRowLabel}>Salario neto</Text>
-                  <Text style={[styles.empRowValue, styles.netText]}>
-                    {formatCurrency(emp.net_salary)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.empContrib}>
-                <Text style={styles.empContribLabel}>
-                  Contribución empleador pensión:{" "}
-                </Text>
-                <Text style={styles.empContribValue}>
-                  {formatCurrency(emp.employer_pension_contrib)}
-                </Text>
-              </View>
-            </View>
+            <PayrollEmployeeCard key={emp.contract_id} data={emp} />
           ))}
 
           {preview.fund_status.can_execute && (
@@ -519,25 +468,32 @@ export default function EmployerPayrollScreen() {
 
         <Text style={styles.sectionTitle}>Mes</Text>
         <View style={styles.monthsGrid}>
-          {MONTHS.map((month) => (
-            <TouchableOpacity
-              key={month.value}
-              style={[
-                styles.monthChip,
-                selectedMonth === month.value && styles.chipActive,
-              ]}
-              onPress={() => setSelectedMonth(month.value)}
-            >
-              <Text
+          {MONTHS.map((month) => {
+            const currentPeriod = `${selectedYear}-${String(month.value).padStart(2, "0")}`;
+            const isProcessed = processedPeriods.includes(currentPeriod);
+            return (
+              <TouchableOpacity
+                key={month.value}
                 style={[
-                  styles.chipText,
-                  selectedMonth === month.value && styles.chipTextActive,
+                  styles.monthChip,
+                  selectedMonth === month.value && styles.chipActive,
+                  isProcessed && styles.chipDisabled,
                 ]}
+                onPress={() => !isProcessed && setSelectedMonth(month.value)}
+                disabled={isProcessed}
               >
-                {month.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedMonth === month.value && styles.chipTextActive,
+                    isProcessed && styles.chipTextDisabled,
+                  ]}
+                >
+                  {month.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {previewError && (
@@ -559,6 +515,13 @@ export default function EmployerPayrollScreen() {
           ) : (
             <Text style={styles.previewButtonText}>Previsualizar nómina</Text>
           )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => router.push("/(tabs)/(employer)/payroll/history" as any)}
+        >
+          <Text style={styles.historyButtonText}>Ver historial de nóminas</Text>
         </TouchableOpacity>
 
         <View style={styles.bottomSpacing} />
@@ -967,5 +930,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#15803D",
     marginBottom: 12,
+  },
+  historyButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#369BC9",
+  },
+  historyButtonText: {
+    color: "#369BC9",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  chipDisabled: {
+    backgroundColor: "#F3F4F6",
+    borderColor: "#E5E7EB",
+    opacity: 0.4,
+  },
+  chipTextDisabled: {
+    color: "#9CA3AF",
   },
 });
