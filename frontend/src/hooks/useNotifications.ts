@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuthContext } from "@/src/context/AuthContext";
 import { notificationSocket } from "@/src/services/ws/notificationSocket";
 import {
@@ -24,80 +24,67 @@ export function useNotifications(): UseNotificationsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Evita que el effect de cleanup intente desconectar si nunca llegó a conectar
-  const didConnect = useRef(false);
-
-  // ─── Cargar historial vía REST ─────────────────────────────────────────────
-
   const loadNotifications = useCallback(async () => {
     try {
       setIsLoading(true);
       const items = await getNotifications(state.role);
       setNotifications(items);
     } catch {
-      // Si falla el historial, se muestra vacío; el WS sigue funcionando
+      // Si falla el historial, se mantiene el estado actual y el WS sigue activo.
     } finally {
       setIsLoading(false);
     }
   }, [state.role]);
-
-  // ─── Conectar WebSocket ────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!state.accessToken) return;
 
     loadNotifications();
 
-    notificationSocket.connect(
-      state.accessToken,
-      // onMessage: anteponer la nueva notificación a la lista
+    const unsubscribe = notificationSocket.subscribe(
       (incoming) => {
         setNotifications((prev) => {
-          // Evitar duplicados si el backend envía el mismo id
-          if (prev.some((n) => n.notification_id === incoming.notification_id)) {
+          if (prev.some((item) => item.notification_id === incoming.notification_id)) {
             return prev;
           }
+
           return [incoming, ...prev];
         });
       },
-      // onConnect
-      () => {
-        didConnect.current = true;
-        setIsConnected(true);
+      (connected) => {
+        setIsConnected(connected);
       },
-      // onError
       () => {
         setIsConnected(false);
       }
     );
 
+    notificationSocket.connect(state.accessToken);
+
     return () => {
-      // Siempre desconectar al salir, aunque nunca llegara a conectar,
-      // para evitar que el cliente STOMP quede reintentando en segundo plano.
-      notificationSocket.disconnect();
-      didConnect.current = false;
+      unsubscribe();
       setIsConnected(false);
     };
-  }, [state.accessToken, state.role]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ─── Marcar como leída ─────────────────────────────────────────────────────
+  }, [loadNotifications, state.accessToken]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
-      // Optimistic update
       setNotifications((prev) =>
-        prev.map((n) =>
-          n.notification_id === notificationId ? { ...n, read: true } : n
+        prev.map((notification) =>
+          notification.notification_id === notificationId
+            ? { ...notification, read: true }
+            : notification
         )
       );
 
       try {
         await markNotificationAsRead(state.role, notificationId);
       } catch {
-        // Revertir si falla
         setNotifications((prev) =>
-          prev.map((n) =>
-            n.notification_id === notificationId ? { ...n, read: false } : n
+          prev.map((notification) =>
+            notification.notification_id === notificationId
+              ? { ...notification, read: false }
+              : notification
           )
         );
       }
@@ -105,26 +92,22 @@ export function useNotifications(): UseNotificationsReturn {
     [state.role]
   );
 
-  // ─── Eliminar notificación ─────────────────────────────────────────────────
-
   const deleteNotification = useCallback(
     async (notificationId: string) => {
-      // Optimistic update: quitar de la lista inmediatamente
       setNotifications((prev) =>
-        prev.filter((n) => n.notification_id !== notificationId)
+        prev.filter((notification) => notification.notification_id !== notificationId)
       );
 
       try {
         await deleteNotificationApi(state.role, notificationId);
       } catch {
-        // Si falla, recargar el historial desde el servidor
         loadNotifications();
       }
     },
-    [state.role, loadNotifications]
+    [loadNotifications, state.role]
   );
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
   return {
     notifications,

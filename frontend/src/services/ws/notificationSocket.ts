@@ -1,43 +1,37 @@
 import { Client, type IMessage } from "@stomp/stompjs";
 import type { NotificationDto } from "@/src/dtos/notification/notification.dtos";
 
-/** Convierte http(s):// → ws(s):// y añade el endpoint nativo de STOMP */
+type MessageListener = (notification: NotificationDto) => void;
+type ConnectionListener = (connected: boolean) => void;
+type ErrorListener = (error: unknown) => void;
+
 function toWsUrl(apiUrl: string): string {
   return apiUrl.replace(/^https?/, "ws") + "/ws-native";
 }
 
-// Usa la misma variable de entorno que el cliente HTTP para garantizar
-// que ambos apunten siempre al mismo servidor.
 const API_URL: string =
   process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:8000";
 
 const BROKER_URL = toWsUrl(API_URL);
 
-// ─── NotificationSocket ───────────────────────────────────────────────────────
-
 export class NotificationSocket {
   private client: Client | null = null;
+  private token: string | null = null;
+  private messageListeners = new Set<MessageListener>();
+  private connectionListeners = new Set<ConnectionListener>();
+  private errorListeners = new Set<ErrorListener>();
 
-  /**
-   * Conecta al broker STOMP y suscribe al topic personal de notificaciones.
-   * @param token      Access token JWT (se envía en el CONNECT frame)
-   * @param onMessage  Callback invocado con cada notificación nueva
-   * @param onConnect  Opcional: callback cuando la conexión está lista
-   * @param onError    Opcional: callback cuando hay un error de conexión
-   */
-  connect(
-    token: string,
-    onMessage: (notification: NotificationDto) => void,
-    onConnect?: () => void,
-    onError?: (error: unknown) => void
-  ): void {
-    // Desactiva cualquier cliente previo antes de crear uno nuevo
-    // para evitar conexiones fantasma si connect() se llama varias veces.
-    if (this.client) {
-      this.client.deactivate();
-      this.client = null;
+  connect(token: string): void {
+    if (!token) return;
+
+    if (this.client && (this.client.active || this.client.connected)) {
+      if (this.token === token) {
+        return;
+      }
+      this.disconnect();
     }
 
+    this.token = token;
     this.client = new Client({
       webSocketFactory: () => new WebSocket(BROKER_URL),
       connectHeaders: {
@@ -46,65 +40,102 @@ export class NotificationSocket {
       reconnectDelay: 5_000,
       heartbeatIncoming: 4_000,
       heartbeatOutgoing: 4_000,
-
-      // ── Fix React Native nueva arquitectura (JSI) ────────────────────────
-      // WebSocket.send(string) en JSI usa C-strings y trunca el frame STOMP
-      // antes del terminador \x00, por lo que el servidor nunca lo procesa.
-      // Al forzar frames binarios (Uint8Array), la longitud es explícita y
-      // el \x00 llega íntegro. appendMissingNULLonIncoming cubre el caso
-      // contrario: si el servidor envía texto y JSI elimina el \x00 entrante.
       forceBinaryWSFrames: true,
       appendMissingNULLonIncoming: true,
-      // ────────────────────────────────────────────────────────────────────
-
       onConnect: () => {
         this.client?.subscribe("/user/queue/notifications", (msg: IMessage) => {
           try {
             const notification = JSON.parse(msg.body) as NotificationDto;
-            onMessage(notification);
+            this.messageListeners.forEach((listener) => listener(notification));
           } catch {
-            // Ignorar mensajes malformados
+            // Ignora mensajes malformados sin afectar la conexion actual.
           }
         });
-        onConnect?.();
+        this.notifyConnectionChange(true);
       },
-
+      onDisconnect: () => {
+        this.notifyConnectionChange(false);
+      },
+      onWebSocketClose: () => {
+        this.notifyConnectionChange(false);
+      },
       onStompError: (frame) => {
         console.error(
           "[NotificationSocket] STOMP error:",
           frame.headers["message"],
           frame.body
         );
-        onError?.(frame);
+        this.notifyConnectionChange(false);
+        this.errorListeners.forEach((listener) => listener(frame));
       },
-
       onWebSocketError: (event) => {
         console.error("[NotificationSocket] WebSocket error:", event);
-        onError?.(event);
+        this.notifyConnectionChange(false);
+        this.errorListeners.forEach((listener) => listener(event));
       },
     });
 
     this.client.activate();
   }
 
-  /**
-   * Desconecta del broker.
-   * Usa `force: true` para cerrar el WebSocket de forma inmediata sin esperar
-   * el handshake DISCONNECT, lo que evita sesiones fantasma cuando React
-   * StrictMode (desarrollo) desmonta y vuelve a montar el componente antes de
-   * que el servidor procese el DISCONNECT.
-   */
+  subscribe(
+    onMessage: MessageListener,
+    onConnectionChange?: ConnectionListener,
+    onError?: ErrorListener
+  ): () => void {
+    this.messageListeners.add(onMessage);
+
+    if (onConnectionChange) {
+      this.connectionListeners.add(onConnectionChange);
+      onConnectionChange(this.isConnected);
+    }
+
+    if (onError) {
+      this.errorListeners.add(onError);
+    }
+
+    return () => {
+      this.messageListeners.delete(onMessage);
+
+      if (onConnectionChange) {
+        this.connectionListeners.delete(onConnectionChange);
+      }
+
+      if (onError) {
+        this.errorListeners.delete(onError);
+      }
+
+      if (!this.hasConsumers()) {
+        this.disconnect();
+      }
+    };
+  }
+
   disconnect(): void {
     if (this.client?.active) {
       this.client.deactivate({ force: true });
     }
+
     this.client = null;
+    this.token = null;
+    this.notifyConnectionChange(false);
   }
 
   get isConnected(): boolean {
     return this.client?.connected ?? false;
   }
+
+  private hasConsumers(): boolean {
+    return (
+      this.messageListeners.size > 0 ||
+      this.connectionListeners.size > 0 ||
+      this.errorListeners.size > 0
+    );
+  }
+
+  private notifyConnectionChange(connected: boolean): void {
+    this.connectionListeners.forEach((listener) => listener(connected));
+  }
 }
 
-// Singleton — una sola conexión por sesión
 export const notificationSocket = new NotificationSocket();
