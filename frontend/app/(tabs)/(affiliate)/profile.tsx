@@ -114,12 +114,12 @@ export default function AffiliateProfileScreen() {
             <Divider />
             <InfoRow
               label="Fecha de nacimiento"
-              value={formatLocalDate(profile.birth_date)}
+              value={formatLocalDate(profile.birthDate)}
             />
             <Divider />
             <InfoRow
               label="Fecha de afiliación"
-              value={formatLocalDate(profile.affiliation_date)}
+              value={formatLocalDate(profile.affiliationDate)}
             />
             <Divider />
             <InfoRow label="Teléfono" value={profile.phone} />
@@ -128,13 +128,13 @@ export default function AffiliateProfileScreen() {
           {profile.account && (
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Cuenta pensional</Text>
-              <InfoRow label="ID de cuenta" value={profile.account.account_id} />
+              <InfoRow label="ID de cuenta" value={profile.account.accountId} />
               <Divider />
               <InfoRow
                 label="Tipo de fondo"
                 value={
-                  ACCOUNT_TYPE_LABELS[profile.account.account_type] ??
-                  profile.account.account_type
+                  ACCOUNT_TYPE_LABELS[profile.account.accountType] ??
+                  profile.account.accountType
                 }
               />
               <Divider />
@@ -145,7 +145,7 @@ export default function AffiliateProfileScreen() {
               <Divider />
               <InfoRow
                 label="Días cotizados"
-                value={`${profile.account.quoted_days} días`}
+                value={`${profile.account.quotedDays} días`}
               />
             </View>
           )}

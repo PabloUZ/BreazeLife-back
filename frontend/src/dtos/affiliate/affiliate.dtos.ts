@@ -1,42 +1,42 @@
 export interface AffiliateDashboardDto {
-  account_id: string;
-  account_type: string;
+  accountId: string;
+  accountType: string;
   balance: number;
-  quoted_weeks: number;
-  weeks_remaining: number;
-  progress_percentage: number;
-  monthly_profitability: {
+  quotedWeeks: number;
+  weeksRemaining: number;
+  progressPercentage: number;
+  monthlyProfitability: {
     profit: number;
     date: string;
   } | null;
-  last_contribution: {
-    quote_id: string;
-    employer_contrib: number;
-    affiliate_contrib: number;
-    total_contribution: number;
-    days_contributed: number;
-    contrib_date: string;
+  lastContribution: {
+    quoteId: string;
+    employerContrib: number;
+    affiliateContrib: number;
+    totalContribution: number;
+    daysContributed: number;
+    contribDate: string;
     status: string;
   } | null;
 }
 
 export interface AffiliateProfileDto {
-  user_id: string;
-  first_name: string;
-  last_name: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
   verified: boolean;
   document: string;
-  birth_date: string;
-  affiliation_date: string;
+  birthDate: string;
+  affiliationDate: string;
   phone: string;
   status: string;
   account: {
-    account_id: string;
-    account_type: string;
+    accountId: string;
+    accountType: string;
     balance: number;
-    quoted_days: number;
+    quotedDays: number;
   } | null;
 }
 
