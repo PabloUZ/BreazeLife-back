@@ -85,7 +85,7 @@ public class EmployerService {
     }
 
     @Transactional
-    public EmployerProfileResponseDTO updateProfile(String userId, UpdateEmployerProfileDTO dto) {
+    public EmployerProfileResponseDTO updateProfile(String userId, UpdateEmployerProfileDto dto) {
         Employer employer = employerRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Employer not found"));
         
