@@ -8,6 +8,7 @@ import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeContractRequest; // Inclusión del nuevo DTO
 import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
 import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
@@ -23,7 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -35,10 +38,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final UserRepository userRepository;
 
     public EmployeeServiceImpl(
-        ContractRepository contractRepository,
-        AffiliateRepository affiliateRepository,
-        EmployerRepository employerRepository,
-        UserRepository userRepository) {
+            ContractRepository contractRepository,
+            AffiliateRepository affiliateRepository,
+            EmployerRepository employerRepository,
+            UserRepository userRepository) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
@@ -49,46 +52,59 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Transactional
     public RegisterEmployeeResponse registerEmployee(String employerId, RegisterEmployeeRequest request) {
 
+        // 1. Validar empleador
         Employer employer = employerRepository.findById(employerId)
             .orElseThrow(() -> new NotFoundException("EMPLOYER_NOT_FOUND",
                 "Employer not found with id: " + employerId));
 
         if (employer.getStatus() != Employer.Status.ACTIVE) {
-            throw new NotFoundException("EMPLOYER_NOT_ACTIVE",
+            throw new BadRequestException("EMPLOYER_NOT_ACTIVE",
                 "Employer account is not active: " + employerId);
         }
 
-        if (affiliateRepository.existsByDocument(request.getDocument())) {
-            throw new BadRequestException("DOCUMENT_ALREADY_EXISTS",
-                "An employee with document " + request.getDocument() + " already exists");
+        Affiliate affiliate;
+        User user;
+
+        // 2. Flujo Alternativo: Comprobar si el ciudadano ya existe en BreazeLife
+        Optional<Affiliate> existingAffiliate = affiliateRepository.findByDocument(request.getDocument());
+
+        if (existingAffiliate.isPresent()) {
+            affiliate = existingAffiliate.get();
+            user = affiliate.getUser();
+
+            // Evitar contratos duplicados activos con la misma empresa
+            boolean hasActiveContract = contractRepository.findByIdAndEmployerUserId(affiliate.getUser().getId(), employerId).isPresent();
+            if (hasActiveContract) {
+                throw new BadRequestException("EMPLOYEE_ALREADY_CONTRACTED", 
+                    "This employee already has an active contract with your company.");
+            }
+        } else {
+            // Flujo normal: Es un usuario completamente nuevo
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new BadRequestException("EMAIL_ALREADY_EXISTS",
+                    "A user with email " + request.getEmail() + " already exists");
+            }
+
+            user = new User();
+            user.setId(UUID.randomUUID().toString());
+            user.setFirstName(request.getFirstName());
+            user.setLastName(request.getLastName());
+            user.setEmail(request.getEmail());
+            user.setPassword(UUID.randomUUID().toString()); // Debería encriptarse en producción
+            user.setRole(User.Role.AFFILIATE);
+            user.setVerified(false);
+            user = userRepository.save(user);
+
+            affiliate = new Affiliate();
+            affiliate.setUser(user);
+            affiliate.setDocument(request.getDocument());
+            affiliate.setBirthDate(request.getBirthDate());
+            affiliate.setAffiliationDate(LocalDate.now());
+            affiliate.setStatus(Affiliate.Status.ACTIVE);
+            affiliate = affiliateRepository.save(affiliate);
         }
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("EMAIL_ALREADY_EXISTS",
-                "An user with email " + request.getEmail() + " already exists");
-        }
-
-        // Crear el usuario base
-        User user = new User();
-        user.setId(UUID.randomUUID().toString());
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPassword(UUID.randomUUID().toString());
-        user.setRole(User.Role.AFFILIATE);
-        user.setVerified(false);
-        user = userRepository.save(user);
-
-        // Crear el afiliado
-        Affiliate affiliate = new Affiliate();
-        affiliate.setUser(user);
-        affiliate.setDocument(request.getDocument());
-        affiliate.setBirthDate(request.getBirthDate());
-        affiliate.setAffiliationDate(request.getStartDate());
-        affiliate.setStatus(Affiliate.Status.ACTIVE);
-        affiliateRepository.save(affiliate);
-
-        // Crear el contrato
+        // 3. Crear siempre el nuevo contrato laboral
         Contract contract = new Contract();
         contract.setId(UUID.randomUUID().toString());
         contract.setAffiliate(affiliate);
@@ -96,13 +112,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         contract.setBaseSalary(request.getBaseSalary());
         contract.setPosition(request.getPosition());
         contract.setStartDate(request.getStartDate());
-        contractRepository.save(contract);
+        contract = contractRepository.save(contract);
 
-        // Construir respuesta
+        // 4. Mapear Respuesta
         RegisterEmployeeResponse response = new RegisterEmployeeResponse();
         response.setContractId(contract.getId());
-        response.setAffiliateId(affiliate.getUserId());
-        response.setEmployerId(employer.getUserId());
+        response.setAffiliateId(user.getId());
+        response.setEmployerId(employer.getUser().getId());
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
         response.setEmail(user.getEmail());
@@ -113,6 +129,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setStartDate(contract.getStartDate());
         response.setStatus(affiliate.getStatus().name());
         response.setCreatedAt(LocalDateTime.now());
+        
         return response;
     }
 
@@ -132,7 +149,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         return contracts.map(contract -> {
             ListEmployeeResponse response = new ListEmployeeResponse();
             response.setContractId(contract.getId());
-            response.setAffiliateId(contract.getAffiliate().getUserId());
+            response.setAffiliateId(contract.getAffiliate().getUser().getId());
             response.setFirstName(contract.getAffiliate().getUser().getFirstName());
             response.setLastName(contract.getAffiliate().getUser().getLastName());
             response.setDocument(contract.getAffiliate().getDocument());
@@ -154,8 +171,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         EmployeeDetailResponse response = new EmployeeDetailResponse();
         response.setContractId(contract.getId());
-        response.setAffiliateId(contract.getAffiliate().getUserId());
-        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setAffiliateId(contract.getAffiliate().getUser().getId());
+        response.setEmployerId(contract.getEmployer().getUser().getId());
         response.setCompanyName(contract.getEmployer().getCompanyName());
         response.setFirstName(contract.getAffiliate().getUser().getFirstName());
         response.setLastName(contract.getAffiliate().getUser().getLastName());
@@ -181,15 +198,21 @@ public class EmployeeServiceImpl implements EmployeeService {
         Affiliate affiliate = contract.getAffiliate();
         User user = affiliate.getUser();
 
+        // Actualizar datos personales básicos
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         affiliate.setBirthDate(request.getBirthDate());
+        
+        // Guardar cambios explicitamente en las relaciones afectadas
+        userRepository.save(user);
+        affiliateRepository.save(affiliate);
 
+        // Mapear respuesta con la información actualizada y permanente
         UpdateEmployeeResponse response = new UpdateEmployeeResponse();
         response.setContractId(contract.getId());
-        response.setAffiliateId(affiliate.getUserId());
-        response.setEmployerId(contract.getEmployer().getUserId());
+        response.setAffiliateId(user.getId());
+        response.setEmployerId(contract.getEmployer().getUser().getId());
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
         response.setEmail(user.getEmail());
@@ -200,6 +223,46 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setStartDate(contract.getStartDate());
         response.setStatus(affiliate.getStatus().name());
 
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public EmployeeDetailResponse updateContractConditions(String employerId, String contractId, UpdateEmployeeContractRequest request) {
+        
+        // 1. Buscar el contrato verificando que pertenezca al empleador que lo solicita
+        Contract contract = contractRepository.findByIdAndEmployerUserId(contractId, employerId)
+            .orElseThrow(() -> new NotFoundException("EMPLOYEE_NOT_FOUND",
+                "Contract not found or does not belong to this employer: " + contractId));
+
+        // 2. Modificar parcialmente los datos contractuales/laborales
+        if (request.getBaseSalary() != null) {
+            contract.setBaseSalary(request.getBaseSalary());
+        }
+        if (request.getPosition() != null) {
+            contract.setPosition(request.getPosition());
+        }
+
+        // 3. Guardar cambios en el repositorio del contrato
+        contractRepository.save(contract);
+
+        // 4. Mapear y retornar la información actualizada mediante EmployeeDetailResponse
+        EmployeeDetailResponse response = new EmployeeDetailResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(contract.getAffiliate().getUser().getId());
+        response.setEmployerId(contract.getEmployer().getUser().getId());
+        response.setCompanyName(contract.getEmployer().getCompanyName());
+        response.setFirstName(contract.getAffiliate().getUser().getFirstName());
+        response.setLastName(contract.getAffiliate().getUser().getLastName());
+        response.setEmail(contract.getAffiliate().getUser().getEmail());
+        response.setDocument(contract.getAffiliate().getDocument());
+        response.setBirthDate(contract.getAffiliate().getBirthDate());
+        response.setPosition(contract.getPosition());
+        response.setBaseSalary(contract.getBaseSalary());
+        response.setStartDate(contract.getStartDate());
+        response.setEndDate(contract.getEndDate());
+        response.setStatus(contract.getAffiliate().getStatus().name());
+        
         return response;
     }
 }
