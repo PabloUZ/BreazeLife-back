@@ -1,5 +1,8 @@
 package com.highdev.breazelife.modules.employer.dto.request;
 
+import com.highdev.breazelife.modules.account.entity.Account;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -38,6 +41,10 @@ public class RegisterEmployeeRequest {
     @NotNull
     private LocalDate startDate;
 
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private Account.AccountType pensionFundType;
+
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
 
@@ -61,4 +68,7 @@ public class RegisterEmployeeRequest {
 
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+
+    public Account.AccountType getPensionFundType() { return pensionFundType; }
+    public void setPensionFundType(Account.AccountType pensionFundType) { this.pensionFundType = pensionFundType; }
 }

@@ -63,6 +63,15 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="profitability"
+        options={{
+          title: "Rentabilidad",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trending-up-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="notifications"
         options={{
           title: "Alertas",
@@ -80,9 +89,16 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Configuración",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="account-detail" options={{ href: null }} />
       <Tabs.Screen name="quote-detail" options={{ href: null }} />
     </Tabs>
   );

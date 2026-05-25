@@ -5,13 +5,14 @@ import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EditEmployeeForm from "@/src/components/employer/editEmployeeForm";
 import { getEmployeeDetail } from "@/src/services/api/employeeService";
 import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos.ts";
-
-const EMPLOYER_ID = "placeholder-employer-id";
+import { useAuthContext } from "@/src/context/AuthContext";
 
 export default function EditEmployeeScreen() {
     const { contractId } = useLocalSearchParams<{ contractId: string }>();
     const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
     const [loading, setLoading] = useState(true);
+    const { state } = useAuthContext();
+    const employerId = state.user?.user_id ?? "";
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -23,7 +24,7 @@ export default function EditEmployeeScreen() {
         try {
             setLoading(true);
             setError(null);
-            const data = await getEmployeeDetail(EMPLOYER_ID, contractId);
+            const data = await getEmployeeDetail(employerId, contractId);
             setEmployee(data);
         } catch {
             setError("No se pudo cargar la información del empleado.");

@@ -7,9 +7,12 @@ import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
-import com.highdev.breazelife.modules.fund.entity.Fund;
+import com.highdev.breazelife.modules.fund.dto.request.DeductFundsRequest;
+import com.highdev.breazelife.modules.fund.dto.request.ValidateFundsRequest;
+import com.highdev.breazelife.modules.fund.dto.response.FundResponse;
 import com.highdev.breazelife.modules.fund.enums.FundType;
-import com.highdev.breazelife.modules.fund.repository.FundRepository;
+import com.highdev.breazelife.modules.fund.exceptions.InsufficientFundsException;
+import com.highdev.breazelife.modules.fund.service.FundsService;
 import com.highdev.breazelife.modules.payment.dto.request.ExecutePayrollRequest;
 import com.highdev.breazelife.modules.payment.dto.request.PayrollPreviewRequest;
 import com.highdev.breazelife.modules.payment.dto.response.EmployeePayrollPreviewResponse;
@@ -51,6 +54,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
+import com.highdev.breazelife.modules.notification.events.PayrollPaymentSuccessEvent;
 
 @Service
 public class PayrollService {
@@ -61,24 +66,27 @@ public class PayrollService {
     private static final BigDecimal NET_SALARY_RATE            = new BigDecimal("0.96");
 
     private final ContractRepository contractRepository;
-    private final FundRepository fundRepository;
+    private final FundsService fundsService;
     private final EmployerRepository employerRepository;
     private final PaymentRepository paymentRepository;
     private final QuoteRepository quoteRepository;
     private final AccountRepository accountRepository;
-
+    private final ApplicationEventPublisher eventPublisher;
+ 
     public PayrollService(ContractRepository contractRepository,
-                          FundRepository fundRepository,
+                          FundsService fundsService,
                           EmployerRepository employerRepository,
                           PaymentRepository paymentRepository,
                           QuoteRepository quoteRepository,
-                          AccountRepository accountRepository) {
+                          AccountRepository accountRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.contractRepository = contractRepository;
-        this.fundRepository = fundRepository;
+        this.fundsService = fundsService;
         this.employerRepository = employerRepository;
         this.paymentRepository = paymentRepository;
         this.quoteRepository = quoteRepository;
         this.accountRepository = accountRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // ─── Preview ─────────────────────────────────────────────────────────────
@@ -176,26 +184,22 @@ public class PayrollService {
             totalEmployerContrib = totalEmployerContrib.add(detail.getEmployerPensionContrib());
         }
 
-        // Verificar saldos — si alguno es insuficiente, no persistir nada
-        BigDecimal payrollBalance = getFundBalance(employerUserId, FundType.PAYROLL);
-        BigDecimal pensionBalance = getFundBalance(employerUserId, FundType.PENSION);
-
-        if (payrollBalance.compareTo(totalNetSalary) < 0 || pensionBalance.compareTo(totalEmployerContrib) < 0) {
+        // Validar fondos — publica InsufficientFundsEvent si no alcanzan
+        try {
+            fundsService.validateFunds(employerUserId,
+                new ValidateFundsRequest(totalNetSalary, totalEmployerContrib));
+        } catch (InsufficientFundsException ex) {
+            BigDecimal payrollBalance = getFundBalance(employerUserId, FundType.PAYROLL);
+            BigDecimal pensionBalance = getFundBalance(employerUserId, FundType.PENSION);
             throw new PayrollInsufficientFundsException(
-                payrollBalance, totalNetSalary,
-                pensionBalance, totalEmployerContrib
-            );
+                payrollBalance, totalNetSalary, pensionBalance, totalEmployerContrib);
         }
 
-        // Cargar entidades Fund para debitar
-        Fund payrollFund = fundRepository.findByEmployerIdAndType(employerUserId, FundType.PAYROLL)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Payroll fund not found"));
-        Fund pensionFund = fundRepository.findByEmployerIdAndType(employerUserId, FundType.PENSION)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Pension fund not found"));
-
+        YearMonth ym = YearMonth.parse(request.getPeriod(), DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDateTime now = LocalDateTime.now();
-        // Calcular base de IDs para quotes una sola vez antes del loop
-        long quoteBaseCount = quoteRepository.count();
+        LocalDateTime paymentDate = ym.equals(YearMonth.from(now))
+            ? now
+            : ym.atEndOfMonth().atTime(now.toLocalTime());
 
         List<PaymentResultDTO> paymentResults = new ArrayList<>();
 
@@ -203,36 +207,34 @@ public class PayrollService {
             Contract contract = contracts.get(i);
             EmployeePayrollPreviewResponse detail = details.get(i);
 
-            // a. Debitar fondo PAYROLL (salario neto)
-            payrollFund.deductFunds(detail.getNetSalary());
-
-            // b. Debitar fondo PENSION (aporte patronal 12%)
-            pensionFund.deductFunds(detail.getEmployerPensionContrib());
-
-            // c. Persistir Payment
+            // a. Persistir Payment
             Payment payment = new Payment();
             payment.setId(UUID.randomUUID().toString());
             payment.setContract(contract);
             payment.setNetSalary(detail.getNetSalary());
-            payment.setDate(now);
+            payment.setDate(paymentDate);
             paymentRepository.save(payment);
 
-            // d. Crear Quote vinculada al Payment y a la Account del afiliado
+            // b. Crear Quote vinculada al Payment y a la Account del afiliado
             Account account = accountRepository
                 .findByAffiliateUserId(contract.getAffiliate().getUserId())
                 .orElseThrow(() -> new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Account not found for affiliate"));
 
             Quote quote = new Quote();
-            quote.setId(String.format("QTE-%06d", quoteBaseCount + i + 1));
+            String quoteId = "QTE-" + UUID.randomUUID().toString().replace("-", "").substring(0, 15).toUpperCase();
+            quote.setId(quoteId);
             quote.setAccount(account);
             quote.setPayment(payment);
             quote.setEmployerContrib(detail.getEmployerPensionContrib());
             quote.setAffiliateContrib(detail.getEmployeePensionDeduction());
             quote.setDaysContributed(30);
-            quote.setContribDate(now);
+            quote.setContribDate(paymentDate);
             quote.setStatus(Quote.QuoteStatus.PENDING);
             quoteRepository.save(quote);
+
+            // Publicar evento de notificación de pago de nómina exitoso al afiliado
+            eventPublisher.publishEvent(new PayrollPaymentSuccessEvent(contract.getAffiliate().getUserId()));
 
             PaymentResultDTO result = new PaymentResultDTO();
             result.setPaymentId(payment.getId());
@@ -245,8 +247,9 @@ public class PayrollService {
             paymentResults.add(result);
         }
 
-        // Persistir fondos con los saldos ya debitados
-        fundRepository.saveAll(List.of(payrollFund, pensionFund));
+        // Debitar fondos y registrar movimientos OUTCOME
+        fundsService.deductFunds(employerUserId,
+            new DeductFundsRequest(totalNetSalary, totalEmployerContrib, request.getPeriod()));
 
         ExecutePayrollResponse.Totals totals = new ExecutePayrollResponse.Totals();
         totals.setTotalEmployees(contracts.size());
@@ -261,8 +264,8 @@ public class PayrollService {
         response.setStatus("PROCESSED");
         response.setPayments(paymentResults);
         response.setTotals(totals);
-        response.setPayrollFundRemaining(payrollFund.getBalance());
-        response.setPensionFundRemaining(pensionFund.getBalance());
+        response.setPayrollFundRemaining(getFundBalance(employerUserId, FundType.PAYROLL));
+        response.setPensionFundRemaining(getFundBalance(employerUserId, FundType.PENSION));
 
         return response;
     }
@@ -543,8 +546,11 @@ public class PayrollService {
     }
 
     private BigDecimal getFundBalance(String employerUserId, FundType type) {
-        return fundRepository.findByEmployerIdAndType(employerUserId, type)
-            .map(Fund::getBalance)
-            .orElse(BigDecimal.ZERO);
+        try {
+            FundResponse res = fundsService.getFundByType(employerUserId, type);
+            return res != null ? res.balance() : BigDecimal.ZERO;
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
     }
 }

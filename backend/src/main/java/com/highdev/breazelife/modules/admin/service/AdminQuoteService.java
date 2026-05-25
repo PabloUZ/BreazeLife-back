@@ -2,6 +2,7 @@ package com.highdev.breazelife.modules.admin.service;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.account.service.AccumulationService;
 import com.highdev.breazelife.modules.admin.dto.request.ReviewQuoteRequestDto;
 import com.highdev.breazelife.modules.admin.dto.response.AdminQuoteResponseDto;
 import com.highdev.breazelife.modules.admin.entity.Admin;
@@ -9,10 +10,12 @@ import com.highdev.breazelife.modules.admin.exceptions.AdminQuoteActionException
 import com.highdev.breazelife.modules.admin.exceptions.AdminQuoteDetailException;
 import com.highdev.breazelife.modules.admin.exceptions.AdminQuoteListException;
 import com.highdev.breazelife.modules.admin.repository.AdminRepository;
+import com.highdev.breazelife.modules.notification.events.ContributionApprovedEvent;
 import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.shared.dto.PaginationMeta;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
@@ -31,10 +34,19 @@ public class AdminQuoteService {
 
     private final QuoteRepository quoteRepository;
     private final AdminRepository adminRepository;
+    private final AccumulationService accumulationService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AdminQuoteService(QuoteRepository quoteRepository, AdminRepository adminRepository) {
+    public AdminQuoteService(
+            QuoteRepository quoteRepository,
+            AdminRepository adminRepository,
+            AccumulationService accumulationService,
+            ApplicationEventPublisher eventPublisher
+    ) {
         this.quoteRepository = quoteRepository;
         this.adminRepository = adminRepository;
+        this.accumulationService = accumulationService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +111,18 @@ public class AdminQuoteService {
         validatePendingQuote(quote);
 
         Admin admin = getCurrentAdmin();
-        quote.setStatus(targetStatus);
+        if (targetStatus == Quote.QuoteStatus.ACCEPTED) {
+            AccumulationService.AccumulationResult accumulationResult = accumulationService.processApprovedQuote(quote);
+            eventPublisher.publishEvent(new ContributionApprovedEvent(
+                    accumulationResult.affiliateId(),
+                    accumulationResult.quoteId(),
+                    accumulationResult.accountId(),
+                    accumulationResult.accumulatedAmount(),
+                    accumulationResult.newBalance()
+            ));
+        } else {
+            quote.setStatus(targetStatus);
+        }
         quote.setReviewedBy(admin);
         quote.setReviewedAt(LocalDateTime.now());
         quote.setComment(normalizeComment(request));

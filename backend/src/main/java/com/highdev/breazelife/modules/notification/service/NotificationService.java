@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -100,11 +101,8 @@ public class NotificationService {
     public void createNotification(String userId, String message) {
         User user = userRepository.getReferenceById(userId);
 
-        long count = notificationRepository.findMaxSequence() + 1;
-        String id = String.format("NOT-%06d", count);
-
         Notification notification = new Notification();
-        notification.setId(id);
+        notification.setId(nextNotificationId());
         notification.setUser(user);
         notification.setMessage(message);
 
@@ -115,6 +113,38 @@ public class NotificationService {
                 "/queue/notifications",
                 NotificationResponse.from(saved)
         );
+    }
+
+    public NotificationResponse createContributionApprovedNotification(
+            String userId,
+            String quoteId,
+            String accountId,
+            BigDecimal accumulatedAmount,
+            BigDecimal newBalance
+    ) {
+        User user = userRepository.getReferenceById(userId);
+
+        Notification notification = new Notification();
+        notification.setId(nextNotificationId());
+        notification.setUser(user);
+        notification.setMessage("Your pension contribution has been approved and added to your balance.");
+
+        Notification saved = notificationRepository.save(notification);
+        NotificationResponse response = NotificationResponse.contributionApproved(
+                saved,
+                quoteId,
+                accountId,
+                accumulatedAmount,
+                newBalance
+        );
+
+        messagingTemplate.convertAndSendToUser(
+                userId,
+                "/queue/notifications",
+                response
+        );
+
+        return response;
     }
 
     public long countUnreadNotifications(String userId) {
@@ -136,5 +166,10 @@ public class NotificationService {
         if (page < 1 || limit < 1) {
             throw new BadRequestException("INVALID_PAGINATION", "Page and limit must be greater than zero");
         }
+    }
+
+    private String nextNotificationId() {
+        long count = notificationRepository.findMaxSequence() + 1;
+        return String.format("NOT-%06d", count);
     }
 }

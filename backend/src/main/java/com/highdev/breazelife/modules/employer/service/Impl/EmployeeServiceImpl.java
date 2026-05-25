@@ -2,27 +2,33 @@ package com.highdev.breazelife.modules.employer.service.Impl;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.account.entity.Account;
+import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
 import com.highdev.breazelife.modules.contract.repository.ContractRepository;
+import com.highdev.breazelife.modules.employer.dto.request.ChangeSalaryPositionRequest;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeContractRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeContractRequest; // Inclusión del nuevo DTO
-import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
-import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeResponse;
+import com.highdev.breazelife.modules.employer.dto.response.*;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
+import com.highdev.breazelife.modules.history.entity.UpdateHistory;
+import com.highdev.breazelife.modules.history.repository.UpdateHistoryRepository;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,16 +42,22 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final AffiliateRepository affiliateRepository;
     private final EmployerRepository employerRepository;
     private final UserRepository userRepository;
+    private final UpdateHistoryRepository updateHistoryRepository;
+    private final AccountRepository accountRepository;
 
     public EmployeeServiceImpl(
             ContractRepository contractRepository,
             AffiliateRepository affiliateRepository,
             EmployerRepository employerRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            UpdateHistoryRepository updateHistoryRepository,
+            AccountRepository accountRepository) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
         this.userRepository = userRepository;
+        this.updateHistoryRepository = updateHistoryRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -79,7 +91,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                     "This employee already has an active contract with your company.");
             }
         } else {
-            // Flujo normal: Es un usuario completamente nuevo
+            // Flujo normal: Es un usuario completamente nuevo en la plataforma
             if (userRepository.existsByEmail(request.getEmail())) {
                 throw new BadRequestException("EMAIL_ALREADY_EXISTS",
                     "A user with email " + request.getEmail() + " already exists");
@@ -90,7 +102,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName());
             user.setEmail(request.getEmail());
-            user.setPassword(UUID.randomUUID().toString()); // Debería encriptarse en producción
+            user.setPassword(UUID.randomUUID().toString()); // Se encripta en producción/auth hooks
             user.setRole(User.Role.AFFILIATE);
             user.setVerified(false);
             user = userRepository.save(user);
@@ -102,6 +114,12 @@ public class EmployeeServiceImpl implements EmployeeService {
             affiliate.setAffiliationDate(LocalDate.now());
             affiliate.setStatus(Affiliate.Status.ACTIVE);
             affiliate = affiliateRepository.save(affiliate);
+
+            // Crear la cuenta pensional inicial obligatoria (MODERATE por defecto)
+            Account account = new Account();
+            account.setAffiliate(affiliate);
+            account.setAccountType(Account.AccountType.MODERATE);
+            accountRepository.save(account);
         }
 
         // 3. Crear siempre el nuevo contrato laboral
@@ -228,41 +246,100 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     @Transactional
-    public EmployeeDetailResponse updateContractConditions(String employerId, String contractId, UpdateEmployeeContractRequest request) {
-        
-        // 1. Buscar el contrato verificando que pertenezca al empleador que lo solicita
+    public ChangeSalaryPositionResponse changeSalaryPosition(String employerId, String contractId, ChangeSalaryPositionRequest request) {
+
         Contract contract = contractRepository.findByIdAndEmployerUserId(contractId, employerId)
-            .orElseThrow(() -> new NotFoundException("EMPLOYEE_NOT_FOUND",
-                "Contract not found or does not belong to this employer: " + contractId));
+            .orElseThrow(() -> new NotFoundException("CONTRACT_NOT_FOUND",
+                "Contract not found with id: " + contractId));
 
-        // 2. Modificar parcialmente los datos contractuales/laborales
-        if (request.getBaseSalary() != null) {
-            contract.setBaseSalary(request.getBaseSalary());
-        }
-        if (request.getPosition() != null) {
-            contract.setPosition(request.getPosition());
-        }
+        // Registrar trazabilidad histórica en auditoría antes de mutar el registro principal
+        UpdateHistory history = new UpdateHistory();
+        history.setContract(contract);
+        history.setDate(LocalDateTime.now());
+        history.setAction("SALARY_POSITION_CHANGE");
+        history.setPosition(request.getPosition());
+        history.setSalary(request.getBaseSalary());
+        updateHistoryRepository.save(history);
 
-        // 3. Guardar cambios en el repositorio del contrato
+        // Mutar datos contractuales activos
+        contract.setPosition(request.getPosition());
+        contract.setBaseSalary(request.getBaseSalary());
         contractRepository.save(contract);
 
-        // 4. Mapear y retornar la información actualizada mediante EmployeeDetailResponse
-        EmployeeDetailResponse response = new EmployeeDetailResponse();
+        ChangeSalaryPositionResponse response = new ChangeSalaryPositionResponse();
         response.setContractId(contract.getId());
         response.setAffiliateId(contract.getAffiliate().getUser().getId());
         response.setEmployerId(contract.getEmployer().getUser().getId());
-        response.setCompanyName(contract.getEmployer().getCompanyName());
         response.setFirstName(contract.getAffiliate().getUser().getFirstName());
         response.setLastName(contract.getAffiliate().getUser().getLastName());
-        response.setEmail(contract.getAffiliate().getUser().getEmail());
-        response.setDocument(contract.getAffiliate().getDocument());
-        response.setBirthDate(contract.getAffiliate().getBirthDate());
         response.setPosition(contract.getPosition());
         response.setBaseSalary(contract.getBaseSalary());
         response.setStartDate(contract.getStartDate());
-        response.setEndDate(contract.getEndDate());
         response.setStatus(contract.getAffiliate().getStatus().name());
-        
+
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SalaryHistoryResponse> getSalaryHistory(String employerId, String contractId, Pageable pageable) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (!contract.getEmployer().getUser().getId().equals(employerId)) {
+            throw new AccessDeniedException("Contract does not belong to this employer");
+        }
+
+        return updateHistoryRepository.findByContractIdOrderByDateDesc(contractId, pageable)
+            .map(history -> {
+                SalaryHistoryResponse response = new SalaryHistoryResponse();
+                response.setHistoryId(String.valueOf(history.getId()));
+                response.setContractId(history.getContract().getId());
+                response.setDate(history.getDate());
+                response.setAction(history.getAction());
+                response.setPosition(history.getPosition());
+                response.setSalary(history.getSalary());
+                return response;
+            });
+    }
+
+    @Override
+    @Transactional
+    public DeactivateEmployeeResponse deactivateEmployee(String employerId, String contractId) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (!contract.getEmployer().getUser().getId().equals(employerId)) {
+            throw new AccessDeniedException("Contract does not belong to this employer");
+        }
+
+        if (contract.getAffiliate().getStatus() == Affiliate.Status.INACTIVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is already inactive");
+        }
+
+        contract.getAffiliate().setStatus(Affiliate.Status.INACTIVE);
+        contract.setEndDate(LocalDate.now());
+        contractRepository.save(contract);
+
+        Affiliate affiliate = contract.getAffiliate();
+        User user = affiliate.getUser();
+
+        DeactivateEmployeeResponse response = new DeactivateEmployeeResponse();
+        response.setContractId(contract.getId());
+        response.setAffiliateId(user.getId());
+        response.setEmployerId(contract.getEmployer().getUser().getId());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setStatus(contract.getAffiliate().getStatus().name());
+        response.setEndDate(contract.getEndDate());
+
+        return response;
+    }
+
+    @Override
+    public EmployeeDetailResponse updateContractConditions(String employerId, String contractId,
+            UpdateEmployeeContractRequest request) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateContractConditions'");
     }
 }

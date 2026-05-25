@@ -113,7 +113,7 @@ public class FundsServiceImpl implements FundsService {
         
         //actualizar el saldo
         fund.addFunds(request.amount());
-        fundRepository.save(fund);
+        fund = fundRepository.saveAndFlush(fund);
 
         //registrar el ingreso
         Movement movement = Movement.builder()

@@ -1,7 +1,15 @@
 package com.highdev.breazelife.modules.account.entity;
 
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,13 +55,12 @@ public class Account {
         return "ACC-" + date + "-" + random;
     }
 
-    public void accumulateContribution(BigDecimal ibc, int days) {
-        // Regla 1: 16% del IBC
-        BigDecimal contribution = ibc.multiply(new BigDecimal("0.16"));
-        this.balance = this.balance.add(contribution);
-        
-        // Regla 2: Sumar días exactos
-        this.quotedDays += days;
+    public void accumulateContribution(BigDecimal contributionAmount, int days) {
+        BigDecimal normalizedContribution = contributionAmount != null ? contributionAmount : BigDecimal.ZERO;
+        this.balance = this.balance.add(normalizedContribution);
+
+        int normalizedDays = Math.max(days, 0);
+        this.quotedDays = (this.quotedDays != null ? this.quotedDays : 0) + normalizedDays;
     }
 
     public String getId() { return id; }

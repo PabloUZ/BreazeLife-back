@@ -6,6 +6,8 @@ import com.highdev.breazelife.modules.user.repository.UserRepository;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class NotificationEventListener {
@@ -65,6 +67,18 @@ public class NotificationEventListener {
                         admin.getId(),
                         "New pending quote " + event.quoteId() + " requires review"
                 )
+        );
+    }
+
+    @Async("notificationExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onContributionApproved(ContributionApprovedEvent event) {
+        notificationService.createContributionApprovedNotification(
+                event.affiliateId(),
+                event.quoteId(),
+                event.accountId(),
+                event.accumulatedAmount(),
+                event.newBalance()
         );
     }
 }

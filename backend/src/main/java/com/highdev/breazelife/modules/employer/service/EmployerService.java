@@ -6,6 +6,7 @@ import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeReque
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerRepresentativeDTO;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateLegalRepresentativeDto;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
 import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;

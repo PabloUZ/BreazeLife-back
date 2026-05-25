@@ -45,6 +45,7 @@ import com.highdev.breazelife.modules.affiliate.dto.request.UpdateAffiliateProfi
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.ProgressResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
+import com.highdev.breazelife.modules.profitability.dto.response.ProfitabilityResponseDTO;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
 import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHistoryRepository;
 
@@ -379,5 +380,32 @@ public class AffiliateService {
                 .build();
         }
 
+        public PagedResponseDTO<ProfitabilityResponseDTO> getProfitabilityHistory(String affiliateId, int page, int size) {
+        // 1. Buscar la cuenta asociada al afiliado
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
+
+        // 2. Consultar el historial ordenado por fecha (el método que ya tenías en el repo)
+        Page<ProfitabilityHistory> historyPage = profitabilityHistoryRepository
+                .findByAccountIdOrderByDateDesc(account.getId(), PageRequest.of(page, size));
+
+        // 3. Mapear de la entidad al DTO (Usando la sintaxis de 'record')
+        List<ProfitabilityResponseDTO> content = historyPage.getContent().stream()
+                .map(history -> new ProfitabilityResponseDTO(
+                        history.getId(),
+                        history.getProfit(),
+                        history.getDate(),
+                        account.getAccountType() != null ? account.getAccountType().name() : "N/A"
+                ))
+                .collect(Collectors.toList());
+
+        // 4. Empaquetar y devolver la respuesta paginada
+        return new PagedResponseDTO<>(
+                historyPage.getTotalElements(),
+                historyPage.getTotalPages(),
+                historyPage.getNumber(),
+                content
+        );
+        }
 
 }

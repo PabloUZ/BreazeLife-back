@@ -4,6 +4,8 @@ import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
 type EmployeeDetailProps = {
     employee: EmployeeDetailDto;
     onEdit: () => void;
+    onViewHistory: () => void;
+    onDeactivate: () => void;
 };
 
 function formatSalary(amount: number): string {
@@ -37,7 +39,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-export default function EmployeeDetail({ employee, onEdit }: EmployeeDetailProps) {
+export default function EmployeeDetail({ employee, onEdit, onViewHistory, onDeactivate }: EmployeeDetailProps) {
     return (
         <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
@@ -58,6 +60,12 @@ export default function EmployeeDetail({ employee, onEdit }: EmployeeDetailProps
                 </View>
                 <TouchableOpacity style={styles.editButton} onPress={onEdit}>
                     <Text style={styles.editButtonText}>Editar información</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.historyButton} onPress={onViewHistory}>
+                    <Text style={styles.historyButtonText}>Ver historial salarial</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deactivateButton} onPress={onDeactivate}>
+                    <Text style={styles.deactivateButtonText}>Desvincular empleado</Text>
                 </TouchableOpacity>
             </View>
 
@@ -182,5 +190,29 @@ const styles = StyleSheet.create({
         fontWeight: "500",
         flex: 2,
         textAlign: "right",
+    },
+    historyButton: {
+        marginTop: 8,
+        backgroundColor: "#F3F4F6",
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    historyButtonText: {
+        color: "#374151",
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    deactivateButton: {
+        marginTop: 8,
+        backgroundColor: "#FEE2E2",
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    deactivateButtonText: {
+        color: "#EF4444",
+        fontWeight: "600",
+        fontSize: 14,
     },
 });
