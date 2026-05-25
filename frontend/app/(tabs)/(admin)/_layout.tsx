@@ -30,7 +30,7 @@ export default function AdminTabsLayout() {
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Inicio",
+          title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -55,11 +55,11 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="notifications"
         options={{
-          title: "Perfil",
+          title: "Alertas",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+            <Ionicons name="notifications-outline" size={size} color={color} />
           ),
         }}
       />
@@ -72,7 +72,7 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="reports" options={{ href: null }} />
       <Tabs.Screen name="profitability" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />

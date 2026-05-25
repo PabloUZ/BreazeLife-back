@@ -3,16 +3,16 @@ import MoreMenuList, { type MoreMenuItem } from "@/src/components/common/MoreMen
 
 const MORE_ITEMS: MoreMenuItem[] = [
   {
-    title: "Alertas",
-    description: "Supervisa notificaciones y alertas administrativas.",
-    href: "/(tabs)/(admin)/notifications",
-    iconName: "notifications-outline",
-  },
-  {
     title: "Graficas",
     description: "Consulta la vista de reportes y tendencias del sistema.",
     href: "/(tabs)/(admin)/reports",
     iconName: "bar-chart-outline",
+  },
+  {
+    title: "Perfil",
+    description: "Accede a la informacion del administrador y a sus datos de sesion.",
+    href: "/(tabs)/(admin)/profile",
+    iconName: "person-outline",
   },
   {
     title: "Rentabilidad",
@@ -25,6 +25,12 @@ const MORE_ITEMS: MoreMenuItem[] = [
     description: "Administra los parametros globales del sistema.",
     href: "/(tabs)/(admin)/settings",
     iconName: "settings-outline",
+  },
+  {
+    title: "Empleadores",
+    description: "Consulta la vista secundaria de empleadores registrados.",
+    href: "/(tabs)/(admin)/employers",
+    iconName: "business-outline",
   },
 ];
 
