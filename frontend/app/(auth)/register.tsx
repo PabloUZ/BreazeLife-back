@@ -36,10 +36,9 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: spacing.screen,
-    paddingTop: spacing.xxl,
     paddingBottom: spacing.xl,
-    marginTop: spacing.xl,
     gap: spacing.sm,
+    justifyContent: "center",
   },
   footer: {
     flexDirection: "row",

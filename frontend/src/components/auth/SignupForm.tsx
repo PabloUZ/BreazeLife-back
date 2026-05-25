@@ -59,13 +59,11 @@ const INITIAL_FORM: FormFields = {
   email: "",
   password: "",
   confirmPassword: "",
-  role: "AFFILIATE",
+  role: "EMPLOYER",
 };
 
 const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
-  { label: "Afiliado", value: "AFFILIATE" },
   { label: "Empleador", value: "EMPLOYER" },
-  { label: "Administrador", value: "ADMIN" },
 ];
 
 function mapApiDetails(
@@ -306,29 +304,7 @@ export default function SignupForm({ onSuccess }: Props) {
         <Text style={styles.errorText}>{errors.confirmPassword}</Text>
       ) : null}
 
-      <Text style={[styles.label, styles.roleLabel]}>Tipo de cuenta *</Text>
-      <View style={[styles.roleOptions, isCompact ? styles.roleOptionsCompact : null]}>
-        {ROLE_OPTIONS.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.roleChip,
-              isCompact ? styles.roleChipCompact : null,
-              form.role === option.value ? styles.roleChipActive : null,
-            ]}
-            onPress={() => setForm((prev) => ({ ...prev, role: option.value }))}
-          >
-            <Text
-              style={[
-                styles.roleChipText,
-                form.role === option.value ? styles.roleChipTextActive : null,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
 
       <AppButton
         title="Crear cuenta"

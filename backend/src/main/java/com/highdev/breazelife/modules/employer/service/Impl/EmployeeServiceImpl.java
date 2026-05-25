@@ -25,6 +25,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -42,6 +43,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final UserRepository userRepository;
     private final UpdateHistoryRepository updateHistoryRepository;
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public EmployeeServiceImpl(
         ContractRepository contractRepository,
@@ -49,13 +51,15 @@ public class EmployeeServiceImpl implements EmployeeService {
         EmployerRepository employerRepository,
         UserRepository userRepository,
         UpdateHistoryRepository updateHistoryRepository,
-        AccountRepository accountRepository) {
+        AccountRepository accountRepository,
+        PasswordEncoder passwordEncoder) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
         this.userRepository = userRepository;
         this.updateHistoryRepository = updateHistoryRepository;
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -87,7 +91,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setPassword(UUID.randomUUID().toString());
+        user.setPassword(passwordEncoder.encode(request.getDocument()));
         user.setRole(User.Role.AFFILIATE);
         user.setVerified(false);
         user = userRepository.save(user);
