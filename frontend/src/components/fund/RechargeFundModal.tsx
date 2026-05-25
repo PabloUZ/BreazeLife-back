@@ -7,6 +7,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import type { FundDto, FundType } from "@/src/dtos/fund/fund.dto";
 import { rechargeFund } from "@/src/services/api/fundService";
@@ -42,6 +46,7 @@ export default function RechargeFundModal({
   }
 
   async function handleConfirm() {
+    Keyboard.dismiss(); // Ocultamos el teclado al confirmar
     const parsed = parseFloat(amount.replace(/,/g, ""));
     if (!fund || isNaN(parsed) || parsed <= 0) {
       setError("Ingresa un monto válido mayor a 0.");
@@ -78,56 +83,67 @@ export default function RechargeFundModal({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-
-          <Text style={styles.title}>Recargar fondo</Text>
-          <Text style={styles.fundName}>{FUND_LABELS[fund.type]}</Text>
-
-          <View style={styles.balanceRow}>
-            <Text style={styles.balanceLabel}>Saldo actual</Text>
-            <Text style={styles.balanceValue}>{formatted}</Text>
-          </View>
-
-          <Text style={styles.inputLabel}>Monto a recargar (COP)</Text>
-          <TextInput
-            style={styles.input}
-            value={amount}
-            onChangeText={(v) => {
-              setError(null);
-              setAmount(v);
-            }}
-            placeholder="0"
-            keyboardType="numeric"
-            placeholderTextColor="#9CA3AF"
-          />
-
-          {error && <Text style={styles.errorText}>{error}</Text>}
-
-          <TouchableOpacity
-            style={[styles.btnPrimary, loading && styles.btnDisabled]}
-            onPress={handleConfirm}
-            disabled={loading}
-            activeOpacity={0.8}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.overlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardContainer}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text style={styles.btnPrimaryText}>Confirmar recarga</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.sheet}>
+                <View style={styles.handle} />
 
-          <TouchableOpacity
-            style={styles.btnSecondary}
-            onPress={handleClose}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.btnSecondaryText}>Cancelar</Text>
-          </TouchableOpacity>
+                <Text style={styles.title}>Recargar fondo</Text>
+                <Text style={styles.fundName}>{FUND_LABELS[fund.type]}</Text>
+
+                <View style={styles.balanceRow}>
+                  <Text style={styles.balanceLabel}>Saldo actual</Text>
+                  <Text style={styles.balanceValue}>{formatted}</Text>
+                </View>
+
+                <Text style={styles.inputLabel}>Monto a recargar (COP)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={amount}
+                  onChangeText={(v) => {
+                    setError(null);
+                    setAmount(v);
+                  }}
+                  placeholder="0"
+                  keyboardType="numeric"
+                  placeholderTextColor="#9CA3AF"
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss} // Oculta el teclado con la tecla "Enter/Listo"
+                />
+
+                {error && <Text style={styles.errorText}>{error}</Text>}
+
+                <TouchableOpacity
+                  style={[styles.btnPrimary, loading && styles.btnDisabled]}
+                  onPress={handleConfirm}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.btnPrimaryText}>Confirmar recarga</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.btnSecondary}
+                  onPress={handleClose}
+                  disabled={loading}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.btnSecondaryText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </KeyboardAvoidingView>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -137,6 +153,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
+  },
+  keyboardContainer: {
+    width: "100%",
   },
   sheet: {
     backgroundColor: "#FFFFFF",
