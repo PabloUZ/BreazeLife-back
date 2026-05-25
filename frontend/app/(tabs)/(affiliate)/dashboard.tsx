@@ -97,8 +97,8 @@ export default function AffiliateDashboardScreen() {
         <Text style={styles.cardLabelAccent}>Saldo acumulado</Text>
         <Text style={styles.balanceValue}>{formatCurrency(dashboard.balance)}</Text>
         <Text style={styles.cardSubAccent}>
-          {ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type} ·{" "}
-          {dashboard.account_id}
+          {ACCOUNT_TYPE_LABELS[dashboard.accountType] ?? dashboard.accountType} ·{" "}
+          {dashboard.accountId}
         </Text>
       </View>
 
@@ -106,70 +106,70 @@ export default function AffiliateDashboardScreen() {
       <View style={styles.row}>
         <View style={[styles.card, styles.halfCard]}>
           <Text style={styles.cardLabel}>Semanas cotizadas</Text>
-          <Text style={styles.statValue}>{Math.floor(dashboard.quoted_weeks)}</Text>
+          <Text style={styles.statValue}>{Math.floor(dashboard.quotedWeeks)}</Text>
           <Text style={styles.cardSub}>de 1.300</Text>
         </View>
         <View style={[styles.card, styles.halfCard]}>
           <Text style={styles.cardLabel}>Semanas restantes</Text>
-          <Text style={styles.statValue}>{Math.floor(dashboard.weeks_remaining)}</Text>
+          <Text style={styles.statValue}>{Math.floor(dashboard.weeksRemaining)}</Text>
         </View>
       </View>
 
       {/* Widget de progreso (BLIFE-14) */}
       <PensionProgressWidget
         data={{
-          accumulatedWeeks: dashboard.quoted_weeks,
-          missingWeeks: dashboard.weeks_remaining,
-          progressPercentage: dashboard.progress_percentage,
+          accumulatedWeeks: dashboard.quotedWeeks,
+          missingWeeks: dashboard.weeksRemaining,
+          progressPercentage: dashboard.progressPercentage,
         }}
       />
 
       {/* Rentabilidad mensual */}
-      {dashboard.monthly_profitability && (
+      {dashboard.monthlyProfitability && (
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Rentabilidad del mes</Text>
           <Text style={styles.statValue}>
-            {formatCurrency(dashboard.monthly_profitability.profit)}
+            {formatCurrency(dashboard.monthlyProfitability.profit)}
           </Text>
-          <Text style={styles.cardSub}>{dashboard.monthly_profitability.date}</Text>
+          <Text style={styles.cardSub}>{dashboard.monthlyProfitability.date}</Text>
         </View>
       )}
 
       {/* Último aporte */}
-      {dashboard.last_contribution && (
+      {dashboard.lastContribution && (
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.cardLabel}>Último aporte</Text>
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>
-                {dashboard.last_contribution.status}
+                {dashboard.lastContribution.status}
               </Text>
             </View>
           </View>
           <Text style={styles.statValue}>
-            {formatCurrency(dashboard.last_contribution.total_contribution)}
+            {formatCurrency(dashboard.lastContribution.totalContribution)}
           </Text>
           <Text style={styles.cardSub}>
-            {formatContribDate(dashboard.last_contribution.contrib_date)}
+            {formatContribDate(dashboard.lastContribution.contribDate)}
           </Text>
           <View style={styles.divider} />
           <View style={styles.breakdownRow}>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownLabel}>Empleador</Text>
               <Text style={styles.breakdownValue}>
-                {formatCurrency(dashboard.last_contribution.employer_contrib)}
+                {formatCurrency(dashboard.lastContribution.employerContrib)}
               </Text>
             </View>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownLabel}>Afiliado</Text>
               <Text style={styles.breakdownValue}>
-                {formatCurrency(dashboard.last_contribution.affiliate_contrib)}
+                {formatCurrency(dashboard.lastContribution.affiliateContrib)}
               </Text>
             </View>
             <View style={styles.breakdownItem}>
               <Text style={styles.breakdownLabel}>Días</Text>
               <Text style={styles.breakdownValue}>
-                {dashboard.last_contribution.days_contributed}
+                {dashboard.lastContribution.daysContributed}
               </Text>
             </View>
           </View>

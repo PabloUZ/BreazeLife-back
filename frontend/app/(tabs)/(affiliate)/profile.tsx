@@ -189,16 +189,40 @@ export default function AffiliateProfileScreen() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : profile ? (
-        !editing ? (
-          <>
-            {/* Vista de datos */}
+        <>
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Datos de afiliación</Text>
+            <InfoRow label="Documento" value={profile.document} />
+            <Divider />
+            <InfoRow
+              label="Estado"
+              value={STATUS_LABELS[profile.status] ?? profile.status}
+            />
+            <Divider />
+            <InfoRow
+              label="Fecha de nacimiento"
+              value={formatLocalDate(profile.birthDate)}
+            />
+            <Divider />
+            <InfoRow
+              label="Fecha de afiliación"
+              value={formatLocalDate(profile.affiliationDate)}
+            />
+            <Divider />
+            <InfoRow label="Teléfono" value={profile.phone} />
+          </View>
+
+          {profile.account && (
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Datos de afiliación</Text>
-              <InfoRow label="Documento" value={profile.document} />
+              <Text style={styles.sectionTitle}>Cuenta pensional</Text>
+              <InfoRow label="ID de cuenta" value={profile.account.accountId} />
               <Divider />
               <InfoRow
-                label="Estado"
-                value={STATUS_LABELS[profile.status] ?? profile.status}
+                label="Tipo de fondo"
+                value={
+                  ACCOUNT_TYPE_LABELS[profile.account.accountType] ??
+                  profile.account.accountType
+                }
               />
               <Divider />
               <InfoRow
@@ -209,6 +233,8 @@ export default function AffiliateProfileScreen() {
               <InfoRow
                 label="Fecha de afiliación"
                 value={formatLocalDate(profile.affiliation_date)}
+                label="Días cotizados"
+                value={`${profile.account.quotedDays} días`}
               />
               <Divider />
               <InfoRow label="Teléfono" value={profile.phone} />

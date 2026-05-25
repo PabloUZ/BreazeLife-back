@@ -5,6 +5,7 @@ type EmployeeDetailProps = {
     employee: EmployeeDetailDto;
     onEdit: () => void;
     onViewHistory: () => void;
+    onDeactivate: () => void;
 };
 
 function formatSalary(amount: number): string {
@@ -38,7 +39,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-export default function EmployeeDetail({ employee, onEdit, onViewHistory }: EmployeeDetailProps) {
+export default function EmployeeDetail({ employee, onEdit, onViewHistory, onDeactivate }: EmployeeDetailProps) {
     return (
         <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
@@ -62,6 +63,9 @@ export default function EmployeeDetail({ employee, onEdit, onViewHistory }: Empl
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.historyButton} onPress={onViewHistory}>
                     <Text style={styles.historyButtonText}>Ver historial salarial</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deactivateButton} onPress={onDeactivate}>
+                    <Text style={styles.deactivateButtonText}>Desvincular empleado</Text>
                 </TouchableOpacity>
             </View>
 
@@ -196,6 +200,18 @@ const styles = StyleSheet.create({
     },
     historyButtonText: {
         color: "#374151",
+        fontWeight: "600",
+        fontSize: 14,
+    },
+    deactivateButton: {
+        marginTop: 8,
+        backgroundColor: "#FEE2E2",
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    deactivateButtonText: {
+        color: "#EF4444",
         fontWeight: "600",
         fontSize: 14,
     },
