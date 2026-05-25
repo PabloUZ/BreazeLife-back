@@ -1,13 +1,13 @@
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import EditEmployeeForm from "@/src/components/employer/editEmployeeForm";
+import ChangeSalaryPositionForm from "@/src/components/employer/changeSalaryPositionForm";
 import { getEmployeeDetail } from "@/src/services/api/employeeService";
-import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos.ts";
+import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
 import { useAuthContext } from "@/src/context/AuthContext";
 
-export default function EditEmployeeScreen() {
+export default function ChangeSalaryPositionScreen() {
     const { contractId } = useLocalSearchParams<{ contractId: string }>();
     const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
     const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function EditEmployeeScreen() {
         <>
             <Stack.Screen
                 options={{
-                    title: "Editar empleado",
+                    title: "Cambiar cargo y salario",
                     headerShown: true,
                 }}
             />
@@ -56,7 +56,7 @@ export default function EditEmployeeScreen() {
                 )}
 
                 {employee && !loading && !error && (
-                    <EditEmployeeForm employee={employee} />
+                    <ChangeSalaryPositionForm employee={employee} />
                 )}
             </ScreenContainer>
         </>

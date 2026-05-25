@@ -14,13 +14,12 @@ import { useRouter } from "expo-router";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import { registerEmployee } from "@/src/services/api/employeeService";
 import type { PensionFundType, RegisterEmployeeDto } from "@/src/dtos/employer/employee.dtos";
-
-const EMPLOYER_ID = "placeholder-employer-id";
+import { useAuthContext } from "@/src/context/AuthContext";
 
 const PENSION_FUND_OPTIONS: { label: string; value: PensionFundType }[] = [
     { label: "Conservador", value: "CONSERVATIVE" },
     { label: "Moderado", value: "MODERATE" },
-    { label: "Mayor riesgo", value: "HIGH_RISK" },
+    { label: "Mayor riesgo", value: "RISKY" },
 ];
 
 type FormFields = {
@@ -70,6 +69,8 @@ function validateForm(form: FormFields): FormErrors {
 
 export default function RegisterEmployeeForm() {
     const router = useRouter();
+    const { state } = useAuthContext();
+    const employerId = state.user?.user_id ?? "";
     const [form, setForm] = useState<FormFields>(INITIAL_FORM);
     const [errors, setErrors] = useState<FormErrors>({});
     const [loading, setLoading] = useState(false);
@@ -123,7 +124,7 @@ export default function RegisterEmployeeForm() {
                 startDate: form.startDate.trim(),
             };
 
-            await registerEmployee(EMPLOYER_ID, payload);
+            await registerEmployee(employerId, payload);
 
             Alert.alert(
                 "¡Empleado registrado!",
@@ -250,7 +251,7 @@ export default function RegisterEmployeeForm() {
                         errors.position && styles.inputError,
                         focusedField === "position" && styles.inputFocused,
                     ]}
-                    placeholder="Ej: Desarrollador Frontend"
+                    placeholder="Ej: Asesor Pensional"
                     value={form.position}
                     onChangeText={(v) => handleChange("position", v)}
                     onFocus={() => setFocusedField("position")}
