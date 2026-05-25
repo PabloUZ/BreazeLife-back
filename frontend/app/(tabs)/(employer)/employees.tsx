@@ -1,20 +1,27 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import AppButton from "@/src/components/common/AppButton";
 import AppEmptyState from "@/src/components/common/AppEmptyState";
 import AppErrorState from "@/src/components/common/AppErrorState";
 import AppHeader from "@/src/components/common/AppHeader";
 import AppLoadingState from "@/src/components/common/AppLoadingState";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EmployeeCard from "@/src/components/employer/employeeCard";
+import EmployerScreenContainer from "@/src/components/layout/EmployerScreenContainer";
 import { useAuthContext } from "@/src/context/AuthContext";
 import type {
   EmployeeStatus,
   EmployerEmployeeDto,
 } from "@/src/dtos/employer/employee.dtos";
 import { listEmployees } from "@/src/services/api/employeeService";
-import { colors, formStyles, spacing } from "@/src/theme";
+import { formStyles, spacing } from "@/src/theme";
 
 const PAGE_SIZE = 10;
 
@@ -40,11 +47,8 @@ export default function EmployerEmployeesScreen() {
   const fetchEmployees = useCallback(
     async (page: number, status: EmployeeStatus | "ALL", replace: boolean) => {
       try {
-        if (replace) {
-          setLoading(true);
-        } else {
-          setLoadingMore(true);
-        }
+        if (replace) setLoading(true);
+        else setLoadingMore(true);
 
         setError(null);
 
@@ -54,9 +58,7 @@ export default function EmployerEmployeesScreen() {
           status: status === "ALL" ? undefined : status,
         });
 
-        setEmployees((prev) =>
-          replace ? response.content : [...prev, ...response.content]
-        );
+        setEmployees((prev) => (replace ? response.content : [...prev, ...response.content]));
         setHasMore(!response.last);
         setCurrentPage(page);
       } catch {
@@ -76,30 +78,31 @@ export default function EmployerEmployeesScreen() {
   );
 
   function handleLoadMore() {
-    if (loadingMore || !hasMore) {
-      return;
-    }
+    if (loadingMore || !hasMore) return;
     fetchEmployees(currentPage + 1, selectedStatus, false);
   }
 
   if (loading) {
     return (
-      <ScreenContainer>
+      <EmployerScreenContainer>
         <AppLoadingState message="Cargando empleados..." />
-      </ScreenContainer>
+      </EmployerScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
-        <AppErrorState message={error} onRetry={() => fetchEmployees(0, selectedStatus, true)} />
-      </ScreenContainer>
+      <EmployerScreenContainer>
+        <AppErrorState
+          message={error}
+          onRetry={() => fetchEmployees(0, selectedStatus, true)}
+        />
+      </EmployerScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <EmployerScreenContainer>
       <AppHeader
         title="Empleados"
         subtitle={`${employees.length} empleado${employees.length !== 1 ? "s" : ""} registrado${employees.length !== 1 ? "s" : ""}.`}
@@ -120,6 +123,7 @@ export default function EmployerEmployeesScreen() {
               selectedStatus === filter.value ? styles.filterChipActive : null,
             ]}
             onPress={() => setSelectedStatus(filter.value)}
+            activeOpacity={0.85}
           >
             <Text
               style={[
@@ -149,6 +153,8 @@ export default function EmployerEmployeesScreen() {
         )}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <AppEmptyState
             title="Sin empleados"
@@ -156,29 +162,27 @@ export default function EmployerEmployeesScreen() {
           />
         }
         ListFooterComponent={
-          loadingMore ? (
-            <ActivityIndicator
-              size="small"
-              color={colors.primary}
-              style={styles.footerLoader}
-            />
-          ) : null
+          loadingMore ? <ActivityIndicator size="small" style={styles.footerLoader} /> : null
         }
       />
-    </ScreenContainer>
+    </EmployerScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   filtersRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
   filterChip: formStyles.chip,
   filterChipActive: formStyles.chipActive,
   filterChipText: formStyles.chipText,
   filterChipTextActive: formStyles.chipTextActive,
+  listContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxxl,
+  },
   footerLoader: {
     paddingVertical: spacing.md,
   },

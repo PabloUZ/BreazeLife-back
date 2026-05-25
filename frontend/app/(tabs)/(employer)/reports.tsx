@@ -1,14 +1,15 @@
 import { Text } from "react-native";
-
 import PlaceholderScreen from "@/src/components/placeholders/PlaceholderScreen";
+import { spacing } from "@/src/theme";
 
 export default function EmployerReportsScreen() {
   return (
     <PlaceholderScreen
-      title="Employer Reports"
-      subtitle="Employer reports module placeholder."
+      title="Reportes empresariales"
+      subtitle="La generacion de reportes aun esta pendiente y se mostrara aqui."
+      contentStyle={{ paddingTop: spacing.xxxl + spacing.md }}
     >
-      <Text>TODO: Implement PDF generation and reporting filters.</Text>
+      <Text>Los filtros y exportaciones de reportes apareceran cuando el modulo este conectado.</Text>
     </PlaceholderScreen>
   );
 }

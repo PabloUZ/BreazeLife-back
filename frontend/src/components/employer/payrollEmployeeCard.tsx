@@ -1,5 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import { formatCurrency } from "@/src/utils/formatters";
+import { colors, spacing, typography } from "@/src/theme";
 
 export type PayrollCardData = {
   affiliate_name: string;
@@ -20,11 +23,56 @@ type Props = {
   data: PayrollCardData;
 };
 
+function getStatusTone(status?: string) {
+  if (!status) return undefined;
+
+  if (status === "SUCCESS" || status === "PROCESSED") {
+    return { label: "Exitoso", tone: "success" as const };
+  }
+
+  return { label: status, tone: "warning" as const };
+}
+
+function getQuoteTone(status?: string) {
+  if (!status) return undefined;
+
+  if (status === "PROCESSED" || status === "ACCEPTED") {
+    return { label: "Procesada", tone: "success" as const };
+  }
+
+  if (status === "REJECTED") {
+    return { label: "Rechazada", tone: "danger" as const };
+  }
+
+  return { label: status, tone: "warning" as const };
+}
+
+function DetailItem({ label, value, tone }: { label: string; value: string; tone?: "danger" | "success" | "default" }) {
+  return (
+    <View style={styles.detailItem}>
+      <Text style={styles.itemLabel}>{label}</Text>
+      <Text
+        style={[
+          styles.itemValue,
+          tone === "danger" ? styles.deductionText : null,
+          tone === "success" ? styles.netText : null,
+        ]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 export default function PayrollEmployeeCard({ data }: Props) {
-  const showDetailFields = data.status !== undefined || data.quote_id !== undefined;
+  const status = getStatusTone(data.status);
+  const quoteStatus = getQuoteTone(data.quote_status);
+  const totalPension =
+    data.total_pension_contrib ??
+    data.employer_pension_contrib + data.employee_pension_deduction;
 
   return (
-    <View style={styles.card}>
+    <AppCard style={styles.card}>
       <View style={styles.empHeader}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -32,235 +80,146 @@ export default function PayrollEmployeeCard({ data }: Props) {
           </Text>
         </View>
         <View style={styles.empInfo}>
-          <Text style={styles.empName}>{data.affiliate_name}</Text>
-          <Text style={styles.empPosition}>
-            {data.position ? `${data.position} · ` : ""}{data.document}
+          <Text style={styles.empName} numberOfLines={2} ellipsizeMode="tail">
+            {data.affiliate_name}
+          </Text>
+          <Text style={styles.empPosition} numberOfLines={2} ellipsizeMode="tail">
+            {data.position ? `${data.position} · ` : ""}
+            {data.document}
           </Text>
         </View>
-        {data.status && (
-          <View
-            style={[
-              styles.statusBadge,
-              data.status === "SUCCESS" || data.status === "PROCESSED"
-                ? styles.badgeProcessed
-                : styles.badgePending,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusBadgeText,
-                data.status === "SUCCESS" || data.status === "PROCESSED"
-                  ? styles.textProcessed
-                  : styles.textPending,
-              ]}
-            >
-              {data.status === "SUCCESS" || data.status === "PROCESSED"
-                ? "Exitoso"
-                : data.status}
-            </Text>
-          </View>
-        )}
+        {status ? <AppStatusBadge label={status.label} tone={status.tone} /> : null}
       </View>
 
       <View style={styles.divider} />
 
-      {/* Detalles financieros */}
       <View style={styles.detailRow}>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Salario Base</Text>
-          <Text style={styles.itemValue}>
-            {formatCurrency(data.base_salary)}
-          </Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Deducción Pensión</Text>
-          <Text style={[styles.itemValue, styles.deductionText]}>
-            - {formatCurrency(data.employee_pension_deduction)}
-          </Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Salario Neto</Text>
-          <Text style={[styles.itemValue, styles.netText]}>
-            {formatCurrency(data.net_salary)}
-          </Text>
-        </View>
+        <DetailItem label="Salario base" value={formatCurrency(data.base_salary)} />
+        <DetailItem
+          label="Deduccion pension"
+          value={`- ${formatCurrency(data.employee_pension_deduction)}`}
+          tone="danger"
+        />
+        <DetailItem label="Salario neto" value={formatCurrency(data.net_salary)} tone="success" />
       </View>
 
       <View style={styles.detailRow}>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Contribución Patronal</Text>
-          <Text style={styles.itemValue}>
-            {formatCurrency(data.employer_pension_contrib)}
-          </Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Total Pensión</Text>
-          <Text style={styles.itemValue}>
-            {formatCurrency(data.total_pension_contrib ?? (data.employer_pension_contrib + data.employee_pension_deduction))}
-          </Text>
-        </View>
-        <View style={styles.detailItem}>
-          <Text style={styles.itemLabel}>Días Cotizados</Text>
-          <Text style={styles.itemValue}>
-            {data.days_contributed !== undefined ? `${data.days_contributed} días` : "30 días"}
-          </Text>
-        </View>
+        <DetailItem
+          label="Aporte patronal"
+          value={formatCurrency(data.employer_pension_contrib)}
+        />
+        <DetailItem label="Total pension" value={formatCurrency(totalPension)} />
+        <DetailItem
+          label="Dias cotizados"
+          value={data.days_contributed !== undefined ? `${data.days_contributed} dias` : "30 dias"}
+        />
       </View>
 
-      {/* Detalles de la planilla/cotización (solo para el historial/detalle) */}
-      {showDetailFields && data.quote_id && (
+      {data.quote_id ? (
         <>
           <View style={styles.divider} />
           <View style={styles.quoteRow}>
             <View style={styles.quoteInfo}>
-              <Text style={styles.quoteLabel}>ID Cotización de Pensión</Text>
-              <Text style={styles.quoteValue}>{data.quote_id}</Text>
+              <Text style={styles.quoteLabel}>Cotizacion asociada</Text>
+              <Text style={styles.quoteValue} numberOfLines={1} ellipsizeMode="tail">
+                {data.quote_id}
+              </Text>
             </View>
-            {data.quote_status && (
-              <View
-                style={[
-                  styles.quoteStatusBadge,
-                  data.quote_status === "PROCESSED" || data.quote_status === "ACCEPTED"
-                    ? styles.badgeProcessed
-                    : styles.badgePending,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.quoteStatusText,
-                    data.quote_status === "PROCESSED" || data.quote_status === "ACCEPTED"
-                      ? styles.textProcessed
-                      : styles.textPending,
-                  ]}
-                >
-                  {data.quote_status === "PROCESSED" || data.quote_status === "ACCEPTED"
-                    ? "Procesada"
-                    : data.quote_status}
-                </Text>
-              </View>
-            )}
+            {quoteStatus ? (
+              <AppStatusBadge label={quoteStatus.label} tone={quoteStatus.tone} />
+            ) : null}
           </View>
         </>
-      )}
-    </View>
+      ) : null}
+    </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    marginBottom: spacing.md,
   },
   empHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: spacing.md,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#369BC9",
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
-    color: "#FFFFFF",
+    color: colors.primaryText,
     fontSize: 15,
     fontWeight: "700",
   },
   empInfo: {
     flex: 1,
+    minWidth: 0,
   },
   empName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
+    ...typography.bodyStrong,
+    color: colors.text,
   },
   empPosition: {
-    fontSize: 12,
-    color: "#6B7280",
+    ...typography.caption,
+    color: colors.textMuted,
     marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  badgeProcessed: {
-    backgroundColor: "#D1FAE5",
-  },
-  badgePending: {
-    backgroundColor: "#FEF3C7",
-  },
-  textProcessed: {
-    color: "#065F46",
-  },
-  textPending: {
-    color: "#92400E",
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 12,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
   },
   detailRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
+    flexWrap: "wrap",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
   },
   detailItem: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 100,
   },
   itemLabel: {
-    fontSize: 10,
-    color: "#9CA3AF",
+    ...typography.caption,
+    color: colors.textSubtle,
     marginBottom: 2,
   },
   itemValue: {
-    fontSize: 12,
+    ...typography.caption,
     fontWeight: "600",
-    color: "#374151",
+    color: colors.neutralText,
   },
   deductionText: {
-    color: "#EF4444",
+    color: colors.dangerText,
   },
   netText: {
-    color: "#16A34A",
+    color: colors.successText,
   },
   quoteRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: spacing.md,
   },
   quoteInfo: {
     flex: 1,
+    minWidth: 0,
   },
   quoteLabel: {
-    fontSize: 10,
-    color: "#9CA3AF",
+    ...typography.caption,
+    color: colors.textSubtle,
     marginBottom: 2,
   },
   quoteValue: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#4B5563",
-  },
-  quoteStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  quoteStatusText: {
-    fontSize: 10,
+    ...typography.caption,
     fontWeight: "600",
+    color: colors.neutralText,
   },
 });

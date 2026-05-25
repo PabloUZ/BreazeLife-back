@@ -24,7 +24,7 @@ function formatDate(dateString: string): string {
 
 export default function EmployeeCard({ employee, onPress }: EmployeeCardProps) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.82}>
       <AppCard style={styles.card}>
         <View style={styles.header}>
           <View style={styles.avatar}>
@@ -35,10 +35,12 @@ export default function EmployeeCard({ employee, onPress }: EmployeeCardProps) {
           </View>
 
           <View style={styles.info}>
-            <Text style={styles.name}>
+            <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
               {employee.firstName} {employee.lastName}
             </Text>
-            <Text style={styles.position}>{employee.position}</Text>
+            <Text style={styles.position} numberOfLines={2} ellipsizeMode="tail">
+              {employee.position}
+            </Text>
           </View>
 
           <AppStatusBadge
@@ -55,12 +57,14 @@ export default function EmployeeCard({ employee, onPress }: EmployeeCardProps) {
             <Text style={styles.footerValue}>{formatSalary(employee.baseSalary)}</Text>
           </View>
           <View style={styles.footerItem}>
-            <Text style={styles.footerLabel}>Desde</Text>
+            <Text style={styles.footerLabel}>Ingreso</Text>
             <Text style={styles.footerValue}>{formatDate(employee.startDate)}</Text>
           </View>
           <View style={styles.footerItem}>
-            <Text style={styles.footerLabel}>Cedula</Text>
-            <Text style={styles.footerValue}>{employee.document}</Text>
+            <Text style={styles.footerLabel}>Documento</Text>
+            <Text style={styles.footerValue} numberOfLines={1} ellipsizeMode="tail">
+              {employee.document}
+            </Text>
           </View>
         </View>
       </AppCard>
@@ -92,6 +96,7 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
+    minWidth: 0,
   },
   name: {
     ...typography.bodyStrong,
@@ -109,12 +114,13 @@ const styles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.sm,
+    flexWrap: "wrap",
+    gap: spacing.md,
   },
   footerItem: {
-    flex: 1,
-    alignItems: "center",
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 92,
   },
   footerLabel: {
     ...typography.caption,
@@ -125,6 +131,5 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: "600",
     color: colors.neutralText,
-    textAlign: "center",
   },
 });

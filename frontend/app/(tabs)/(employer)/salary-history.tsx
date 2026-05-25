@@ -1,116 +1,184 @@
 import React, { useEffect, useState } from "react";
-import {
-    View,
-    Text,
-    FlatList,
-    ActivityIndicator,
-    StyleSheet,
-} from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import AppButton from "@/src/components/common/AppButton";
+import AppCard from "@/src/components/common/AppCard";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import EmployerScreenContainer from "@/src/components/layout/EmployerScreenContainer";
 import { useAuth } from "@/src/hooks/useAuth";
+import type { SalaryHistoryResponseDto } from "@/src/dtos/employer/employee.dtos";
 import { getSalaryHistory } from "@/src/services/api/employeeService";
-import { SalaryHistoryResponseDto } from "@/src/dtos/employer/employee.dtos";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import { colors, spacing, typography } from "@/src/theme";
 
 export default function SalaryHistoryScreen() {
-    const { contractId } = useLocalSearchParams<{ contractId: string }>();
-    const { state } = useAuth();
+  const router = useRouter();
+  const { contractId } = useLocalSearchParams<{ contractId: string }>();
+  const { state } = useAuth();
 
-    const [history, setHistory] = useState<SalaryHistoryResponseDto[]>([]);
-    const [page, setPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(1);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<SalaryHistoryResponseDto[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const fetchHistory = async (pageNumber: number, reset: boolean = false) => {
-        try {
-            if (pageNumber === 0) setLoading(true);
-            else setLoadingMore(true);
+  const fetchHistory = async (pageNumber: number, reset = false) => {
+    try {
+      if (pageNumber === 0) setLoading(true);
+      else setLoadingMore(true);
 
-            const data = await getSalaryHistory(state.user!.user_id, contractId, pageNumber, 10);
+      setError(null);
+      const data = await getSalaryHistory(state.user!.user_id, contractId, pageNumber, 10);
 
-            setHistory(prev => reset ? data.content : [...prev, ...data.content]);
-            setTotalPages(data.totalPages);
-            setPage(data.number);
-        } catch (e) {
-            setError("Error loading salary history.");
-        } finally {
-            setLoading(false);
-            setLoadingMore(false);
-        }
-    };
+      setHistory((prev) => (reset ? data.content : [...prev, ...data.content]));
+      setTotalPages(data.totalPages);
+      setPage(data.number);
+    } catch {
+      setError("No se pudo cargar el historial salarial.");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchHistory(0, true);
-    }, [contractId]);
+  useEffect(() => {
+    fetchHistory(0, true);
+  }, [contractId]);
 
-    const loadMore = () => {
-        if (!loadingMore && page + 1 < totalPages) {
-            fetchHistory(page + 1);
-        }
-    };
+  const loadMore = () => {
+    if (!loadingMore && page + 1 < totalPages) {
+      fetchHistory(page + 1);
+    }
+  };
 
-    const formatCurrency = (value: number) =>
-        new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(value);
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" });
-    };
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
-    const renderItem = ({ item }: { item: SalaryHistoryResponseDto }) => (
-        <View style={styles.card}>
+  if (loading) {
+    return (
+      <EmployerScreenContainer>
+        <AppLoadingState message="Cargando historial salarial..." />
+      </EmployerScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmployerScreenContainer>
+        <AppErrorState message={error} onRetry={() => fetchHistory(0, true)} />
+      </EmployerScreenContainer>
+    );
+  }
+
+  return (
+    <EmployerScreenContainer>
+      <View style={styles.topBar}>
+        <AppButton
+          title="Volver"
+          variant="secondary"
+          iconName="arrow-back-outline"
+          onPress={() => router.back()}
+        />
+      </View>
+
+      <AppHeader
+        title="Historial salarial"
+        subtitle="Consulta los cambios de salario y cargo registrados en el tiempo."
+      />
+
+      <FlatList
+        data={history}
+        keyExtractor={(item) => item.historyId}
+        renderItem={({ item }) => (
+          <AppCard style={styles.card}>
             <Text style={styles.date}>{formatDate(item.date)}</Text>
             <Text style={styles.action}>{item.action}</Text>
             <View style={styles.row}>
-                <Text style={styles.label}>Cargo:</Text>
-                <Text style={styles.value}>{item.position}</Text>
+              <Text style={styles.label}>Cargo</Text>
+              <Text style={styles.value} numberOfLines={2}>
+                {item.position}
+              </Text>
             </View>
             <View style={styles.row}>
-                <Text style={styles.label}>Salario:</Text>
-                <Text style={styles.value}>{formatCurrency(item.salary)}</Text>
+              <Text style={styles.label}>Salario</Text>
+              <Text style={styles.value}>{formatCurrency(item.salary)}</Text>
             </View>
-        </View>
-    );
-
-    return (
-        <ScreenContainer>
-            {loading && (
-                <ActivityIndicator size="large" style={{ marginTop: 40 }} />
-            )}
-
-            {error && !loading && (
-                <Text style={styles.errorText}>{error}</Text>
-            )}
-
-            {!loading && !error && (
-                <FlatList
-                    data={history}
-                    keyExtractor={(item) => item.historyId}
-                    renderItem={renderItem}
-                    onEndReached={loadMore}
-                    onEndReachedThreshold={0.5}
-                    ListEmptyComponent={<Text style={styles.emptyText}>No hay historial disponible.</Text>}
-                    ListFooterComponent={loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null}
-                />
-            )}
-        </ScreenContainer>
-    );
+          </AppCard>
+        )}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={
+          <AppEmptyState
+            title="Sin historial"
+            description="No hay cambios salariales registrados para este empleado."
+          />
+        }
+        ListFooterComponent={
+          loadingMore ? <ActivityIndicator style={styles.loader} color={colors.primary} /> : null
+        }
+      />
+    </EmployerScreenContainer>
+  );
 }
 
 const styles = StyleSheet.create({
-    card: {
-        backgroundColor: "#f5f5f5",
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-    },
-    date: { fontSize: 12, color: "#888", marginBottom: 4 },
-    action: { fontSize: 14, fontWeight: "600", marginBottom: 8, color: "#333" },
-    row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
-    label: { fontSize: 14, color: "#555" },
-    value: { fontSize: 14, fontWeight: "500", color: "#111" },
-    emptyText: { textAlign: "center", marginTop: 40, color: "#888" },
-    errorText: { textAlign: "center", marginTop: 40, color: "red" },
+  topBar: {
+    alignItems: "flex-start",
+  },
+  listContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxxl,
+  },
+  card: {
+    marginBottom: spacing.md,
+  },
+  date: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  action: {
+    ...typography.bodyStrong,
+    marginBottom: spacing.md,
+    color: colors.text,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  label: {
+    ...typography.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  value: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flex: 1,
+    textAlign: "right",
+  },
+  loader: {
+    paddingVertical: spacing.lg,
+  },
 });

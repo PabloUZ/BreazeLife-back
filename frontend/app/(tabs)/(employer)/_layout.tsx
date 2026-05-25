@@ -1,7 +1,5 @@
-import { router, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
-import { colors } from "@/src/theme";
 import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 export default function EmployerTabsLayout() {
@@ -13,6 +11,7 @@ export default function EmployerTabsLayout() {
         name="dashboard"
         options={{
           title: "Inicio",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -22,6 +21,7 @@ export default function EmployerTabsLayout() {
         name="employees"
         options={{
           title: "Empleados",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people-outline" size={size} color={color} />
           ),
@@ -30,7 +30,8 @@ export default function EmployerTabsLayout() {
       <Tabs.Screen
         name="payroll"
         options={{
-          title: "Nómina",
+          title: "Nomina",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cash-outline" size={size} color={color} />
           ),
@@ -40,6 +41,7 @@ export default function EmployerTabsLayout() {
         name="funds"
         options={{
           title: "Fondos",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color} />
           ),
@@ -49,6 +51,7 @@ export default function EmployerTabsLayout() {
         name="reports"
         options={{
           title: "Reportes",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bar-chart-outline" size={size} color={color} />
           ),
@@ -58,6 +61,7 @@ export default function EmployerTabsLayout() {
         name="notifications"
         options={{
           title: "Alertas",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="notifications-outline" size={size} color={color} />
           ),
@@ -67,6 +71,7 @@ export default function EmployerTabsLayout() {
         name="profile"
         options={{
           title: "Perfil",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
           ),
@@ -76,85 +81,36 @@ export default function EmployerTabsLayout() {
         name="register-employee"
         options={{
           href: null,
-          headerShown: true,
-          title: "Nuevo empleado",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employees")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
-      <Tabs.Screen
-        name="index"
-        options={{
-          href: null,
-        }}
-      />
+      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen
         name="employee-detail"
         options={{
           href: null,
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employees")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="edit-employee"
         options={{
           href: null,
-          headerShown: true,
-          title: "Editar empleado",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="change-salary-position"
         options={{
           href: null,
-          headerShown: true,
-          title: "Cambiar cargo y salario",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/edit-employee")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
       <Tabs.Screen
         name="salary-history"
         options={{
           href: null,
-          headerShown: true,
-          title: "Historial salarial",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-          ),
+          headerShown: false,
         }}
       />
     </Tabs>
