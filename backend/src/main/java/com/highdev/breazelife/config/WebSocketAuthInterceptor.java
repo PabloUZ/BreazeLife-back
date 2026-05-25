@@ -28,6 +28,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        // getAccessor() devuelve el mismo accessor con el que se construyó el mensaje,
+        // que Spring deja mutable (setLeaveMutable(true)) para que los interceptores
+        // puedan modificar cabeceras antes de que el mensaje entre al broker.
         StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 

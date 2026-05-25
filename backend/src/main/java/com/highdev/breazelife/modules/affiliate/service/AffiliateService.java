@@ -43,6 +43,7 @@ import com.highdev.breazelife.common.exceptions.http.NotFoundException;
 import com.highdev.breazelife.common.exceptions.http.UnauthorizedException;
 import com.highdev.breazelife.modules.affiliate.dto.request.UpdateAffiliateProfileRequestDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateProfileResponseDTO;
+import com.highdev.breazelife.modules.affiliate.dto.response.ProgressResponseDTO;
 import com.highdev.breazelife.modules.affiliate.dto.response.AffiliateDashboardResponseDTO;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
 import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHistoryRepository;
@@ -342,4 +343,41 @@ public class AffiliateService {
 
         return historyList;
         }
+
+
+        public ProgressResponseDTO getAffiliateProgress(String affiliateId) {
+        // 1. Buscar la cuenta del afiliado (Lanza tu excepción personalizada si no existe)
+        Account account = accountRepository.findByAffiliateUserId(affiliateId)
+                .orElseThrow(() -> new AffiliateNotFoundException(affiliateId));
+
+        // 2. Definir las constantes matemáticas del negocio
+        BigDecimal daysInWeek = new BigDecimal("7");
+        BigDecimal targetWeeks = new BigDecimal("1300");
+        
+        // Obtener los días cotizados acumulados en la cuenta
+        int quotedDays = account.getQuotedDays() != null ? account.getQuotedDays() : 0;
+        BigDecimal currentDays = BigDecimal.valueOf(quotedDays);
+
+        // 3. Realizar los cálculos con precisión de 2 decimales
+        // Semanas acumuladas = días actuales / 7
+        BigDecimal accumulatedWeeks = currentDays.divide(daysInWeek, 2, RoundingMode.HALF_UP);
+
+        // Semanas faltantes = 1300 - semanas acumuladas (Si el resultado es menor a 0, se deja en 0)
+        BigDecimal missingWeeks = targetWeeks.subtract(accumulatedWeeks).max(BigDecimal.ZERO);
+
+        // Porcentaje de progreso = (semanas acumuladas / 1300) * 100
+        BigDecimal progressPercentage = accumulatedWeeks
+                .divide(targetWeeks, 4, RoundingMode.HALF_UP)
+                .multiply(new BigDecimal("100"))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // 4. Retornar el DTO construido
+        return ProgressResponseDTO.builder()
+                .accumulatedWeeks(accumulatedWeeks)
+                .missingWeeks(missingWeeks)
+                .progressPercentage(progressPercentage)
+                .build();
+        }
+
+
 }

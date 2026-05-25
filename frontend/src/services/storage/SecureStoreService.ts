@@ -1,15 +1,16 @@
+import * as SecureStore from "expo-secure-store";
+
 export class SecureStoreService {
-  async deleteItem(_key: string): Promise<void> {
-    // TODO: Replace with expo-secure-store when JWT auth is implemented.
+  async getItem(key: string): Promise<string | null> {
+    return SecureStore.getItemAsync(key);
   }
 
-  async getItem(_key: string): Promise<string | null> {
-    // TODO: Replace with expo-secure-store when JWT auth is implemented.
-    return null;
+  async setItem(key: string, value: string): Promise<void> {
+    await SecureStore.setItemAsync(key, value);
   }
 
-  async setItem(_key: string, _value: string): Promise<void> {
-    // TODO: Replace with expo-secure-store when JWT auth is implemented.
+  async deleteItem(key: string): Promise<void> {
+    await SecureStore.deleteItemAsync(key);
   }
 }
 

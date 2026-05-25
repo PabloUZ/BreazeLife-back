@@ -1,14 +1,10 @@
-import { Text } from "react-native";
-
-import PlaceholderScreen from "@/src/components/placeholders/PlaceholderScreen";
+import { ScrollView } from "react-native";
+import ProfileCard from "@/src/components/profile/ProfileCard";
 
 export default function AffiliateProfileScreen() {
   return (
-    <PlaceholderScreen
-      title="Affiliate Profile"
-      subtitle="Affiliate profile module placeholder."
-    >
-      <Text>TODO: Implement profile forms and role-based guards.</Text>
-    </PlaceholderScreen>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ProfileCard />
+    </ScrollView>
   );
 }

@@ -23,7 +23,7 @@ public class CustomUnauthorizedHandler implements AuthenticationEntryPoint {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
 
-        ErrorResponse body = new ErrorResponse(
+        ErrorResponse body = ErrorResponse.of(
                 "Authentication is required to access this resource",
                 "UNAUTHORIZED",
                 401,

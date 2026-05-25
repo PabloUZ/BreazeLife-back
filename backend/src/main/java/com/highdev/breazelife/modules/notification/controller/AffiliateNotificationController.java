@@ -48,4 +48,13 @@ public class AffiliateNotificationController {
                 "Notification marked as read successfully", 200, "OK", data
         ));
     }
+
+    @DeleteMapping("/{notification_id}")
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @AuthenticationPrincipal User user,
+            @PathVariable("notification_id") String notificationId
+    ) {
+        notificationService.deleteNotification(user.getId(), notificationId);
+        return ResponseEntity.ok(ApiResponse.of("Notification deleted successfully", 200, "OK"));
+    }
 }

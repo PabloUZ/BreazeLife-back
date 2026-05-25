@@ -1,0 +1,78 @@
+// src/services/api/affiliateService.ts
+
+import { httpClient } from "@/src/config/http";
+import type { ApiResponseDto, ProgressResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import type { PaginatedResponseDto, PayslipDto } from "@/src/dtos/affiliate/affiliate.dtos";
+
+
+const BASE_PATH = "/api/v1/affiliates";
+
+export async function getAffiliateProgress(
+  affiliateId: string
+): Promise<ProgressResponseDto> {
+  // Tu backend devuelve la data envuelta en un objeto ApiResponse
+  const response = await httpClient.get<ApiResponseDto<ProgressResponseDto>>(
+    `${BASE_PATH}/${affiliateId}/progress`
+  );
+  
+  // Retornamos directamente el objeto 'data' interno
+  return response.data.data;
+}
+
+
+
+export async function getPayslips(
+  affiliateId: string,
+  page: number = 0,
+  size: number = 10,
+  from?: string,
+  to?: string
+): Promise<PaginatedResponseDto<PayslipDto>> {
+  
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  if (from && to) {
+    query.append("from", from);
+    query.append("to", to);
+  }
+
+  // Ajusta la ruta según cómo tengas configurado tu axios
+  const response = await httpClient.get(
+    `/api/v1/affiliates/${affiliateId}/payslips?${query.toString()}`
+  );
+  
+  return response.data.data;
+}
+
+
+export async function getQuotes(
+  affiliateId: string,
+  page: number = 0,
+  size: number = 10,
+  from?: string,
+  to?: string,
+  status?: string
+) {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  if (from && to) {
+    query.append("from", from);
+    query.append("to", to);
+  }
+  
+  if (status) {
+    query.append("status", status);
+  }
+
+  const response = await httpClient.get(
+    `/api/v1/affiliates/${affiliateId}/quotes?${query.toString()}`
+  );
+  
+  return response.data.data; // Devuelve el PagedResponseDTO
+}
