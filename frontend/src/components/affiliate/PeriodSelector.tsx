@@ -1,5 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import AppButton from "@/src/components/common/AppButton";
+import AppCard from "@/src/components/common/AppCard";
+import { colors, formStyles, radius, spacing, typography } from "@/src/theme";
 
 interface PeriodSelectorProps {
   selectedPeriod: string;
@@ -11,10 +21,18 @@ interface PeriodSelectorProps {
 }
 
 const MONTHS = [
-  { label: "Ene", value: "01" }, { label: "Feb", value: "02" }, { label: "Mar", value: "03" },
-  { label: "Abr", value: "04" }, { label: "May", value: "05" }, { label: "Jun", value: "06" },
-  { label: "Jul", value: "07" }, { label: "Ago", value: "08" }, { label: "Sep", value: "09" },
-  { label: "Oct", value: "10" }, { label: "Nov", value: "11" }, { label: "Dic", value: "12" }
+  { label: "Ene", value: "01" },
+  { label: "Feb", value: "02" },
+  { label: "Mar", value: "03" },
+  { label: "Abr", value: "04" },
+  { label: "May", value: "05" },
+  { label: "Jun", value: "06" },
+  { label: "Jul", value: "07" },
+  { label: "Ago", value: "08" },
+  { label: "Sep", value: "09" },
+  { label: "Oct", value: "10" },
+  { label: "Nov", value: "11" },
+  { label: "Dic", value: "12" },
 ];
 
 const STATUS_OPTIONS = [
@@ -23,179 +41,265 @@ const STATUS_OPTIONS = [
   { label: "Rechazadas", value: "REJECTED" },
 ];
 
-export const PeriodSelector = ({
+export function PeriodSelector({
   selectedPeriod,
   onSelectPeriod,
   affiliationYear,
   showStatusFilter,
   selectedStatus,
-  onSelectStatus
-}: PeriodSelectorProps) => {
+  onSelectStatus,
+}: PeriodSelectorProps) {
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Lógica de Años
   const currentYear = new Date().getFullYear();
-  const oldestYear = affiliationYear || (currentYear - 10);
-  const totalYears = Math.max(1, currentYear - oldestYear + 1);
-  const years = Array.from({ length: totalYears }, (_, i) => (currentYear - i).toString());
+  const oldestYear = affiliationYear || currentYear - 10;
+  const years = useMemo(
+    () =>
+      Array.from(
+        { length: Math.max(1, currentYear - oldestYear + 1) },
+        (_, index) => (currentYear - index).toString()
+      ),
+    [currentYear, oldestYear]
+  );
 
-  // Estados Iniciales
   const initialYear = selectedPeriod ? selectedPeriod.split("-")[0] : currentYear.toString();
   const initialMonth = selectedPeriod ? selectedPeriod.split("-")[1] : "";
 
-  // Estados Temporales del Modal
   const [tempYear, setTempYear] = useState(initialYear);
   const [tempMonth, setTempMonth] = useState(initialMonth);
   const [tempStatus, setTempStatus] = useState(selectedStatus || "");
 
-  const handleApply = () => {
+  function handleApply() {
     if (tempYear && tempMonth) {
       onSelectPeriod(`${tempYear}-${tempMonth}`);
     }
+
     if (showStatusFilter && onSelectStatus) {
       onSelectStatus(tempStatus);
     }
-    setModalVisible(false);
-  };
 
-  const handleClear = () => {
+    setModalVisible(false);
+  }
+
+  function handleClear() {
     onSelectPeriod("");
     setTempMonth("");
     setTempStatus("");
-    if (onSelectStatus) onSelectStatus("");
+    if (onSelectStatus) {
+      onSelectStatus("");
+    }
     setModalVisible(false);
-  };
+  }
 
-  // Texto dinámico para el botón principal
-  const getDisplayText = () => {
+  function getDisplayText() {
     let text = "Todos los periodos";
-    
+
     if (selectedPeriod) {
-      const [y, m] = selectedPeriod.split("-");
-      const monthObj = MONTHS.find(mon => mon.value === m);
-      text = `${monthObj?.label || ''} ${y}`;
+      const [year, month] = selectedPeriod.split("-");
+      const selectedMonth = MONTHS.find((item) => item.value === month);
+      text = `${selectedMonth?.label || ""} ${year}`.trim();
     }
 
     if (showStatusFilter && selectedStatus) {
-      const statusObj = STATUS_OPTIONS.find(s => s.value === selectedStatus);
-      text += ` | ${statusObj?.label || selectedStatus}`;
+      const selectedOption = STATUS_OPTIONS.find(
+        (option) => option.value === selectedStatus
+      );
+      text += ` | ${selectedOption?.label || selectedStatus}`;
     }
-    
+
     return text;
-  };
+  }
 
   return (
     <View style={styles.container}>
-      {/* Botón Trigger */}
-      <TouchableOpacity style={styles.triggerButton} onPress={() => setModalVisible(true)}>
-        <Text style={styles.triggerText} numberOfLines={1}>{getDisplayText()}</Text>
-        <Text style={styles.triggerIcon}>▼</Text>
+      <TouchableOpacity
+        style={styles.triggerButton}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.triggerText} numberOfLines={1}>
+          {getDisplayText()}
+        </Text>
+        <Text style={styles.triggerIcon}>Filtrar</Text>
       </TouchableOpacity>
 
-      {/* Modal */}
-      <Modal visible={modalVisible} transparent={true} animationType="fade">
+      <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filtros de Búsqueda</Text>
+          <AppCard style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filtros de busqueda</Text>
 
-            {/* Selector de Años */}
-            <Text style={styles.sectionLabel}>Año</Text>
-            <View style={styles.yearsContainer}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {years.map(y => (
-                  <TouchableOpacity
-                    key={y}
-                    style={[styles.yearChip, tempYear === y && styles.chipActive]}
-                    onPress={() => setTempYear(y)}
+            <Text style={styles.sectionLabel}>Ano</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.yearsRow}
+            >
+              {years.map((year) => (
+                <TouchableOpacity
+                  key={year}
+                  style={[
+                    styles.chip,
+                    tempYear === year ? styles.chipActive : null,
+                  ]}
+                  onPress={() => setTempYear(year)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      tempYear === year ? styles.chipTextActive : null,
+                    ]}
                   >
-                    <Text style={[styles.chipText, tempYear === y && styles.chipTextActive]}>{y}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                    {year}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-            {/* Selector de Meses */}
             <Text style={styles.sectionLabel}>Mes</Text>
             <View style={styles.grid}>
-              {MONTHS.map(m => (
+              {MONTHS.map((month) => (
                 <TouchableOpacity
-                  key={m.value}
-                  style={[styles.gridChip, tempMonth === m.value && styles.chipActive]}
-                  onPress={() => setTempMonth(m.value)}
+                  key={month.value}
+                  style={[
+                    styles.gridChip,
+                    tempMonth === month.value ? styles.chipActive : null,
+                  ]}
+                  onPress={() => setTempMonth(month.value)}
                 >
-                  <Text style={[styles.chipText, tempMonth === m.value && styles.chipTextActive]}>
-                    {m.label}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      tempMonth === month.value ? styles.chipTextActive : null,
+                    ]}
+                  >
+                    {month.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Selector de Estados (Condicional) */}
-            {showStatusFilter && (
+            {showStatusFilter ? (
               <>
-                <Text style={styles.sectionLabel}>Estado de Cotización</Text>
-                <View style={styles.row}>
-                  {STATUS_OPTIONS.map(s => (
+                <Text style={styles.sectionLabel}>Estado</Text>
+                <View style={styles.statusRow}>
+                  {STATUS_OPTIONS.map((status) => (
                     <TouchableOpacity
-                      key={s.value}
-                      style={[styles.chip, tempStatus === s.value && styles.chipActive]}
-                      onPress={() => setTempStatus(s.value)}
+                      key={status.value}
+                      style={[
+                        styles.statusChip,
+                        tempStatus === status.value ? styles.chipActive : null,
+                      ]}
+                      onPress={() => setTempStatus(status.value)}
                     >
-                      <Text style={[styles.chipText, tempStatus === s.value && styles.chipTextActive]}>
-                        {s.label}
+                      <Text
+                        style={[
+                          styles.chipText,
+                          tempStatus === status.value ? styles.chipTextActive : null,
+                        ]}
+                      >
+                        {status.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </>
-            )}
+            ) : null}
 
-            {/* Botones de Acción */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.clearButton} onPress={handleClear}>
-                <Text style={styles.clearButtonText}>Limpiar Filtros</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.applyButton}
-                onPress={handleApply}
-              >
-                <Text style={styles.applyButtonText}>Aplicar</Text>
-              </TouchableOpacity>
+            <View style={styles.actions}>
+              <AppButton
+                title="Limpiar"
+                variant="ghost"
+                onPress={handleClear}
+                style={styles.clearButton}
+              />
+              <AppButton title="Aplicar" onPress={handleApply} style={styles.applyButton} />
             </View>
-          </View>
+          </AppCard>
         </View>
       </Modal>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: 20, marginBottom: 15 },
-  triggerButton: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#e2e8f0", paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8 },
-  triggerText: { color: "#334155", fontWeight: "bold", fontSize: 16, flex: 1, marginRight: 10 },
-  triggerIcon: { color: "#64748b", fontSize: 12 },
-  
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: "center", padding: 20 },
-  modalContent: { backgroundColor: "#ffffff", borderRadius: 16, padding: 20, elevation: 5 },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: "#0f172a", marginBottom: 16, textAlign: "center" },
-  sectionLabel: { fontSize: 14, fontWeight: "bold", color: "#64748b", marginTop: 10, marginBottom: 8 },
-  
-  yearsContainer: { marginBottom: 10, height: 45 },
-  yearChip: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#f1f5f9", borderRadius: 8, marginRight: 8, alignItems: "center", justifyContent: "center" },
-  
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  gridChip: { width: "23%", paddingVertical: 10, backgroundColor: "#f1f5f9", borderRadius: 8, marginBottom: 8, alignItems: "center" },
-  
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  chip: { flex: 1, paddingVertical: 10, backgroundColor: "#f1f5f9", borderRadius: 8, marginHorizontal: 4, alignItems: "center" },
-  
-  chipActive: { backgroundColor: "#2563eb" },
-  chipText: { color: "#475569", fontWeight: "600", fontSize: 13 },
-  chipTextActive: { color: "#ffffff" },
-  
-  actionButtons: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
-  clearButton: { flex: 1, padding: 14, alignItems: "center", marginRight: 8 },
-  clearButtonText: { color: "#ef4444", fontWeight: "bold" },
-  applyButton: { flex: 2, padding: 14, backgroundColor: "#2563eb", borderRadius: 8, alignItems: "center" },
-  applyButtonText: { color: "#ffffff", fontWeight: "bold" },
+  container: {
+    marginBottom: spacing.md,
+  },
+  triggerButton: {
+    minHeight: 48,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
+  },
+  triggerText: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  triggerIcon: {
+    ...typography.caption,
+    color: colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: "center",
+    padding: spacing.screen,
+  },
+  modalContent: {
+    gap: spacing.md,
+  },
+  modalTitle: {
+    ...typography.sectionTitle,
+    color: colors.text,
+    textAlign: "center",
+  },
+  sectionLabel: {
+    ...typography.bodyStrong,
+    color: colors.textMuted,
+  },
+  yearsRow: {
+    gap: spacing.sm,
+  },
+  chip: formStyles.chip,
+  chipActive: formStyles.chipActive,
+  chipText: formStyles.chipText,
+  chipTextActive: formStyles.chipTextActive,
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  gridChip: {
+    ...formStyles.chip,
+    width: "23%",
+    alignItems: "center",
+  },
+  statusRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  statusChip: {
+    ...formStyles.chip,
+    flex: 1,
+    alignItems: "center",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  clearButton: {
+    flex: 1,
+  },
+  applyButton: {
+    flex: 2,
+  },
 });

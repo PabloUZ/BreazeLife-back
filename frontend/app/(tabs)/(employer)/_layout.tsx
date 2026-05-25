@@ -1,14 +1,16 @@
-import { router, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
+import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 export default function EmployerTabsLayout() {
+  const sharedTabScreenOptions = useSharedTabScreenOptions();
+
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
+    <Tabs screenOptions={{ ...sharedTabScreenOptions, headerShown: false }}>
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: "Inicio",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -26,36 +28,9 @@ export default function EmployerTabsLayout() {
       <Tabs.Screen
         name="payroll"
         options={{
-          title: "Nómina",
+          title: "Nomina",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cash-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="funds"
-        options={{
-          title: "Fondos",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reportes",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alertas",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
           ),
         }}
       />
@@ -69,90 +44,22 @@ export default function EmployerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="register-employee"
-        options={{
-          href: null,
-          headerShown: true,
-          title: "Nuevo empleado",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employees")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="index"
         options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="employee-detail"
-        options={{
-          href: null,
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employees")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
+          title: "Mas",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="edit-employee"
-        options={{
-          href: null,
-          headerShown: true,
-          title: "Editar empleado",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="change-salary-position"
-        options={{
-          href: null,
-          headerShown: true,
-          title: "Cambiar cargo y salario",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/edit-employee")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="salary-history"
-        options={{
-          href: null,
-          headerShown: true,
-          title: "Historial salarial",
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="arrow-back" size={24} color="#000" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
+      <Tabs.Screen name="funds" options={{ href: null }} />
+      <Tabs.Screen name="reports" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="register-employee" options={{ href: null }} />
+      <Tabs.Screen name="employee-detail" options={{ href: null }} />
+      <Tabs.Screen name="edit-employee" options={{ href: null }} />
+      <Tabs.Screen name="change-salary-position" options={{ href: null }} />
+      <Tabs.Screen name="salary-history" options={{ href: null }} />
     </Tabs>
   );
 }

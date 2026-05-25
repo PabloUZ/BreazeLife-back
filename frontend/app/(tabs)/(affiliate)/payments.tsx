@@ -1,18 +1,24 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   ActivityIndicator,
   FlatList,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
-import { Stack, useRouter, useFocusEffect } from "expo-router";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import DateRangeFilter from "@/src/components/fund/DateRangeFilter";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { PaymentCard } from "@/src/components/affiliate/PaymentCard";
-import { getAffiliatePayments } from "@/src/services/api/affiliateService";
+import AppCard from "@/src/components/common/AppCard";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
+import DateRangeFilter from "@/src/components/fund/DateRangeFilter";
 import type { AffiliatePaymentItemDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import { getAffiliatePayments } from "@/src/services/api/affiliateService";
+import { colors, spacing, typography } from "@/src/theme";
 
 const STATUS_CHIPS = [
   { label: "Todos", value: "" },
@@ -23,23 +29,18 @@ const STATUS_CHIPS = [
 export default function AffiliatePaymentsScreen() {
   const router = useRouter();
 
-  // Estados de datos
   const [payments, setPayments] = useState<AffiliatePaymentItemDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Estados de filtros
   const [fromDate, setFromDate] = useState<string | undefined>(undefined);
   const [toDate, setToDate] = useState<string | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-
-  // Paginación (1-indexed en el backend)
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalItems, setTotalItems] = useState(0);
 
-  const fetchPayments = async (pageNumber: number, shouldReset: boolean = false) => {
+  const fetchPayments = async (pageNumber: number, shouldReset = false) => {
     try {
       if (shouldReset) {
         setLoading(true);
@@ -69,21 +70,18 @@ export default function AffiliatePaymentsScreen() {
       setPage(pageNumber);
       setTotalItems(historyData.pagination.total_items);
       setHasMore(pageNumber < totalPages);
-    } catch (err) {
+    } catch {
       setError("No se pudo cargar el historial de pagos. Intenta de nuevo.");
-      console.error("Error fetching affiliate payments:", err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
   };
 
-  // Recargar datos cuando cambien los filtros
   useEffect(() => {
     fetchPayments(1, true);
   }, [fromDate, toDate, selectedStatus]);
 
-  // Recargar al entrar en foco (por si hubo ejecuciones de nómina nuevas)
   useFocusEffect(
     useCallback(() => {
       fetchPayments(1, true);
@@ -101,209 +99,136 @@ export default function AffiliatePaymentsScreen() {
     }
   };
 
-  const handleRetry = () => {
-    fetchPayments(1, true);
-  };
-
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: "Mis Pagos",
-          headerShown: true,
-        }}
-      />
-      <ScreenContainer>
-        <FlatList
-          data={payments}
-          keyExtractor={(item) => item.payment_id}
-          renderItem={({ item }) => (
-            <PaymentCard
-              payment={item}
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/(affiliate)/payment-detail",
-                  params: { paymentId: item.payment_id },
-                } as any)
-              }
-            />
-          )}
-          ListHeaderComponent={
-            <View style={styles.headerContainer}>
-              <Text style={styles.sectionTitle}>Historial de Pagos Recibidos</Text>
-              
-              {/* Filtro de Rango de Fechas */}
-              <DateRangeFilter onApply={handleDateRangeApply} />
-
-              {/* Filtro por Estado */}
-              <Text style={styles.filterLabel}>Filtrar por estado</Text>
-              <View style={styles.statusRow}>
-                {STATUS_CHIPS.map((chip) => (
-                  <TouchableOpacity
-                    key={chip.value}
-                    style={[
-                      styles.statusChip,
-                      selectedStatus === chip.value && styles.statusChipActive,
-                    ]}
-                    onPress={() => setSelectedStatus(chip.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.statusChipText,
-                        selectedStatus === chip.value && styles.statusChipTextActive,
-                      ]}
-                    >
-                      {chip.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.resultsCount}>
-                {totalItems} {totalItems === 1 ? "pago encontrado" : "pagos encontrados"}
-              </Text>
-            </View>
-          }
-          contentContainerStyle={styles.listContent}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator size="small" color="#369BC9" style={styles.footerLoader} />
-            ) : (
-              <View style={styles.bottomSpacing} />
-            )
-          }
-          ListEmptyComponent={
-            loading ? (
-              <View style={styles.centeredState}>
-                <ActivityIndicator size="large" color="#369BC9" />
-                <Text style={styles.stateText}>Buscando tus pagos recibidos...</Text>
-              </View>
-            ) : error ? (
-              <View style={styles.centeredState}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-                  <Text style={styles.retryBtnText}>Reintentar</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>
-                  No tienes pagos registrados en este período o estado.
-                </Text>
-              </View>
-            )
-          }
+      <Stack.Screen options={{ headerShown: false }} />
+      <AffiliateScreenContainer>
+        <AppHeader
+          title="Pagos recibidos"
+          subtitle="Consulta tu historial de pagos y revisa el desglose de cada periodo."
         />
-      </ScreenContainer>
+
+        <DateRangeFilter onApply={handleDateRangeApply} />
+
+        <AppCard compact>
+          <Text style={styles.filterLabel}>Filtrar por estado</Text>
+          <View style={styles.statusRow}>
+            {STATUS_CHIPS.map((chip) => (
+              <TouchableOpacity
+                key={chip.value}
+                style={[
+                  styles.statusChip,
+                  selectedStatus === chip.value && styles.statusChipActive,
+                ]}
+                onPress={() => setSelectedStatus(chip.value)}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.statusChipText,
+                    selectedStatus === chip.value && styles.statusChipTextActive,
+                  ]}
+                >
+                  {chip.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.resultsCount}>
+            {totalItems} {totalItems === 1 ? "pago encontrado" : "pagos encontrados"}
+          </Text>
+        </AppCard>
+
+        {loading ? (
+          <AppLoadingState message="Buscando tus pagos recibidos..." />
+        ) : error ? (
+          <AppErrorState message={error} onRetry={() => fetchPayments(1, true)} />
+        ) : (
+          <FlatList
+            data={payments}
+            keyExtractor={(item) => item.payment_id}
+            renderItem={({ item }) => (
+              <PaymentCard
+                payment={item}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/(affiliate)/payment-detail",
+                    params: { paymentId: item.payment_id },
+                  } as any)
+                }
+              />
+            )}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                  style={styles.footerLoader}
+                />
+              ) : (
+                <View style={styles.bottomSpacing} />
+              )
+            }
+            ListEmptyComponent={
+              <AppEmptyState
+                title="Sin pagos"
+                description="No tienes pagos registrados para este periodo o estado."
+              />
+            }
+          />
+        )}
+      </AffiliateScreenContainer>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
-  },
-  headerContainer: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 16,
-  },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-    marginTop: 4,
+    ...typography.caption,
+    color: colors.textSubtle,
+    marginBottom: spacing.sm,
   },
   statusRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 16,
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   statusChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#F3F4F6",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.border,
   },
   statusChipActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#369BC9",
+    backgroundColor: colors.surfaceTint,
+    borderColor: colors.primary,
   },
   statusChipText: {
-    fontSize: 13,
-    color: "#4B5563",
-    fontWeight: "500",
+    ...typography.caption,
+    color: colors.neutralText,
   },
   statusChipTextActive: {
-    color: "#369BC9",
-    fontWeight: "600",
+    color: colors.primary,
   },
   resultsCount: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
-    marginTop: 4,
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  listContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.section,
   },
   footerLoader: {
-    paddingVertical: 16,
+    paddingVertical: spacing.lg,
   },
   bottomSpacing: {
-    height: 40,
-  },
-  centeredState: {
-    paddingVertical: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  stateText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    textAlign: "center",
-    paddingHorizontal: 24,
-    marginBottom: 12,
-  },
-  retryBtn: {
-    backgroundColor: "#369BC9",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryBtnText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  emptyState: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#D1D5DB",
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 20,
+    height: spacing.xxl,
   },
 });

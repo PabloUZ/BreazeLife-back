@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import ProfitabilityHistoryCard from "@/src/components/admin/profitability/ProfitabilityHistoryCard";
 import ApplyProfitabilityModal from "@/src/components/admin/profitability/ApplyProfitabilityModal";
 import { useProfitability } from "@/src/hooks/useProfitability";
@@ -35,32 +35,32 @@ export default function AdminProfitabilityScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <AdminScreenContainer>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#369BC9" />
           <Text style={styles.loadingText}>
             Cargando historial de rentabilidades...
           </Text>
         </View>
-      </ScreenContainer>
+      </AdminScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
+      <AdminScreenContainer>
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
-      </ScreenContainer>
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <AdminScreenContainer>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -162,7 +162,7 @@ export default function AdminProfitabilityScreen() {
         onConfirm={handleConfirm}
         onCancel={() => setShowModal(false)}
       />
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 

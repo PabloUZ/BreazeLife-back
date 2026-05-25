@@ -1,15 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import AdminAccountCard from "@/src/components/admin/accounts/AdminAccountCard";
 import type { AdminAccountListItemDto } from "@/src/dtos/admin/admin.dtos";
 import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
@@ -115,37 +116,26 @@ export default function AdminAffiliatesScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#369BC9" />
-          <Text style={styles.loadingText}>Cargando cuentas...</Text>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppLoadingState message="Cargando cuentas..." />
+      </AdminScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppErrorState message={error} onRetry={handleRetry} />
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.title}>Gestion de cuentas</Text>
-        <Text style={styles.subtitle}>
-          Administra {total} cuenta{total !== 1 ? "s" : ""} de afiliados y
-          empleadores desde una sola vista.
-        </Text>
-      </View>
+    <AdminScreenContainer>
+      <AppHeader
+        title="Gestion de cuentas"
+        subtitle={`Administra ${total} cuenta${total !== 1 ? "s" : ""} de afiliados y empleadores desde una sola vista.`}
+      />
 
       <FlatList
         data={accounts}
@@ -170,93 +160,25 @@ export default function AdminAffiliatesScreen() {
         onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.centered}>
-            <Text style={styles.emptyIcon}>[]</Text>
-            <Text style={styles.emptyTitle}>No se encontraron cuentas</Text>
-            <Text style={styles.emptySubtitle}>
-              No hay cuentas administrables disponibles en este momento.
-            </Text>
-          </View>
+          <AppEmptyState
+            title="No se encontraron cuentas"
+            description="No hay cuentas administrables disponibles en este momento."
+          />
         }
-        ListFooterComponent={
-          loadingMore ? (
-            <ActivityIndicator
-              size="small"
-              color="#369BC9"
-              style={styles.footerLoader}
-            />
-          ) : null
-        }
+        ListFooterComponent={loadingMore ? <View style={styles.footerLoader} /> : null}
       />
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    textAlign: "center",
-    paddingHorizontal: 24,
-  },
-  retryButton: {
-    backgroundColor: "#369BC9",
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  header: {
-    marginBottom: 16,
-    gap: 6,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20,
-  },
   listContent: {
     paddingBottom: 24,
   },
   emptyContainer: {
     flexGrow: 1,
   },
-  emptyIcon: {
-    fontSize: 32,
-    color: "#9CA3AF",
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    textAlign: "center",
-    lineHeight: 20,
-    paddingHorizontal: 16,
-  },
   footerLoader: {
-    paddingVertical: 16,
+    height: 16,
   },
 });

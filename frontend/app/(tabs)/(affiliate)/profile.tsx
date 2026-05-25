@@ -1,24 +1,26 @@
 import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ScrollView,
+  Alert,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  Alert,
+  View,
 } from "react-native";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
 import ProfileCard from "@/src/components/profile/ProfileCard";
-import {
-  getAffiliateProfile,
-  updateAffiliateProfile,
-} from "@/src/services/api/affiliateService";
 import type {
   AffiliateProfileDto,
   UpdateAffiliateProfileDto,
 } from "@/src/dtos/affiliate/affiliate.dtos";
+import {
+  getAffiliateProfile,
+  updateAffiliateProfile,
+} from "@/src/services/api/affiliateService";
+import { spacing } from "@/src/theme";
 import { formatCurrency } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -91,21 +93,26 @@ export default function AffiliateProfileScreen() {
   });
 
   async function load(isRefresh = false) {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     setError(null);
+
     try {
       const data = await getAffiliateProfile();
       setProfile(data);
       setForm({
         email: data.email,
         phone: data.phone,
-        account_type: data.account?.account_type ?? "MODERATE",
+        account_type: data.account?.accountType ?? "MODERATE",
         current_password: "",
         new_password: "",
       });
     } catch {
-      setError("No se pudo cargar el perfil. Verifica tu conexión.");
+      setError("No se pudo cargar el perfil. Verifica tu conexion.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,11 +124,14 @@ export default function AffiliateProfileScreen() {
   }, []);
 
   function handleCancel() {
-    if (!profile) return;
+    if (!profile) {
+      return;
+    }
+
     setForm({
       email: profile.email,
       phone: profile.phone,
-      account_type: profile.account?.account_type ?? "MODERATE",
+      account_type: profile.account?.accountType ?? "MODERATE",
       current_password: "",
       new_password: "",
     });
@@ -129,18 +139,30 @@ export default function AffiliateProfileScreen() {
   }
 
   async function handleSave() {
-    if (!profile) return;
+    if (!profile) {
+      return;
+    }
 
     const body: UpdateAffiliateProfileDto = {};
-    if (form.email !== profile.email) body.email = form.email;
-    if (form.phone !== profile.phone) body.phone = form.phone;
-    if (form.account_type !== profile.account?.account_type)
+
+    if (form.email !== profile.email) {
+      body.email = form.email;
+    }
+
+    if (form.phone !== profile.phone) {
+      body.phone = form.phone;
+    }
+
+    if (form.account_type !== profile.account?.accountType) {
       body.account_type = form.account_type;
+    }
+
     if (form.new_password) {
       if (!form.current_password) {
-        Alert.alert("Error", "Ingresa tu contraseña actual para poder cambiarla.");
+        Alert.alert("Error", "Ingresa tu contrasena actual para poder cambiarla.");
         return;
       }
+
       body.current_password = form.current_password;
       body.new_password = form.new_password;
     }
@@ -151,9 +173,10 @@ export default function AffiliateProfileScreen() {
     }
 
     setSaving(true);
+
     try {
       await updateAffiliateProfile(body);
-      Alert.alert("Éxito", "Perfil actualizado correctamente.");
+      Alert.alert("Exito", "Perfil actualizado correctamente.");
       setEditing(false);
       await load();
     } catch {
@@ -164,92 +187,61 @@ export default function AffiliateProfileScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        !editing ? (
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => load(true)}
-            tintColor="#369BC9"
-          />
-        ) : undefined
-      }
-    >
-      {/* Tarjeta básica del usuario */}
-      <ProfileCard />
+    <AffiliateScreenContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          !editing ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor="#369BC9"
+            />
+          ) : undefined
+        }
+      >
+        <ProfileCard />
 
-      {loading && !profile ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="small" color="#369BC9" />
-        </View>
-      ) : error ? (
-        <View style={styles.card}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : profile ? (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Datos de afiliación</Text>
-            <InfoRow label="Documento" value={profile.document} />
-            <Divider />
-            <InfoRow
-              label="Estado"
-              value={STATUS_LABELS[profile.status] ?? profile.status}
-            />
-            <Divider />
-            <InfoRow
-              label="Fecha de nacimiento"
-              value={formatLocalDate(profile.birthDate)}
-            />
-            <Divider />
-            <InfoRow
-              label="Fecha de afiliación"
-              value={formatLocalDate(profile.affiliationDate)}
-            />
-            <Divider />
-            <InfoRow label="Teléfono" value={profile.phone} />
+        {loading && !profile ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#369BC9" />
           </View>
-
-          {profile.account && (
+        ) : error ? (
+          <View style={styles.card}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : profile ? (
+          <>
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Cuenta pensional</Text>
-              <InfoRow label="ID de cuenta" value={profile.account.accountId} />
+              <Text style={styles.sectionTitle}>Datos de afiliacion</Text>
+              <InfoRow label="Documento" value={profile.document} />
               <Divider />
-              <InfoRow
-                label="Tipo de fondo"
-                value={
-                  ACCOUNT_TYPE_LABELS[profile.account.accountType] ??
-                  profile.account.accountType
-                }
-              />
+              <InfoRow label="Estado" value={STATUS_LABELS[profile.status] ?? profile.status} />
               <Divider />
               <InfoRow
                 label="Fecha de nacimiento"
-                value={formatLocalDate(profile.birth_date)}
+                value={formatLocalDate(profile.birthDate)}
               />
               <Divider />
               <InfoRow
-                label="Fecha de afiliación"
-                value={formatLocalDate(profile.affiliation_date)}
-                label="Días cotizados"
-                value={`${profile.account.quotedDays} días`}
+                label="Fecha de afiliacion"
+                value={formatLocalDate(profile.affiliationDate)}
               />
               <Divider />
-              <InfoRow label="Teléfono" value={profile.phone} />
+              <InfoRow label="Telefono" value={profile.phone} />
             </View>
 
-            {profile.account && (
+            {profile.account ? (
               <View style={styles.card}>
                 <Text style={styles.sectionTitle}>Cuenta pensional</Text>
-                <InfoRow label="ID de cuenta" value={profile.account.account_id} />
+                <InfoRow label="ID de cuenta" value={profile.account.accountId} />
                 <Divider />
                 <InfoRow
                   label="Tipo de fondo"
                   value={
-                    ACCOUNT_TYPE_LABELS[profile.account.account_type] ??
-                    profile.account.account_type
+                    ACCOUNT_TYPE_LABELS[profile.account.accountType] ??
+                    profile.account.accountType
                   }
                 />
                 <Divider />
@@ -259,146 +251,154 @@ export default function AffiliateProfileScreen() {
                 />
                 <Divider />
                 <InfoRow
-                  label="Días cotizados"
-                  value={`${profile.account.quoted_days} días`}
+                  label="Dias cotizados"
+                  value={`${profile.account.quotedDays} dias`}
                 />
               </View>
-            )}
+            ) : null}
 
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => setEditing(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.editButtonText}>Editar perfil</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            {/* Formulario de edición */}
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Datos editables</Text>
+            {!editing ? (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setEditing(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.editButtonText}>Editar perfil</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Datos editables</Text>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Correo electrónico</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.email}
-                  onChangeText={(v) => setForm((f) => ({ ...f, email: v }))}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholder="correo@ejemplo.com"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Teléfono</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.phone}
-                  onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))}
-                  keyboardType="phone-pad"
-                  placeholder="3001234567"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Tipo de fondo pensional</Text>
-                <View style={styles.chipRow}>
-                  {ACCOUNT_TYPES.map((type) => (
-                    <TouchableOpacity
-                      key={type.value}
-                      style={[
-                        styles.chip,
-                        form.account_type === type.value && styles.chipActive,
-                      ]}
-                      onPress={() =>
-                        setForm((f) => ({ ...f, account_type: type.value }))
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Correo electronico</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.email}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, email: value }))
                       }
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          form.account_type === type.value && styles.chipTextActive,
-                        ]}
-                      >
-                        {type.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="correo@ejemplo.com"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Telefono</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.phone}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, phone: value }))
+                      }
+                      keyboardType="phone-pad"
+                      placeholder="3001234567"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Tipo de fondo pensional</Text>
+                    <View style={styles.chipRow}>
+                      {ACCOUNT_TYPES.map((type) => (
+                        <TouchableOpacity
+                          key={type.value}
+                          style={[
+                            styles.chip,
+                            form.account_type === type.value && styles.chipActive,
+                          ]}
+                          onPress={() =>
+                            setForm((current) => ({ ...current, account_type: type.value }))
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              form.account_type === type.value && styles.chipTextActive,
+                            ]}
+                          >
+                            {type.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </View>
 
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Cambiar contraseña</Text>
-              <Text style={styles.sectionHint}>
-                Deja en blanco si no deseas cambiarla.
-              </Text>
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Cambiar contrasena</Text>
+                  <Text style={styles.sectionHint}>
+                    Deja en blanco si no deseas cambiarla.
+                  </Text>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Contraseña actual</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.current_password}
-                  onChangeText={(v) =>
-                    setForm((f) => ({ ...f, current_password: v }))
-                  }
-                  secureTextEntry
-                  placeholder="••••••••"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Contrasena actual</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.current_password}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, current_password: value }))
+                      }
+                      secureTextEntry
+                      placeholder="********"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
 
-              <View style={styles.fieldGroup}>
-                <Text style={styles.fieldLabel}>Nueva contraseña</Text>
-                <TextInput
-                  style={styles.input}
-                  value={form.new_password}
-                  onChangeText={(v) =>
-                    setForm((f) => ({ ...f, new_password: v }))
-                  }
-                  secureTextEntry
-                  placeholder="Mínimo 8 caracteres"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            </View>
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Nueva contrasena</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.new_password}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, new_password: value }))
+                      }
+                      secureTextEntry
+                      placeholder="Minimo 8 caracteres"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </View>
 
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancel}
-                disabled={saving}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                onPress={handleSave}
-                disabled={saving}
-                activeOpacity={0.8}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Guardar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancel}
+                    disabled={saving}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                    onPress={handleSave}
+                    disabled={saving}
+                    activeOpacity={0.8}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
           </>
-        )
-      ) : null}
-    </ScrollView>
+        ) : null}
+      </ScrollView>
+    </AffiliateScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { paddingBottom: 40 },
+  content: {
+    flexGrow: 1,
+    paddingBottom: spacing.xxxl,
+  },
   loadingBox: { padding: 24, alignItems: "center" },
   card: {
     backgroundColor: "#FFFFFF",

@@ -12,7 +12,6 @@ import type {
     SalaryHistoryPageDto,
     DeactivateEmployeeResponseDto
 } from "@/src/dtos/employer/employee.dtos";
-import { apiClient } from "@/src/services/api/ApiClient";
 
 const BASE_PATH = "/api/v1/employers";
 

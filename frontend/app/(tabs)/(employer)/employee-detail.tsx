@@ -1,138 +1,123 @@
-import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, Alert } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import { Alert } from "react-native";
+import { useCallback, useState } from "react";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
 import EmployeeDetail from "@/src/components/employer/employeeDetail";
-import { getEmployeeDetail } from "@/src/services/api/employeeService";
-import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
-import { deactivateEmployee } from "@/src/services/api/employeeService";
+import EmployerScreenContainer from "@/src/components/layout/EmployerScreenContainer";
 import { useAuthContext } from "@/src/context/AuthContext";
+import type { EmployeeDetailDto } from "@/src/dtos/employer/employee.dtos";
+import {
+  deactivateEmployee,
+  getEmployeeDetail,
+} from "@/src/services/api/employeeService";
 
 export default function EmployeeDetailScreen() {
-    const router = useRouter();
-    const { state } = useAuthContext();
-    const employerId = state.user?.user_id ?? "";
-    const { contractId } = useLocalSearchParams<{ contractId: string }>();
-    const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [deactivating, setDeactivating] = useState(false);
+  const router = useRouter();
+  const { state } = useAuthContext();
+  const employerId = state.user?.user_id ?? "";
+  const { contractId } = useLocalSearchParams<{ contractId: string }>();
+  const [employee, setEmployee] = useState<EmployeeDetailDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!contractId) return;
-            fetchDetail();
-        }, [contractId])
-    );
+  const fetchDetail = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getEmployeeDetail(employerId, contractId);
+      setEmployee(data);
+    } catch (err: any) {
+      if (err.message === "EMPLOYEE_NOT_FOUND") {
+        setError("Empleado no encontrado.");
+      } else if (err.message === "UNAUTHORIZED") {
+        setError("No tienes permiso para ver este empleado.");
+      } else {
+        setError("No se pudo cargar el detalle. Intenta de nuevo.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [contractId, employerId]);
 
-    const fetchDetail = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await getEmployeeDetail(employerId, contractId);
-            setEmployee(data);
-        } catch (err: any) {
-            if (err.message === "EMPLOYEE_NOT_FOUND") {
-                setError("Empleado no encontrado.");
-            } else if (err.message === "UNAUTHORIZED") {
-                setError("No tienes permiso para ver este empleado.");
-            } else {
-                setError("No se pudo cargar el detalle. Intenta de nuevo.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+  useFocusEffect(
+    useCallback(() => {
+      if (!contractId) return;
+      fetchDetail();
+    }, [contractId, fetchDetail])
+  );
 
-    const handleDeactivate = () => {
-        Alert.alert(
-            "Desvincular empleado",
-            `¿Estás seguro de que deseas desvincular a ${employee?.firstName} ${employee?.lastName}? Esta acción no se puede deshacer.`,
-            [
-                { text: "Cancelar", style: "cancel" },
+  const handleDeactivate = useCallback(() => {
+    Alert.alert(
+      "Desvincular empleado",
+      `Estas seguro de que deseas desvincular a ${employee?.firstName ?? ""} ${employee?.lastName ?? ""}? Esta accion no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desvincular",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeactivating(true);
+              await deactivateEmployee(employerId, contractId);
+              Alert.alert("Exito", "Empleado desvinculado correctamente.", [
                 {
-                    text: "Desvincular",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            setDeactivating(true);
-                            await deactivateEmployee(employerId, contractId);
-                            Alert.alert("Éxito", "Empleado desvinculado correctamente.", [
-                                { text: "OK", onPress: () => router.push("/(tabs)/(employer)/employees" as any) }
-                            ]);
-                        } catch (err: any) {
-                            if (err.message === "CONFLICT") {
-                                Alert.alert("Error", "El empleado ya está inactivo.");
-                            } else {
-                                Alert.alert("Error", "No se pudo desvincular el empleado. Intenta de nuevo.");
-                            }
-                        } finally {
-                            setDeactivating(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    return (
-        <>
-            <Stack.Screen
-                options={{
-                    title: employee
-                        ? `${employee.firstName} ${employee.lastName}`
-                        : "Detalle empleado",
-                    headerShown: true,
-                }}
-            />
-            <ScreenContainer>
-                {loading && (
-                    <View style={styles.centered}>
-                        <ActivityIndicator size="large" color="#2563EB" />
-                        <Text style={styles.loadingText}>Cargando información...</Text>
-                    </View>
-                )}
-
-                {error && !loading && (
-                    <View style={styles.centered}>
-                        <Text style={styles.errorText}>{error}</Text>
-                    </View>
-                )}
-
-                {employee && !loading && !error && (
-                    <EmployeeDetail
-                        employee={employee}
-                        onEdit={() => router.push({
-                            pathname: "/(tabs)/(employer)/edit-employee" as any,
-                            params: { contractId: employee.contractId },
-                        })}
-                        onViewHistory={() => router.push({
-                            pathname: "/(tabs)/(employer)/salary-history" as any,
-                            params: { contractId: employee.contractId },
-                        })}
-                        onDeactivate={handleDeactivate}
-                    />
-                )}
-            </ScreenContainer>
-        </>
+                  text: "OK",
+                  onPress: () => router.push("/(tabs)/(employer)/employees" as any),
+                },
+              ]);
+            } catch (err: any) {
+              if (err.message === "CONFLICT") {
+                Alert.alert("Error", "El empleado ya esta inactivo.");
+              } else {
+                Alert.alert("Error", "No se pudo desvincular el empleado. Intenta de nuevo.");
+              }
+            } finally {
+              setDeactivating(false);
+            }
+          },
+        },
+      ]
     );
-}
+  }, [contractId, employee?.firstName, employee?.lastName, employerId, router]);
 
-const styles = StyleSheet.create({
-    centered: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-    },
-    loadingText: {
-        fontSize: 14,
-        color: "#6B7280",
-    },
-    errorText: {
-        fontSize: 14,
-        color: "#EF4444",
-        textAlign: "center",
-        paddingHorizontal: 24,
-    },
-});
+  if (loading) {
+    return (
+      <EmployerScreenContainer>
+        <AppLoadingState message="Cargando informacion del empleado..." />
+      </EmployerScreenContainer>
+    );
+  }
+
+  if (error || !employee) {
+    return (
+      <EmployerScreenContainer>
+        <AppErrorState message={error ?? "Empleado no encontrado."} onRetry={fetchDetail} />
+      </EmployerScreenContainer>
+    );
+  }
+
+  return (
+    <EmployerScreenContainer>
+      <EmployeeDetail
+        employee={employee}
+        onBack={() => router.back()}
+        onEdit={() =>
+          router.push({
+            pathname: "/(tabs)/(employer)/edit-employee" as any,
+            params: { contractId: employee.contractId },
+          })
+        }
+        onViewHistory={() =>
+          router.push({
+            pathname: "/(tabs)/(employer)/salary-history" as any,
+            params: { contractId: employee.contractId },
+          })
+        }
+        onDeactivate={handleDeactivate}
+        deactivating={deactivating}
+      />
+    </EmployerScreenContainer>
+  );
+}

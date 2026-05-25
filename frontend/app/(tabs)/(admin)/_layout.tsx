@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import { useAuthContext } from "@/src/context/AuthContext";
+import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 const ROLE_ROUTES = {
   affiliate: "/(tabs)/(affiliate)/dashboard",
@@ -10,6 +11,7 @@ const ROLE_ROUTES = {
 
 export default function AdminTabsLayout() {
   const { isLoading, state } = useAuthContext();
+  const sharedTabScreenOptions = useSharedTabScreenOptions();
 
   if (isLoading) {
     return null;
@@ -24,11 +26,11 @@ export default function AdminTabsLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: true, tabBarHideOnKeyboard: true }}>
+    <Tabs screenOptions={{ ...sharedTabScreenOptions, headerShown: false }}>
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: "Inicio",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -43,40 +45,12 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="employers" options={{ href: null }} />
       <Tabs.Screen
         name="quotes"
         options={{
           title: "Cotizaciones",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Graficas",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profitability"
-        options={{
-          title: "Rentabilidad",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trending-up-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alertas",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
           ),
         }}
       />
@@ -90,15 +64,20 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="index"
         options={{
-          title: "Configuración",
+          title: "Mas",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+            <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="reports" options={{ href: null }} />
+      <Tabs.Screen name="profitability" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="employers" options={{ href: null }} />
+      <Tabs.Screen name="account-detail" options={{ href: null }} />
       <Tabs.Screen name="quote-detail" options={{ href: null }} />
     </Tabs>
   );

@@ -1,16 +1,18 @@
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import DashboardMetricCard from "@/src/components/admin/DashboardMetricCard";
 import { useAdminModule } from "@/src/hooks/useAdminModule";
+import { spacing } from "@/src/theme";
 
 function formatCurrency(amount: number): string {
   return `$${new Intl.NumberFormat("es-CO", {
@@ -51,30 +53,22 @@ export default function AdminDashboardScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#369BC9" />
-          <Text style={styles.loadingText}>Cargando resumen del dashboard...</Text>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppLoadingState message="Cargando resumen del dashboard..." />
+      </AdminScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppErrorState message={error} onRetry={refresh} />
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <AdminScreenContainer>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -82,123 +76,85 @@ export default function AdminDashboardScreen() {
           <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
         }
       >
-        <View style={styles.header}>
-          <Text style={styles.title}>Resumen general</Text>
-          <Text style={styles.subtitle}>
-            Consulta el estado actual de la plataforma desde la app movil.
-          </Text>
-        </View>
-
-        {isEmpty && (
-          <View style={styles.emptyBanner}>
-            <Text style={styles.emptyBannerText}>
-              Aun no hay movimientos para mostrar. Los indicadores apareceran en
-              cero hasta que exista informacion registrada.
-            </Text>
+        <View style={styles.contentInner}>
+          <View style={styles.headerBlock}>
+            <AppHeader
+              title="Resumen general"
+              subtitle="Consulta el estado actual de la plataforma desde la app movil."
+            />
           </View>
-        )}
 
-        <View style={styles.metricsGrid}>
-          <DashboardMetricCard
-            cardWidth={metricCardWidth}
-            label="Afiliados activos"
-            value={summary.activeAffiliates.toString()}
-            iconName="people-outline"
-          />
-          <DashboardMetricCard
-            cardWidth={metricCardWidth}
-            label="Empleadores activos"
-            value={summary.activeEmployers.toString()}
-            iconName="business-outline"
-          />
-          <DashboardMetricCard
-            cardWidth={metricCardWidth}
-            label="Aportes pendientes"
-            value={summary.pendingContributions.toString()}
-            iconName="time-outline"
-          />
-          <DashboardMetricCard
-            cardWidth={metricCardWidth}
-            label="Balance administrado"
-            value={formatCompactMetricValue(summary.managedBalance)}
-            helperText={formatCurrency(summary.managedBalance)}
-            iconName="wallet-outline"
-          />
-          <DashboardMetricCard
-            label="Aportes mensuales"
-            value={formatCompactMetricValue(summary.monthlyContributions)}
-            helperText={formatCurrency(summary.monthlyContributions)}
-            iconName="cash-outline"
-            fullWidth
-          />
+          {isEmpty ? (
+            <View style={styles.fullWidthBlock}>
+              <AppEmptyState
+                title="Sin actividad registrada"
+                description="Los indicadores apareceran en cero hasta que exista informacion en el sistema."
+              />
+            </View>
+          ) : null}
+
+          <View style={styles.metricsGrid}>
+            <DashboardMetricCard
+              cardWidth={metricCardWidth}
+              label="Afiliados activos"
+              value={summary.activeAffiliates.toString()}
+              iconName="people-outline"
+            />
+            <DashboardMetricCard
+              cardWidth={metricCardWidth}
+              label="Empleadores activos"
+              value={summary.activeEmployers.toString()}
+              iconName="business-outline"
+            />
+            <DashboardMetricCard
+              cardWidth={metricCardWidth}
+              label="Aportes pendientes"
+              value={summary.pendingContributions.toString()}
+              iconName="time-outline"
+            />
+            <DashboardMetricCard
+              cardWidth={metricCardWidth}
+              label="Balance administrado"
+              value={formatCompactMetricValue(summary.managedBalance)}
+              helperText={formatCurrency(summary.managedBalance)}
+              iconName="wallet-outline"
+            />
+            <DashboardMetricCard
+              label="Aportes mensuales"
+              value={formatCompactMetricValue(summary.monthlyContributions)}
+              helperText={formatCurrency(summary.monthlyContributions)}
+              iconName="cash-outline"
+              fullWidth
+            />
+          </View>
         </View>
       </ScrollView>
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    textAlign: "center",
-    paddingHorizontal: 24,
-  },
-  retryButton: {
-    backgroundColor: "#369BC9",
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-    fontSize: 14,
-  },
   content: {
     paddingBottom: 24,
     gap: 18,
+    alignItems: "center",
   },
-  header: {
-    gap: 6,
+  contentInner: {
+    width: "100%",
+    maxWidth: 760,
+    gap: 18,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+  headerBlock: {
+    width: "100%",
   },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    lineHeight: 20,
-  },
-  emptyBanner: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 16,
-    padding: 16,
-  },
-  emptyBannerText: {
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 20,
+  fullWidthBlock: {
+    width: "100%",
   },
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
+    gap: spacing.md,
     marginHorizontal: -4,
   },
 });

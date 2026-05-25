@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import AdminQuoteDetail from "@/src/components/admin/quotes/AdminQuoteDetail";
 import QuoteReviewActionModal from "@/src/components/admin/quotes/QuoteReviewActionModal";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import type { AdminQuoteDto } from "@/src/dtos/admin/admin.dtos";
 import type { ApiErrorResponseDto } from "@/src/dtos/auth/auth.dtos";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -164,7 +164,7 @@ export default function AdminQuoteDetailScreen() {
         }}
       />
 
-      <ScreenContainer>
+      <AdminScreenContainer>
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#369BC9" />
@@ -225,7 +225,7 @@ export default function AdminQuoteDetailScreen() {
             ) : null}
           </ScrollView>
         ) : null}
-      </ScreenContainer>
+      </AdminScreenContainer>
 
       <QuoteReviewActionModal
         visible={activeAction !== null}

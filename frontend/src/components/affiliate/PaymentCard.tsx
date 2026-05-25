@@ -1,161 +1,148 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import type { AffiliatePaymentItemDto } from "@/src/dtos/affiliate/affiliate.dtos";
-import { formatCurrency, formatPeriod, formatDate } from "@/src/utils/formatters";
+import { colors, spacing, typography } from "@/src/theme";
+import { formatCurrency, formatDate, formatPeriod } from "@/src/utils/formatters";
 
 interface PaymentCardProps {
   payment: AffiliatePaymentItemDto;
   onPress: () => void;
 }
 
-export const PaymentCard = ({ payment, onPress }: PaymentCardProps) => {
-  const getStatusDetails = (status: string) => {
-    switch (status.toUpperCase()) {
-      case "PROCESSED":
-        return { bg: "#D1FAE5", text: "#065F46", label: "Procesado" };
-      case "PENDING":
-        return { bg: "#FEF3C7", text: "#92400E", label: "Pendiente" };
-      default:
-        return { bg: "#F3F4F6", text: "#374151", label: status };
-    }
-  };
+function getStatusTone(status: string) {
+  switch (status.toUpperCase()) {
+    case "PROCESSED":
+      return { label: "Procesado", tone: "success" as const };
+    case "PENDING":
+      return { label: "Pendiente", tone: "warning" as const };
+    default:
+      return { label: status, tone: "neutral" as const };
+  }
+}
 
-  const statusDetails = getStatusDetails(payment.status);
+export function PaymentCard({ payment, onPress }: PaymentCardProps) {
+  const status = getStatusTone(payment.status);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.periodText}>{formatPeriod(payment.period)}</Text>
-          <Text style={styles.companyName}>{payment.company_name}</Text>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.82}>
+      <AppCard style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.periodText}>{formatPeriod(payment.period)}</Text>
+            <Text style={styles.companyName} numberOfLines={2} ellipsizeMode="tail">
+              {payment.company_name}
+            </Text>
+          </View>
+          <AppStatusBadge label={status.label} tone={status.tone} />
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusDetails.bg }]}>
-          <Text style={[styles.statusText, { color: statusDetails.text }]}>
-            {statusDetails.label}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      <View style={styles.body}>
         <View style={styles.infoRow}>
           <View style={styles.infoCol}>
             <Text style={styles.label}>Cargo</Text>
-            <Text style={styles.valueText} numberOfLines={1}>{payment.position}</Text>
+            <Text style={styles.valueText} numberOfLines={2} ellipsizeMode="tail">
+              {payment.position}
+            </Text>
           </View>
           <View style={styles.infoCol}>
-            <Text style={styles.label}>Salario Base</Text>
+            <Text style={styles.label}>Salario base</Text>
             <Text style={styles.valueText}>{formatCurrency(payment.base_salary)}</Text>
           </View>
         </View>
 
         <View style={styles.infoRow}>
           <View style={styles.infoCol}>
-            <Text style={styles.label}>Fecha Pago</Text>
+            <Text style={styles.label}>Fecha de pago</Text>
             <Text style={styles.valueText}>
               {payment.paid_at ? formatDate(payment.paid_at).split(",")[0] : ""}
             </Text>
           </View>
           <View style={styles.infoCol}>
-            <Text style={styles.label}>Neto Recibido</Text>
+            <Text style={styles.label}>Neto recibido</Text>
             <Text style={styles.netValue}>{formatCurrency(payment.net_salary)}</Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.cardFooter}>
-        <Text style={styles.footerActionText}>Ver desglose detallado</Text>
-        <Ionicons name="chevron-forward" size={16} color="#369BC9" />
-      </View>
+        <View style={styles.cardFooter}>
+          <Text style={styles.footerActionText}>Ver desglose detallado</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+        </View>
+      </AppCard>
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: spacing.md,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 2,
   },
   periodText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 2,
+    ...typography.cardTitle,
+    color: colors.text,
     textTransform: "capitalize",
   },
   companyName: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: "600",
+    ...typography.caption,
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 12,
-  },
-  body: {
-    gap: 12,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
   },
   infoRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   infoCol: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: "47%",
+    minWidth: 128,
+    gap: 2,
   },
   label: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginBottom: 2,
+    ...typography.caption,
+    color: colors.textSubtle,
   },
   valueText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flexShrink: 1,
   },
   netValue: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#16A34A",
+    ...typography.cardTitle,
+    color: colors.success,
+    flexShrink: 1,
   },
   cardFooter: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: colors.border,
     gap: 4,
   },
   footerActionText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#369BC9",
+    ...typography.caption,
+    color: colors.primary,
   },
 });

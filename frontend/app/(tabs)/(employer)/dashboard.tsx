@@ -1,14 +1,15 @@
 import { Text } from "react-native";
-
 import PlaceholderScreen from "@/src/components/placeholders/PlaceholderScreen";
+import { spacing } from "@/src/theme";
 
 export default function EmployerDashboardScreen() {
   return (
     <PlaceholderScreen
-      title="Employer Dashboard"
-      subtitle="Employer dashboard module placeholder."
+      title="Dashboard empresarial"
+      subtitle="El resumen empresarial aun esta pendiente de integracion y se mostrara aqui."
+      contentStyle={{ paddingTop: spacing.xxxl + spacing.md }}
     >
-      <Text>TODO: Implement API integration and dashboard summaries.</Text>
+      <Text>Los indicadores y tarjetas del dashboard apareceran cuando el modulo este conectado.</Text>
     </PlaceholderScreen>
   );
 }
