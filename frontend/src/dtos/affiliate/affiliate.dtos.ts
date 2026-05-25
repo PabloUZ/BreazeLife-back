@@ -63,3 +63,10 @@ export interface QuoteResponseDto {
     date: string;
   };
 }
+
+export interface ProfitabilityResponseDto {
+  id: string;
+  profit: number;
+  date: string;
+  accountType: string;
+}
