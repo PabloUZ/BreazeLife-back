@@ -4,6 +4,7 @@ import { useAuthContext } from "@/src/context/AuthContext";
 import LoginForm from "@/src/components/auth/LoginForm";
 import { getMe } from "@/src/services/api/authService";
 import type { LoginResponseDto } from "@/src/dtos/auth/auth.dtos";
+import { colors, spacing, typography } from "@/src/theme";
 
 type LoginData = LoginResponseDto["data"];
 
@@ -51,27 +52,27 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 24,
-    paddingTop: 40,
-    gap: 8,
+    flexGrow: 1,
+    padding: spacing.screen,
+    justifyContent: "center",
+    gap: spacing.sm,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   footerText: {
-    fontSize: 14,
-    color: "#6B7280",
+    ...typography.body,
+    color: colors.textMuted,
   },
   footerLink: {
-    fontSize: 14,
-    color: "#369BC9",
-    fontWeight: "600",
+    ...typography.bodyStrong,
+    color: colors.primary,
   },
 });

@@ -12,7 +12,7 @@ import FundDistributionChart from "@/src/components/admin/charts/FundDistributio
 import MonthlyContributionsChart from "@/src/components/admin/charts/MonthlyContributionsChart";
 import QuotesByStatusChart from "@/src/components/admin/charts/QuotesByStatusChart";
 import ReportCard from "@/src/components/admin/reports/ReportCard";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import { useAdminDashboardGraphs } from "@/src/hooks/useAdminDashboardGraphs";
 import { useAdminReports } from "@/src/hooks/useAdminReports";
 
@@ -24,30 +24,30 @@ export default function AdminReportsScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
+      <AdminScreenContainer>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#369BC9" />
           <Text style={styles.loadingText}>Cargando graficas del dashboard...</Text>
         </View>
-      </ScreenContainer>
+      </AdminScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
+      <AdminScreenContainer>
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
-      </ScreenContainer>
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <AdminScreenContainer>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -114,7 +114,7 @@ export default function AdminReportsScreen() {
           <FundDistributionChart data={graphs.fundDistribution} />
         </View>
       </ScrollView>
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 

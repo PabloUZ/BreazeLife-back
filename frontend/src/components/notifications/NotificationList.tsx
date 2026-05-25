@@ -1,21 +1,26 @@
 import { useRef } from "react";
 import {
-  ActivityIndicator,
   Animated,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import { useNotifications } from "@/src/hooks/useNotifications";
-// import { fireTestNotification } from "@/src/services/api/notificationService";
+import AppCard from "@/src/components/common/AppCard";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
+import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import type { NotificationDto } from "@/src/dtos/notification/notification.dtos";
-
-// ─── SwipeableCard ────────────────────────────────────────────────────────────
+import { useNotifications } from "@/src/hooks/useNotifications";
+import { colors, radius, shadows, spacing, typography } from "@/src/theme";
 
 type SwipeableCardProps = {
   item: NotificationDto;
@@ -49,7 +54,7 @@ function SwipeableCard({ item, onMarkRead, onDelete }: SwipeableCardProps) {
         activeOpacity={0.8}
       >
         <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="trash-outline" size={22} color={colors.primaryText} />
         </Animated.View>
       </TouchableOpacity>
     );
@@ -66,10 +71,12 @@ function SwipeableCard({ item, onMarkRead, onDelete }: SwipeableCardProps) {
         style={[styles.card, !item.read && styles.cardUnread]}
         activeOpacity={0.7}
         onPress={() => {
-          if (!item.read) onMarkRead(item.notification_id);
+          if (!item.read) {
+            onMarkRead(item.notification_id);
+          }
         }}
       >
-        {!item.read && <View style={styles.unreadDot} />}
+        {!item.read ? <View style={styles.unreadDot} /> : null}
 
         <View style={styles.cardContent}>
           <Text
@@ -80,17 +87,23 @@ function SwipeableCard({ item, onMarkRead, onDelete }: SwipeableCardProps) {
           <Text style={styles.cardId}>{item.notification_id}</Text>
         </View>
 
-        {!item.read && (
-          <Text style={styles.tapHint}>Toca para marcar como leída</Text>
-        )}
+        {!item.read ? (
+          <Text style={styles.tapHint}>Toca para marcar como leida</Text>
+        ) : null}
       </TouchableOpacity>
     </Swipeable>
   );
 }
 
-// ─── NotificationList ─────────────────────────────────────────────────────────
+type NotificationListProps = {
+  contentStyle?: StyleProp<ViewStyle>;
+};
 
-export default function NotificationList() {
+export default function NotificationList({ contentStyle }: NotificationListProps = {}) {
+  return <NotificationListContent contentStyle={contentStyle} />;
+}
+
+export function NotificationListContent({ contentStyle }: NotificationListProps = {}) {
   const {
     notifications,
     unreadCount,
@@ -101,31 +114,23 @@ export default function NotificationList() {
     refresh,
   } = useNotifications();
 
-  // ─── Estado de carga ───────────────────────────────────────────────────────
-
   if (isLoading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#369BC9" />
-        <Text style={styles.loadingText}>Cargando notificaciones…</Text>
-      </View>
-    );
+    return <AppLoadingState message="Cargando notificaciones..." />;
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Notificaciones</Text>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
-          )}
-        </View>
+    <ScreenContainer contentStyle={contentStyle}>
+      <AppHeader
+        title="Notificaciones"
+        subtitle="Consulta avisos recientes y mantente al dia con la actividad de tu cuenta."
+        rightSlot={
+          unreadCount > 0 ? (
+            <AppStatusBadge label={String(unreadCount)} tone="danger" />
+          ) : undefined
+        }
+      />
 
-        {/* Indicador de conexión */}
+      <AppCard compact style={styles.connectionCard}>
         <View style={styles.connectionRow}>
           <View
             style={[
@@ -134,12 +139,11 @@ export default function NotificationList() {
             ]}
           />
           <Text style={styles.connectionText}>
-            {isConnected ? "En vivo" : "Sin conexión"}
+            {isConnected ? "Conexion en vivo" : "Sin conexion en tiempo real"}
           </Text>
         </View>
-      </View>
+      </AppCard>
 
-      {/* Lista */}
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.notification_id}
@@ -149,13 +153,10 @@ export default function NotificationList() {
         onRefresh={refresh}
         refreshing={isLoading}
         ListEmptyComponent={
-          <View style={styles.emptyWrapper}>
-            <Text style={styles.emptyIcon}>🔔</Text>
-            <Text style={styles.emptyTitle}>Sin notificaciones</Text>
-            <Text style={styles.emptySubtitle}>
-              Las notificaciones nuevas aparecerán aquí en tiempo real.
-            </Text>
-          </View>
+          <AppEmptyState
+            title="Sin notificaciones"
+            description="Las notificaciones nuevas apareceran aqui en tiempo real."
+          />
         }
         renderItem={({ item }) => (
           <SwipeableCard
@@ -165,82 +166,18 @@ export default function NotificationList() {
           />
         )}
       />
-
-      {/* Botón de prueba flotante — comentado hasta que se necesite en desarrollo */}
-      {/* <TouchableOpacity
-        style={[styles.fabTest, firing && styles.fabTestDisabled]}
-        onPress={handleFireTest}
-        disabled={firing}
-        activeOpacity={0.8}
-      >
-        {firing ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <Text style={styles.fabTestText}>🧪 Disparar notif</Text>
-        )}
-      </TouchableOpacity> */}
-    </View>
+    </ScreenContainer>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-
-  // Header
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  badge: {
-    backgroundColor: "#EF4444",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 5,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#FFFFFF",
+  connectionCard: {
+    ...shadows.soft,
   },
   connectionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: spacing.sm,
   },
   dot: {
     width: 8,
@@ -248,130 +185,75 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   dotConnected: {
-    backgroundColor: "#16A34A",
+    backgroundColor: colors.success,
   },
   dotDisconnected: {
-    backgroundColor: "#9CA3AF",
+    backgroundColor: colors.textSubtle,
   },
   connectionText: {
-    fontSize: 12,
-    color: "#6B7280",
+    ...typography.caption,
+    color: colors.textMuted,
   },
-
-  // Lista
   listContent: {
-    padding: 16,
-    gap: 10,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.section,
+    gap: spacing.sm,
   },
   emptyContainer: {
-    flex: 1,
-  },
-  emptyWrapper: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 80,
-    gap: 12,
+    paddingTop: spacing.section,
   },
-  emptyIcon: {
-    fontSize: 48,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#374151",
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    textAlign: "center",
-    maxWidth: 260,
-  },
-
-  // Card
   card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadows.soft,
     position: "relative",
   },
   cardUnread: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: colors.surfaceTint,
     borderLeftWidth: 3,
-    borderLeftColor: "#369BC9",
+    borderLeftColor: colors.primary,
   },
   unreadDot: {
     position: "absolute",
-    top: 16,
-    right: 16,
+    top: spacing.lg,
+    right: spacing.lg,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#369BC9",
+    backgroundColor: colors.primary,
   },
   cardContent: {
-    gap: 4,
-    paddingRight: 16,
+    gap: spacing.xs,
+    paddingRight: spacing.lg,
   },
   cardMessage: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
+    ...typography.body,
+    color: colors.neutralText,
   },
   cardMessageUnread: {
     fontWeight: "600",
-    color: "#111827",
+    color: colors.text,
   },
   cardId: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginTop: 2,
+    ...typography.caption,
+    color: colors.textSubtle,
   },
   tapHint: {
-    fontSize: 11,
-    color: "#369BC9",
-    marginTop: 8,
+    ...typography.caption,
+    color: colors.primary,
+    marginTop: spacing.sm,
   },
-
-  // Acción de eliminar (swipe)
   deleteAction: {
-    backgroundColor: "#EF4444",
+    backgroundColor: colors.danger,
     justifyContent: "center",
     alignItems: "center",
     width: 72,
-    borderRadius: 12,
-    marginLeft: 8,
-    marginVertical: 0,
-  },
-
-  // Botón flotante de prueba
-  fabTest: {
-    position: "absolute",
-    bottom: 24,
-    right: 20,
-    backgroundColor: "#6366F1",
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  fabTestDisabled: {
-    backgroundColor: "#A5B4FC",
-  },
-  fabTestText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    borderRadius: radius.lg,
+    marginLeft: spacing.sm,
   },
 });

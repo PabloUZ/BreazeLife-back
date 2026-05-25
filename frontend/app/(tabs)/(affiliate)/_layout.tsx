@@ -2,15 +2,18 @@ import { StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AffiliateContributionToastListener from "@/src/components/affiliate/AffiliateContributionToastListener";
+import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 export default function AffiliateTabsLayout() {
+  const sharedTabScreenOptions = useSharedTabScreenOptions();
+
   return (
     <View style={styles.container}>
-      <Tabs screenOptions={{ headerShown: true }}>
+      <Tabs screenOptions={{ ...sharedTabScreenOptions, headerShown: false }}>
         <Tabs.Screen
           name="dashboard"
           options={{
-            title: "Dashboard",
+            title: "Inicio",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -83,6 +86,7 @@ export default function AffiliateTabsLayout() {
           name="payment-detail"
           options={{
             href: null,
+            title: "Detalle de pago",
           }}
         />
 

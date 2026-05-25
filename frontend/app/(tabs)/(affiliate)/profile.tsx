@@ -7,9 +7,10 @@ import {
   ScrollView,
   RefreshControl,
 } from "react-native";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
 import ProfileCard from "@/src/components/profile/ProfileCard";
-import { getAffiliateProfile } from "@/src/services/api/affiliateService";
 import type { AffiliateProfileDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import { getAffiliateProfile } from "@/src/services/api/affiliateService";
 import { formatCurrency } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -66,7 +67,7 @@ export default function AffiliateProfileScreen() {
       const data = await getAffiliateProfile();
       setProfile(data);
     } catch {
-      setError("No se pudo cargar el perfil. Verifica tu conexión.");
+      setError("No se pudo cargar el perfil. Verifica tu conexion.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -78,80 +79,80 @@ export default function AffiliateProfileScreen() {
   }, []);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => load(true)}
-          tintColor="#369BC9"
-        />
-      }
-    >
-      {/* Tarjeta básica del usuario (nombre, rol, logout) */}
-      <ProfileCard />
+    <AffiliateScreenContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor="#369BC9"
+          />
+        }
+      >
+        <ProfileCard />
 
-      {/* Datos de afiliado desde el backend */}
-      {loading && !profile ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="small" color="#369BC9" />
-        </View>
-      ) : error ? (
-        <View style={styles.card}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : profile ? (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Datos de afiliación</Text>
-            <InfoRow label="Documento" value={profile.document} />
-            <Divider />
-            <InfoRow
-              label="Estado"
-              value={STATUS_LABELS[profile.status] ?? profile.status}
-            />
-            <Divider />
-            <InfoRow
-              label="Fecha de nacimiento"
-              value={formatLocalDate(profile.birth_date)}
-            />
-            <Divider />
-            <InfoRow
-              label="Fecha de afiliación"
-              value={formatLocalDate(profile.affiliation_date)}
-            />
-            <Divider />
-            <InfoRow label="Teléfono" value={profile.phone} />
+        {loading && !profile ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#369BC9" />
           </View>
-
-          {profile.account && (
+        ) : error ? (
+          <View style={styles.card}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : profile ? (
+          <>
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Cuenta pensional</Text>
-              <InfoRow label="ID de cuenta" value={profile.account.account_id} />
+              <Text style={styles.sectionTitle}>Datos de afiliacion</Text>
+              <InfoRow label="Documento" value={profile.document} />
               <Divider />
               <InfoRow
-                label="Tipo de fondo"
-                value={
-                  ACCOUNT_TYPE_LABELS[profile.account.account_type] ??
-                  profile.account.account_type
-                }
+                label="Estado"
+                value={STATUS_LABELS[profile.status] ?? profile.status}
               />
               <Divider />
               <InfoRow
-                label="Saldo acumulado"
-                value={formatCurrency(profile.account.balance)}
+                label="Fecha de nacimiento"
+                value={formatLocalDate(profile.birth_date)}
               />
               <Divider />
               <InfoRow
-                label="Días cotizados"
-                value={`${profile.account.quoted_days} días`}
+                label="Fecha de afiliacion"
+                value={formatLocalDate(profile.affiliation_date)}
               />
+              <Divider />
+              <InfoRow label="Telefono" value={profile.phone} />
             </View>
-          )}
-        </>
-      ) : null}
-    </ScrollView>
+
+            {profile.account && (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Cuenta pensional</Text>
+                <InfoRow label="ID de cuenta" value={profile.account.account_id} />
+                <Divider />
+                <InfoRow
+                  label="Tipo de fondo"
+                  value={
+                    ACCOUNT_TYPE_LABELS[profile.account.account_type] ??
+                    profile.account.account_type
+                  }
+                />
+                <Divider />
+                <InfoRow
+                  label="Saldo acumulado"
+                  value={formatCurrency(profile.account.balance)}
+                />
+                <Divider />
+                <InfoRow
+                  label="Dias cotizados"
+                  value={`${profile.account.quoted_days} dias`}
+                />
+              </View>
+            )}
+          </>
+        ) : null}
+      </ScrollView>
+    </AffiliateScreenContainer>
   );
 }
 

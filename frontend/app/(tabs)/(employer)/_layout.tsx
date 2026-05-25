@@ -1,14 +1,18 @@
 import { router, Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
+import { colors } from "@/src/theme";
+import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 export default function EmployerTabsLayout() {
+  const sharedTabScreenOptions = useSharedTabScreenOptions();
+
   return (
-    <Tabs screenOptions={{ headerShown: true }}>
+    <Tabs screenOptions={sharedTabScreenOptions}>
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: "Dashboard",
+          title: "Inicio",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size} color={color} />
           ),
@@ -79,7 +83,7 @@ export default function EmployerTabsLayout() {
               onPress={() => router.push("/(tabs)/(employer)/employees")}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
@@ -100,7 +104,7 @@ export default function EmployerTabsLayout() {
               onPress={() => router.push("/(tabs)/(employer)/employees")}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
@@ -116,7 +120,7 @@ export default function EmployerTabsLayout() {
               onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
@@ -132,7 +136,7 @@ export default function EmployerTabsLayout() {
               onPress={() => router.push("/(tabs)/(employer)/edit-employee")}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}
@@ -148,7 +152,7 @@ export default function EmployerTabsLayout() {
               onPress={() => router.push("/(tabs)/(employer)/employee-detail")}
               style={{ marginLeft: 8 }}
             >
-              <Ionicons name="arrow-back" size={24} color="#000" />
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           ),
         }}

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EmployeeDetail from "@/src/components/employer/employeeDetail";
@@ -16,14 +16,7 @@ export default function EmployeeDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useFocusEffect(
-        useCallback(() => {
-            if (!contractId) return;
-            fetchDetail();
-        }, [contractId])
-    );
-
-    const fetchDetail = async () => {
+    const fetchDetail = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -40,7 +33,14 @@ export default function EmployeeDetailScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [contractId, employerId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!contractId) return;
+            fetchDetail();
+        }, [contractId, fetchDetail])
+    );
 
     return (
         <>

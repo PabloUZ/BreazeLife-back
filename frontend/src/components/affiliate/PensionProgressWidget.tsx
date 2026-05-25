@@ -1,33 +1,33 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
 import type { ProgressResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import { colors, spacing, typography } from "@/src/theme";
 
 interface PensionProgressWidgetProps {
   data: ProgressResponseDto;
 }
 
-export default function PensionProgressWidget({ data }: PensionProgressWidgetProps) {
+export default function PensionProgressWidget({
+  data,
+}: PensionProgressWidgetProps) {
+  const progress = Math.min(Math.max(data.progressPercentage, 0), 100);
+
   return (
-    <View style={styles.cardContainer}>
-      <Text style={styles.title}>Tu Progreso Pensional</Text>
+    <AppCard style={styles.cardContainer}>
+      <Text style={styles.title}>Tu progreso pensional</Text>
       <Text style={styles.subtitle}>Meta legal: 1.300 semanas</Text>
 
-      {/* Barra de progreso */}
       <View style={styles.progressContainer}>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${data.progressPercentage}%` },
-            ]}
-          />
+        <View style={styles.progressHeader}>
+          <Text style={styles.progressLabel}>Avance acumulado</Text>
+          <Text style={styles.percentageText}>{progress}%</Text>
         </View>
-        <Text style={styles.percentageText}>
-          {data.progressPercentage}% completado
-        </Text>
+        <View style={styles.progressBarBackground}>
+          <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+        </View>
       </View>
 
-      {/* Tarjetas de Resumen */}
       <View style={styles.statsContainer}>
         <View style={[styles.statBox, styles.statBoxSuccess]}>
           <Text style={styles.statLabel}>Acumuladas</Text>
@@ -39,86 +39,83 @@ export default function PensionProgressWidget({ data }: PensionProgressWidgetPro
           <Text style={styles.statValueWarning}>{data.missingWeeks}</Text>
         </View>
       </View>
-    </View>
+    </AppCard>
   );
 }
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1e293b",
-    marginBottom: 4,
+    ...typography.cardTitle,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#64748b",
-    marginBottom: 20,
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.xl,
   },
   progressContainer: {
-    marginBottom: 24,
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  progressLabel: {
+    ...typography.caption,
+    color: colors.textSubtle,
   },
   progressBarBackground: {
     height: 10,
-    backgroundColor: "#e2e8f0",
-    borderRadius: 5,
+    backgroundColor: colors.border,
+    borderRadius: 999,
     overflow: "hidden",
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#2563eb", // Azul BreazeLife
-    borderRadius: 5,
+    backgroundColor: colors.primary,
+    borderRadius: 999,
   },
   percentageText: {
-    textAlign: "right",
-    marginTop: 8,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#3b82f6",
+    ...typography.bodyStrong,
+    color: colors.primary,
   },
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: spacing.md,
   },
   statBox: {
-    width: "48%",
-    padding: 16,
+    flex: 1,
+    padding: spacing.lg,
     borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
+    gap: spacing.xs,
   },
   statBoxSuccess: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
+    backgroundColor: colors.successSoft,
+    borderColor: "#BFE8D1",
   },
   statBoxWarning: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fef08a",
+    backgroundColor: colors.warningSoft,
+    borderColor: "#F9D58B",
   },
   statLabel: {
-    fontSize: 12,
-    color: "#475569",
-    marginBottom: 4,
+    ...typography.caption,
+    color: colors.neutralText,
   },
   statValueSuccess: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#166534",
+    ...typography.sectionTitle,
+    color: colors.successText,
   },
   statValueWarning: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#854d0e",
+    ...typography.sectionTitle,
+    color: colors.warningText,
   },
 });

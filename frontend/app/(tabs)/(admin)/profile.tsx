@@ -1,10 +1,13 @@
 import { ScrollView } from "react-native";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import ProfileCard from "@/src/components/profile/ProfileCard";
 
 export default function AdminProfileScreen() {
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <ProfileCard />
-    </ScrollView>
+    <AdminScreenContainer>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ProfileCard />
+      </ScrollView>
+    </AdminScreenContainer>
   );
 }

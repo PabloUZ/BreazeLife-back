@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ScrollView,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { useAuthContext } from "@/src/context/AuthContext";
-import { getAffiliateDashboard } from "@/src/services/api/affiliateService";
-import type { AffiliateDashboardDto } from "@/src/dtos/affiliate/affiliate.dtos";
-import { formatCurrency } from "@/src/utils/formatters";
 import PensionProgressWidget from "@/src/components/affiliate/PensionProgressWidget";
 import { RentabilityHistory } from "@/src/components/affiliate/RentabilityHistory";
+import AppCard from "@/src/components/common/AppCard";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
+import { useAuthContext } from "@/src/context/AuthContext";
+import type { AffiliateDashboardDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import { getAffiliateDashboard } from "@/src/services/api/affiliateService";
+import { colors, spacing, typography } from "@/src/theme";
+import { formatCurrency } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   CONSERVATIVE: "Conservador",
@@ -32,6 +38,17 @@ function formatContribDate(isoDate: string): string {
   }
 }
 
+function getContributionTone(status: string) {
+  switch (status.toUpperCase()) {
+    case "PROCESSED":
+      return "success" as const;
+    case "PENDING":
+      return "warning" as const;
+    default:
+      return "neutral" as const;
+  }
+}
+
 export default function AffiliateDashboardScreen() {
   const { state } = useAuthContext();
   const [dashboard, setDashboard] = useState<AffiliateDashboardDto | null>(null);
@@ -42,12 +59,14 @@ export default function AffiliateDashboardScreen() {
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+
     setError(null);
+
     try {
       const data = await getAffiliateDashboard();
       setDashboard(data);
     } catch {
-      setError("No se pudo cargar el dashboard. Verifica tu conexión.");
+      setError("No se pudo cargar el dashboard. Verifica tu conexion.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,176 +79,227 @@ export default function AffiliateDashboardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#369BC9" />
-        <Text style={styles.loadingText}>Cargando tu información...</Text>
-      </View>
+      <AffiliateScreenContainer>
+        <AppLoadingState message="Cargando tu dashboard..." />
+      </AffiliateScreenContainer>
     );
   }
 
   if (error || !dashboard) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error ?? "Error inesperado"}</Text>
-      </View>
+      <AffiliateScreenContainer>
+        <AppErrorState message={error ?? "Error inesperado"} onRetry={() => load()} />
+      </AffiliateScreenContainer>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => load(true)}
-          tintColor="#369BC9"
+    <AffiliateScreenContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => load(true)}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        <AppHeader
+          title="Mi dashboard"
+          subtitle={`Hola, ${state.user?.first_name ?? "afiliado"}. Consulta tu avance, tu saldo y tus aportes recientes.`}
         />
-      }
-    >
-      <Text style={styles.pageTitle}>Mi Dashboard</Text>
-      <Text style={styles.welcomeText}>
-        Hola, {state.user?.first_name}
-      </Text>
 
-      {/* Balance principal */}
-      <View style={[styles.card, styles.cardAccent]}>
-        <Text style={styles.cardLabelAccent}>Saldo acumulado</Text>
-        <Text style={styles.balanceValue}>{formatCurrency(dashboard.balance)}</Text>
-        <Text style={styles.cardSubAccent}>
-          {ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type} ·{" "}
-          {dashboard.account_id}
-        </Text>
-      </View>
-
-      {/* Semanas */}
-      <View style={styles.row}>
-        <View style={[styles.card, styles.halfCard]}>
-          <Text style={styles.cardLabel}>Semanas cotizadas</Text>
-          <Text style={styles.statValue}>{Math.floor(dashboard.quoted_weeks)}</Text>
-          <Text style={styles.cardSub}>de 1.300</Text>
-        </View>
-        <View style={[styles.card, styles.halfCard]}>
-          <Text style={styles.cardLabel}>Semanas restantes</Text>
-          <Text style={styles.statValue}>{Math.floor(dashboard.weeks_remaining)}</Text>
-        </View>
-      </View>
-
-      {/* Widget de progreso (BLIFE-14) */}
-      <PensionProgressWidget
-        data={{
-          accumulatedWeeks: dashboard.quoted_weeks,
-          missingWeeks: dashboard.weeks_remaining,
-          progressPercentage: dashboard.progress_percentage,
-        }}
-      />
-
-      {/* Rentabilidad mensual */}
-      {dashboard.monthly_profitability && (
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Rentabilidad del mes</Text>
-          <Text style={styles.statValue}>
-            {formatCurrency(dashboard.monthly_profitability.profit)}
+        <AppCard variant="tint" style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>Saldo acumulado</Text>
+          <Text style={styles.balanceValue}>{formatCurrency(dashboard.balance)}</Text>
+          <Text style={styles.balanceMeta}>
+            {ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type} ·{" "}
+            {dashboard.account_id}
           </Text>
-          <Text style={styles.cardSub}>{dashboard.monthly_profitability.date}</Text>
-        </View>
-      )}
+        </AppCard>
 
-      {/* Último aporte */}
-      {dashboard.last_contribution && (
-        <View style={styles.card}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.cardLabel}>Último aporte</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>
-                {dashboard.last_contribution.status}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.statValue}>
-            {formatCurrency(dashboard.last_contribution.total_contribution)}
-          </Text>
-          <Text style={styles.cardSub}>
-            {formatContribDate(dashboard.last_contribution.contrib_date)}
-          </Text>
-          <View style={styles.divider} />
-          <View style={styles.breakdownRow}>
-            <View style={styles.breakdownItem}>
-              <Text style={styles.breakdownLabel}>Empleador</Text>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(dashboard.last_contribution.employer_contrib)}
-              </Text>
-            </View>
-            <View style={styles.breakdownItem}>
-              <Text style={styles.breakdownLabel}>Afiliado</Text>
-              <Text style={styles.breakdownValue}>
-                {formatCurrency(dashboard.last_contribution.affiliate_contrib)}
-              </Text>
-            </View>
-            <View style={styles.breakdownItem}>
-              <Text style={styles.breakdownLabel}>Días</Text>
-              <Text style={styles.breakdownValue}>
-                {dashboard.last_contribution.days_contributed}
-              </Text>
-            </View>
-          </View>
+        <View style={styles.metricsRow}>
+          <AppCard compact style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Semanas cotizadas</Text>
+            <Text style={styles.metricValue}>{Math.floor(dashboard.quoted_weeks)}</Text>
+            <Text style={styles.metricHelper}>de 1.300</Text>
+          </AppCard>
+          <AppCard compact style={styles.metricCard}>
+            <Text style={styles.metricLabel}>Semanas restantes</Text>
+            <Text style={styles.metricValue}>
+              {Math.floor(dashboard.weeks_remaining)}
+            </Text>
+            <Text style={styles.metricHelper}>Para cumplir la meta</Text>
+          </AppCard>
         </View>
-      )}
 
-      {/* Historial de rentabilidad */}
-      <RentabilityHistory />
-    </ScrollView>
+        <PensionProgressWidget
+          data={{
+            accumulatedWeeks: dashboard.quoted_weeks,
+            missingWeeks: dashboard.weeks_remaining,
+            progressPercentage: dashboard.progress_percentage,
+          }}
+        />
+
+        {dashboard.monthly_profitability ? (
+          <AppCard>
+            <Text style={styles.cardLabel}>Rentabilidad del mes</Text>
+            <Text style={styles.cardValue}>
+              {formatCurrency(dashboard.monthly_profitability.profit)}
+            </Text>
+            <Text style={styles.cardHelper}>
+              Corte: {dashboard.monthly_profitability.date}
+            </Text>
+          </AppCard>
+        ) : null}
+
+        {dashboard.last_contribution ? (
+          <AppCard>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderCopy}>
+                <Text style={styles.cardLabel}>Ultimo aporte</Text>
+                <Text style={styles.cardHelper}>
+                  {formatContribDate(dashboard.last_contribution.contrib_date)}
+                </Text>
+              </View>
+              <AppStatusBadge
+                label={dashboard.last_contribution.status}
+                tone={getContributionTone(dashboard.last_contribution.status)}
+              />
+            </View>
+
+            <Text style={styles.cardValue}>
+              {formatCurrency(dashboard.last_contribution.total_contribution)}
+            </Text>
+
+            <View style={styles.divider} />
+
+            <View style={styles.breakdownRow}>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownLabel}>Empleador</Text>
+                <Text style={styles.breakdownValue}>
+                  {formatCurrency(dashboard.last_contribution.employer_contrib)}
+                </Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownLabel}>Afiliado</Text>
+                <Text style={styles.breakdownValue}>
+                  {formatCurrency(dashboard.last_contribution.affiliate_contrib)}
+                </Text>
+              </View>
+              <View style={styles.breakdownItem}>
+                <Text style={styles.breakdownLabel}>Dias</Text>
+                <Text style={styles.breakdownValue}>
+                  {dashboard.last_contribution.days_contributed}
+                </Text>
+              </View>
+            </View>
+          </AppCard>
+        ) : null}
+
+        <RentabilityHistory />
+      </ScrollView>
+    </AffiliateScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { padding: 20, paddingTop: 32, gap: 12 },
-  center: {
+  container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
   },
-  loadingText: { marginTop: 12, color: "#6B7280", fontSize: 16 },
-  errorText: { color: "#DC2626", textAlign: "center", padding: 24, fontSize: 15 },
-  pageTitle: { fontSize: 26, fontWeight: "700", color: "#111827", marginBottom: 2 },
-  welcomeText: { fontSize: 15, color: "#6B7280", marginBottom: 8 },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 2,
+  content: {
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
   },
-  cardAccent: { backgroundColor: "#369BC9" },
-  halfCard: { flex: 1 },
-  row: { flexDirection: "row", gap: 12 },
-  rowBetween: {
+  balanceCard: {
+    backgroundColor: colors.surfacePrimary,
+    borderColor: colors.primarySoft,
+  },
+  balanceLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
+  balanceValue: {
+    ...typography.value,
+    color: colors.text,
+  },
+  balanceMeta: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+  },
+  metricsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md,
+  },
+  metricCard: {
+    flexGrow: 1,
+    flexBasis: "47%",
+    minWidth: 140,
+  },
+  metricLabel: {
+    ...typography.caption,
+    color: colors.textSubtle,
+    marginBottom: spacing.xs,
+  },
+  metricValue: {
+    ...typography.sectionTitle,
+    color: colors.text,
+  },
+  metricHelper: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
+    alignItems: "flex-start",
+    gap: spacing.md,
   },
-  cardLabel: { fontSize: 13, color: "#6B7280", fontWeight: "500", marginBottom: 6 },
-  cardLabelAccent: { fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: "500", marginBottom: 6 },
-  cardSub: { fontSize: 12, color: "#9CA3AF", marginTop: 4 },
-  cardSubAccent: { fontSize: 12, color: "rgba(255,255,255,0.7)", marginTop: 4 },
-  balanceValue: { fontSize: 28, fontWeight: "700", color: "#FFFFFF" },
-  statValue: { fontSize: 22, fontWeight: "700", color: "#111827" },
-  statusBadge: {
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
+  cardHeaderCopy: {
+    flex: 1,
   },
-  statusText: { fontSize: 12, fontWeight: "600", color: "#059669" },
-  divider: { height: 1, backgroundColor: "#E5E7EB", marginVertical: 10 },
-  breakdownRow: { flexDirection: "row", justifyContent: "space-between" },
-  breakdownItem: { flex: 1, alignItems: "center" },
-  breakdownLabel: { fontSize: 11, color: "#9CA3AF", marginBottom: 2 },
-  breakdownValue: { fontSize: 13, fontWeight: "600", color: "#111827" },
+  cardLabel: {
+    ...typography.caption,
+    color: colors.textSubtle,
+    marginBottom: spacing.xs,
+  },
+  cardValue: {
+    ...typography.sectionTitle,
+    color: colors.text,
+  },
+  cardHelper: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md,
+  },
+  breakdownItem: {
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 88,
+  },
+  breakdownLabel: {
+    ...typography.caption,
+    color: colors.textSubtle,
+    marginBottom: spacing.xs,
+  },
+  breakdownValue: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+  },
 });

@@ -1,5 +1,5 @@
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useLocalSearchParams, Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import EditEmployeeForm from "@/src/components/employer/editEmployeeForm";
@@ -15,12 +15,7 @@ export default function EditEmployeeScreen() {
     const employerId = state.user?.user_id ?? "";
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!contractId) return;
-        fetchDetail();
-    }, [contractId]);
-
-    const fetchDetail = async () => {
+    const fetchDetail = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -31,7 +26,12 @@ export default function EditEmployeeScreen() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [contractId, employerId]);
+
+    useEffect(() => {
+        if (!contractId) return;
+        fetchDetail();
+    }, [contractId, fetchDetail]);
 
     return (
         <>

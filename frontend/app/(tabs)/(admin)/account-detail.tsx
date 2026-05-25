@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import AdminAccountActions from "@/src/components/admin/accounts/AdminAccountActions";
 import AdminAccountDetail from "@/src/components/admin/accounts/AdminAccountDetail";
 import { getAccountDisplayName } from "@/src/components/admin/accounts/accountUtils";
@@ -183,7 +183,7 @@ export default function AdminAccountDetailScreen() {
         }}
       />
 
-      <ScreenContainer>
+      <AdminScreenContainer>
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color="#369BC9" />
@@ -216,7 +216,7 @@ export default function AdminAccountDetailScreen() {
             />
           </ScrollView>
         ) : null}
-      </ScreenContainer>
+      </AdminScreenContainer>
 
       <SuspendAccountModal
         visible={suspendModalVisible}

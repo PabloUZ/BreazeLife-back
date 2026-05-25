@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    KeyboardAvoidingView,
     ScrollView,
     StyleSheet,
     Text,
@@ -14,7 +15,6 @@ import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import { changeSalaryPosition } from "@/src/services/api/employeeService";
 import type { EmployeeDetailDto, ChangeSalaryPositionDto } from "@/src/dtos/employer/employee.dtos";
 import { useAuthContext } from "@/src/context/AuthContext";
-import { KeyboardAvoidingView, Platform } from "react-native";
 
 type FormFields = {
     position: string;
