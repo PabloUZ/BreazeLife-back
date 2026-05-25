@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import AppCard from "@/src/components/common/AppCard";
 import type { ProgressResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
 import { colors, spacing, typography } from "@/src/theme";
+import { formatDecimal } from "@/src/utils/formatters";
 
 interface PensionProgressWidgetProps {
   data: ProgressResponseDto;
@@ -11,7 +12,13 @@ interface PensionProgressWidgetProps {
 export default function PensionProgressWidget({
   data,
 }: PensionProgressWidgetProps) {
-  const progress = Math.min(Math.max(data.progressPercentage, 0), 100);
+  const accumulatedWeeks = Number.isFinite(data.accumulatedWeeks)
+    ? data.accumulatedWeeks
+    : 0;
+  const missingWeeks = Number.isFinite(data.missingWeeks) ? data.missingWeeks : 0;
+  const progress = Number.isFinite(data.progressPercentage)
+    ? Math.min(Math.max(data.progressPercentage, 0), 100)
+    : 0;
 
   return (
     <AppCard style={styles.cardContainer}>
@@ -21,7 +28,7 @@ export default function PensionProgressWidget({
       <View style={styles.progressContainer}>
         <View style={styles.progressHeader}>
           <Text style={styles.progressLabel}>Avance acumulado</Text>
-          <Text style={styles.percentageText}>{progress}%</Text>
+          <Text style={styles.percentageText}>{formatDecimal(progress)}%</Text>
         </View>
         <View style={styles.progressBarBackground}>
           <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
@@ -31,12 +38,12 @@ export default function PensionProgressWidget({
       <View style={styles.statsContainer}>
         <View style={[styles.statBox, styles.statBoxSuccess]}>
           <Text style={styles.statLabel}>Acumuladas</Text>
-          <Text style={styles.statValueSuccess}>{data.accumulatedWeeks}</Text>
+          <Text style={styles.statValueSuccess}>{formatDecimal(accumulatedWeeks)}</Text>
         </View>
 
         <View style={[styles.statBox, styles.statBoxWarning]}>
           <Text style={styles.statLabel}>Faltantes</Text>
-          <Text style={styles.statValueWarning}>{data.missingWeeks}</Text>
+          <Text style={styles.statValueWarning}>{formatDecimal(missingWeeks)}</Text>
         </View>
       </View>
     </AppCard>

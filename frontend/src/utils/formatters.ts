@@ -44,3 +44,11 @@ export function formatDate(dateStr: string): string {
     return dateStr;
   }
 }
+
+export function formatDecimal(value: number, maximumFractionDigits: number = 2): string {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  return new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
+  }).format(safeValue);
+}

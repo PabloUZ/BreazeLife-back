@@ -18,7 +18,7 @@ import { useAuthContext } from "@/src/context/AuthContext";
 import type { AffiliateDashboardDto } from "@/src/dtos/affiliate/affiliate.dtos";
 import { getAffiliateDashboard } from "@/src/services/api/affiliateService";
 import { colors, spacing, typography } from "@/src/theme";
-import { formatCurrency } from "@/src/utils/formatters";
+import { formatCurrency, formatDecimal } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   CONSERVATIVE: "Conservador",
@@ -27,6 +27,9 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
 };
 
 function formatContribDate(isoDate: string): string {
+  if (!isoDate) {
+    return "Sin fecha";
+  }
   try {
     return new Date(isoDate).toLocaleDateString("es-CO", {
       year: "numeric",
@@ -38,8 +41,8 @@ function formatContribDate(isoDate: string): string {
   }
 }
 
-function getContributionTone(status: string) {
-  switch (status.toUpperCase()) {
+function getContributionTone(status?: string) {
+  switch ((status ?? "").toUpperCase()) {
     case "PROCESSED":
       return "success" as const;
     case "PENDING":
@@ -93,6 +96,9 @@ export default function AffiliateDashboardScreen() {
     );
   }
 
+  const accountTypeLabel =
+    ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type ?? "Cuenta pensional";
+
   return (
     <AffiliateScreenContainer>
       <ScrollView
@@ -116,21 +122,21 @@ export default function AffiliateDashboardScreen() {
           <Text style={styles.balanceLabel}>Saldo acumulado</Text>
           <Text style={styles.balanceValue}>{formatCurrency(dashboard.balance)}</Text>
           <Text style={styles.balanceMeta}>
-            {ACCOUNT_TYPE_LABELS[dashboard.account_type] ?? dashboard.account_type} ·{" "}
-            {dashboard.account_id}
+            {accountTypeLabel}
+            {dashboard.account_id ? ` · ${dashboard.account_id}` : ""}
           </Text>
         </AppCard>
 
         <View style={styles.metricsRow}>
           <AppCard compact style={styles.metricCard}>
             <Text style={styles.metricLabel}>Semanas cotizadas</Text>
-            <Text style={styles.metricValue}>{Math.floor(dashboard.quoted_weeks)}</Text>
+            <Text style={styles.metricValue}>{formatDecimal(dashboard.quoted_weeks)}</Text>
             <Text style={styles.metricHelper}>de 1.300</Text>
           </AppCard>
           <AppCard compact style={styles.metricCard}>
             <Text style={styles.metricLabel}>Semanas restantes</Text>
             <Text style={styles.metricValue}>
-              {Math.floor(dashboard.weeks_remaining)}
+              {formatDecimal(dashboard.weeks_remaining)}
             </Text>
             <Text style={styles.metricHelper}>Para cumplir la meta</Text>
           </AppCard>
@@ -151,7 +157,7 @@ export default function AffiliateDashboardScreen() {
               {formatCurrency(dashboard.monthly_profitability.profit)}
             </Text>
             <Text style={styles.cardHelper}>
-              Corte: {dashboard.monthly_profitability.date}
+              Corte: {formatContribDate(dashboard.monthly_profitability.date)}
             </Text>
           </AppCard>
         ) : null}
@@ -166,7 +172,7 @@ export default function AffiliateDashboardScreen() {
                 </Text>
               </View>
               <AppStatusBadge
-                label={dashboard.last_contribution.status}
+                label={dashboard.last_contribution.status || "UNKNOWN"}
                 tone={getContributionTone(dashboard.last_contribution.status)}
               />
             </View>
@@ -193,7 +199,7 @@ export default function AffiliateDashboardScreen() {
               <View style={styles.breakdownItem}>
                 <Text style={styles.breakdownLabel}>Dias</Text>
                 <Text style={styles.breakdownValue}>
-                  {dashboard.last_contribution.days_contributed}
+                  {formatDecimal(dashboard.last_contribution.days_contributed, 0)}
                 </Text>
               </View>
             </View>

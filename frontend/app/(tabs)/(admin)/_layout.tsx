@@ -45,40 +45,12 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="employers" options={{ href: null }} />
       <Tabs.Screen
         name="quotes"
         options={{
           title: "Cotizaciones",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Graficas",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profitability"
-        options={{
-          title: "Rentabilidad",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trending-up-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alertas",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size} color={color} />
           ),
         }}
       />
@@ -92,15 +64,19 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="index"
         options={{
-          title: "Configuracion",
+          title: "Mas",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+            <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} />
           ),
         }}
       />
-      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="reports" options={{ href: null }} />
+      <Tabs.Screen name="profitability" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="employers" options={{ href: null }} />
       <Tabs.Screen name="account-detail" options={{ href: null }} />
       <Tabs.Screen name="quote-detail" options={{ href: null }} />
     </Tabs>
