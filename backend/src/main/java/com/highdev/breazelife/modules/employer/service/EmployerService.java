@@ -92,4 +92,26 @@ public class EmployerService {
                 .orElseThrow(() -> new RuntimeException("Employer not found with ID: " + userId));
         employerRepository.delete(employer);
     }
+
+    @Transactional
+    public EmployerProfileResponseDTO updateProfile(String userId, UpdateEmployerProfileDto dto) {
+        Employer employer = employerRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employer not found"));
+        
+        if (dto.getCompanyName() != null) employer.setCompanyName(dto.getCompanyName());
+        if (dto.getSector() != null) employer.setSector(dto.getSector());
+        
+        return new EmployerProfileResponseDTO(employerRepository.save(employer));
+    }
+
+    @Transactional
+    public EmployerProfileResponseDTO updateLegalRepresentative(String userId, UpdateLegalRepresentativeDto dto) {
+        Employer employer = employerRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employer not found"));
+        
+        if (dto.getNameLegalRep() != null) employer.setNameLegalRep(dto.getNameLegalRep());
+        if (dto.getIdLegalRep() != null) employer.setIdLegalRep(dto.getIdLegalRep());
+        
+        return new EmployerProfileResponseDTO(employerRepository.save(employer));
+    }
 }
