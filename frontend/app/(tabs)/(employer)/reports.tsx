@@ -27,7 +27,6 @@ type ReportsOverviewState = {
   activeEmployees: number;
   payrollCount: number;
   latestPayrollPeriod: string | null;
-  sourcesLoaded: number;
   totalBalance: number;
   totalContributionsSnapshot: number;
 };
@@ -41,9 +40,8 @@ type SummaryMetric = {
 type ReportCardItem = {
   actionLabel: string;
   description: string;
-  enabled: boolean;
   helperText?: string;
-  href?: string;
+  href: string;
   iconName: keyof typeof Ionicons.glyphMap;
   title: string;
 };
@@ -51,42 +49,31 @@ type ReportCardItem = {
 const REPORT_ITEMS: ReportCardItem[] = [
   {
     title: "Reporte de nomina",
-    description: "Consulta los periodos procesados y el detalle de cada ejecucion.",
+    description: "Consulta los periodos procesados y revisa el detalle operativo de cada ejecucion.",
     actionLabel: "Ver reporte",
     href: "/(tabs)/(employer)/payroll/history",
-    enabled: true,
     iconName: "receipt-outline",
   },
   {
     title: "Historial de aportes",
-    description: "Revisa el flujo reciente de aportes y movimientos asociados.",
+    description: "Revisa el flujo reciente de aportes registrados y su comportamiento general.",
     actionLabel: "Ver reporte",
     href: "/(tabs)/(employer)/funds",
-    enabled: true,
     iconName: "trending-up-outline",
   },
   {
     title: "Movimientos de fondos",
-    description: "Explora recargas, descuentos y balances de los fondos empresariales.",
+    description: "Explora recargas, descuentos y balance disponible en los fondos empresariales.",
     actionLabel: "Ver reporte",
     href: "/(tabs)/(employer)/funds",
-    enabled: true,
     iconName: "wallet-outline",
   },
   {
     title: "Empleados activos",
-    description: "Accede a la plantilla actual y valida el estado operativo del personal.",
+    description: "Accede a la plantilla actual y valida el estado operativo del personal registrado.",
     actionLabel: "Ver reporte",
     href: "/(tabs)/(employer)/employees",
-    enabled: true,
     iconName: "people-outline",
-  },
-  {
-    title: "Resumen financiero",
-    description: "Exporta un consolidado ejecutivo cuando exista una salida dedicada.",
-    actionLabel: "Proximamente",
-    enabled: false,
-    iconName: "document-text-outline",
   },
 ];
 
@@ -94,7 +81,12 @@ function SummaryCard({ metric }: { metric: SummaryMetric }) {
   return (
     <AppCard compact style={styles.summaryCard}>
       <Text style={styles.summaryLabel}>{metric.label}</Text>
-      <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+      <Text
+        style={styles.summaryValue}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+      >
         {metric.value}
       </Text>
       {metric.helperText ? <Text style={styles.summaryHelper}>{metric.helperText}</Text> : null}
@@ -107,41 +99,29 @@ function ReportCard({
   onPress,
 }: {
   item: ReportCardItem;
-  onPress?: () => void;
+  onPress: () => void;
 }) {
-  const content = (
-    <AppCard style={styles.reportCard}>
-      <View style={styles.reportHeader}>
-        <View style={styles.reportIconWrap}>
-          <Ionicons name={item.iconName} size={18} color={colors.primary} />
-        </View>
-        <AppStatusBadge
-          label={item.enabled ? "Disponible" : "Pendiente"}
-          tone={item.enabled ? "success" : "warning"}
-        />
-      </View>
-
-      <Text style={styles.reportTitle}>{item.title}</Text>
-      <Text style={styles.reportDescription}>{item.description}</Text>
-      {item.helperText ? <Text style={styles.reportHelper}>{item.helperText}</Text> : null}
-
-      <AppButton
-        title={item.actionLabel}
-        variant={item.enabled ? "secondary" : "ghost"}
-        iconName={item.enabled ? "arrow-forward-outline" : "time-outline"}
-        onPress={onPress}
-        disabled={!item.enabled}
-      />
-    </AppCard>
-  );
-
-  if (!item.enabled || !onPress) {
-    return content;
-  }
-
   return (
     <Pressable style={styles.pressableCard} onPress={onPress}>
-      {content}
+      <AppCard style={styles.reportCard}>
+        <View style={styles.reportHeader}>
+          <View style={styles.reportIconWrap}>
+            <Ionicons name={item.iconName} size={18} color={colors.primary} />
+          </View>
+          <AppStatusBadge label="Disponible" tone="success" />
+        </View>
+
+        <Text style={styles.reportTitle}>{item.title}</Text>
+        <Text style={styles.reportDescription}>{item.description}</Text>
+        {item.helperText ? <Text style={styles.reportHelper}>{item.helperText}</Text> : null}
+
+        <AppButton
+          title={item.actionLabel}
+          variant="secondary"
+          iconName="arrow-forward-outline"
+          onPress={onPress}
+        />
+      </AppCard>
     </Pressable>
   );
 }
@@ -179,11 +159,12 @@ export default function EmployerReportsScreen() {
         getFunds(employerId),
       ]);
 
-      const sourcesLoaded = [employeesResult, payrollResult, fundsResult].filter(
-        (result) => result.status === "fulfilled"
-      ).length;
+      const hasAnySource =
+        employeesResult.status === "fulfilled" ||
+        payrollResult.status === "fulfilled" ||
+        fundsResult.status === "fulfilled";
 
-      if (sourcesLoaded === 0) {
+      if (!hasAnySource) {
         setOverview(null);
         setError("No se pudo cargar la vista de reportes. Intenta de nuevo.");
         setLoading(false);
@@ -208,7 +189,6 @@ export default function EmployerReportsScreen() {
           (total, item) => total + item.total_pension_contrib,
           0
         ),
-        sourcesLoaded,
       });
 
       setLoading(false);
@@ -243,7 +223,7 @@ export default function EmployerReportsScreen() {
     {
       label: "Total aportes",
       value: formatCurrency(overview?.totalContributionsSnapshot ?? 0),
-      helperText: "Snapshot del historial cargado",
+      helperText: "Resumen del historial cargado",
     },
     {
       label: "Total empleados",
@@ -257,7 +237,7 @@ export default function EmployerReportsScreen() {
         : "Sin registros",
       helperText: overview?.latestPayrollPeriod
         ? "Segun el historial disponible"
-        : "Aun sin periodos procesados",
+        : "Aun no hay periodos procesados",
     },
     {
       label: "Balance actual",
@@ -273,7 +253,7 @@ export default function EmployerReportsScreen() {
         helperText:
           overview?.latestPayrollPeriod != null
             ? `Ultimo periodo: ${formatPeriod(overview.latestPayrollPeriod)}`
-            : "Aun no hay periodos procesados",
+            : "Consulta disponible desde que exista historial",
       };
     }
 
@@ -291,14 +271,10 @@ export default function EmployerReportsScreen() {
       };
     }
 
-    if (item.title === "Historial de aportes") {
-      return {
-        ...item,
-        helperText: `Aportes visibles: ${formatCurrency(overview?.totalContributionsSnapshot ?? 0)}`,
-      };
-    }
-
-    return item;
+    return {
+      ...item,
+      helperText: `Aportes visibles: ${formatCurrency(overview?.totalContributionsSnapshot ?? 0)}`,
+    };
   });
 
   return (
@@ -321,29 +297,18 @@ export default function EmployerReportsScreen() {
         />
 
         <AppCard variant="tint" style={styles.heroCard}>
-          <Text style={styles.heroTitle}>Centro de consulta empresarial</Text>
+          <Text style={styles.heroTitle}>Panel de reportes operativos</Text>
           <Text style={styles.heroText}>
-            Revisa rapidamente los reportes disponibles y navega a las rutas ya
-            conectadas del modulo Employer sin salir del flujo actual.
+            Revisa los accesos clave del modulo Employer para consultar nomina,
+            aportes, fondos y plantilla activa desde una sola vista.
           </Text>
           <View style={styles.heroMetaRow}>
-            <AppStatusBadge
-              label={`${overview?.sourcesLoaded ?? 0}/3 fuentes cargadas`}
-              tone={(overview?.sourcesLoaded ?? 0) === 3 ? "success" : "warning"}
-            />
-            <Text style={styles.heroMetaText}>Sin descargas simuladas ni endpoints nuevos.</Text>
+            <AppStatusBadge label="Listo para consulta" tone="info" />
+            <Text style={styles.heroMetaText}>
+              Navegacion conectada a vistas reales del modulo empresarial.
+            </Text>
           </View>
         </AppCard>
-
-        {(overview?.sourcesLoaded ?? 0) < 3 ? (
-          <AppCard variant="muted">
-            <Text style={styles.noticeTitle}>Datos parciales</Text>
-            <Text style={styles.noticeText}>
-              El resumen usa informacion disponible y mantiene acciones seguras
-              en los reportes que todavia no tienen salida dedicada.
-            </Text>
-          </AppCard>
-        ) : null}
 
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionTitle}>Resumen rapido</Text>
@@ -357,13 +322,13 @@ export default function EmployerReportsScreen() {
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionTitle}>Reportes disponibles</Text>
           <View style={styles.reportList}>
-            {reportItems.map((item) => {
-              const handlePress = item.href
-                ? () => router.push(item.href as never)
-                : undefined;
-
-              return <ReportCard key={item.title} item={item} onPress={handlePress} />;
-            })}
+            {reportItems.map((item) => (
+              <ReportCard
+                key={item.title}
+                item={item}
+                onPress={() => router.push(item.href as never)}
+              />
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -377,7 +342,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   heroCard: {
     gap: spacing.sm,
@@ -403,17 +368,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSubtle,
   },
-  noticeTitle: {
-    ...typography.bodyStrong,
-    color: colors.neutralText,
-    marginBottom: spacing.xs,
-  },
-  noticeText: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
   sectionBlock: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   sectionTitle: {
     ...typography.sectionTitle,
@@ -477,5 +433,6 @@ const styles = StyleSheet.create({
   reportHelper: {
     ...typography.caption,
     color: colors.textSubtle,
+    marginTop: -spacing.xs,
   },
 });

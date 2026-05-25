@@ -29,7 +29,6 @@ import { formatCurrency, formatDate, formatPeriod } from "@/src/utils/formatters
 type DashboardMetric = {
   helperText: string;
   iconName: keyof typeof Ionicons.glyphMap;
-  isFallback?: boolean;
   label: string;
   value: string;
 };
@@ -56,7 +55,6 @@ type DashboardState = {
   payrollCount: number;
   payrollHistory: PayrollHistoryItemDto[];
   recentEmployee: EmployerEmployeeDto | null;
-  sourcesLoaded: number;
 };
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -125,14 +123,15 @@ function MetricCard({ metric }: { metric: DashboardMetric }) {
       </View>
 
       <Text style={styles.metricLabel}>{metric.label}</Text>
-      <Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78}>
+      <Text
+        style={styles.metricValue}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.78}
+      >
         {metric.value}
       </Text>
       <Text style={styles.metricHelper}>{metric.helperText}</Text>
-
-      {metric.isFallback ? (
-        <AppStatusBadge label="Fallback" tone="warning" style={styles.metricBadge} />
-      ) : null}
     </AppCard>
   );
 }
@@ -200,14 +199,13 @@ export default function EmployerDashboardScreen() {
           getFunds(employerId),
         ]);
 
-      const sourcesLoaded = [
-        activeEmployeesResult,
-        recentEmployeesResult,
-        payrollHistoryResult,
-        fundsResult,
-      ].filter((result) => result.status === "fulfilled").length;
+      const hasAnySource =
+        activeEmployeesResult.status === "fulfilled" ||
+        recentEmployeesResult.status === "fulfilled" ||
+        payrollHistoryResult.status === "fulfilled" ||
+        fundsResult.status === "fulfilled";
 
-      if (sourcesLoaded === 0) {
+      if (!hasAnySource) {
         setDashboard(null);
         setError("No se pudo cargar el resumen empresarial. Intenta de nuevo.");
         setLoading(false);
@@ -233,7 +231,6 @@ export default function EmployerDashboardScreen() {
             ? payrollHistoryResult.value.data.items ?? []
             : [],
         funds: fundsResult.status === "fulfilled" ? fundsResult.value : [],
-        sourcesLoaded,
       });
 
       setLoading(false);
@@ -296,66 +293,51 @@ export default function EmployerDashboardScreen() {
       iconName: "wallet-outline",
     },
     {
-      label: "Aportes pendientes",
-      value: "0",
-      helperText: "Indicador provisional sin endpoint dedicado",
-      iconName: "time-outline",
-      isFallback: true,
+      label: "Aportes del periodo",
+      value: latestPayroll
+        ? formatCompactCurrency(latestPayroll.total_pension_contrib)
+        : "Sin registros",
+      helperText: latestPayroll
+        ? formatCurrency(latestPayroll.total_pension_contrib)
+        : "Disponible al procesar la primera nomina",
+      iconName: "trending-up-outline",
     },
   ];
 
-  const activities: ActivityItem[] = [
-    latestPayroll
-      ? {
-          title: "Ultima nomina procesada",
-          description: `${formatPeriod(latestPayroll.period)} · ${latestPayroll.total_employees} empleados · ${formatCurrency(latestPayroll.total_debit)}`,
-          iconName: "cash-outline",
-          statusLabel: payrollStatus.label,
-          statusTone: payrollStatus.tone,
-          href: "/(tabs)/(employer)/payroll/history",
-        }
-      : {
-          title: "Ultima nomina procesada",
-          description: "Aun no hay nominas procesadas para mostrar.",
-          iconName: "cash-outline",
-          statusLabel: "Sin registros",
-          statusTone: "neutral",
-        },
-    latestPayroll
-      ? {
-          title: "Ultimo aporte realizado",
-          description: `${formatCurrency(latestPayroll.total_pension_contrib)} registrados el ${formatDate(latestPayroll.executed_at)}`,
-          iconName: "trending-up-outline",
-          statusLabel: "Registrado",
-          statusTone: "success",
-          href: "/(tabs)/(employer)/funds",
-        }
-      : {
-          title: "Ultimo aporte realizado",
-          description: "Los aportes apareceran cuando exista historial de nomina.",
-          iconName: "trending-up-outline",
-          statusLabel: "Pendiente",
-          statusTone: "warning",
-        },
-    dashboard?.recentEmployee
-      ? {
-          title: "Ultimo empleado registrado",
-          description: `${dashboard.recentEmployee.firstName} ${dashboard.recentEmployee.lastName} · ${dashboard.recentEmployee.position} · Inicio ${formatDate(dashboard.recentEmployee.startDate)}`,
-          iconName: "person-add-outline",
-          statusLabel:
-            dashboard.recentEmployee.status === "ACTIVE" ? "Activo" : "Inactivo",
-          statusTone:
-            dashboard.recentEmployee.status === "ACTIVE" ? "success" : "neutral",
-          href: "/(tabs)/(employer)/employees",
-        }
-      : {
-          title: "Ultimo empleado registrado",
-          description: "Todavia no hay empleados registrados en la empresa.",
-          iconName: "person-add-outline",
-          statusLabel: "Sin registros",
-          statusTone: "neutral",
-        },
-  ];
+  const activityItems: ActivityItem[] = [];
+
+  if (latestPayroll) {
+    activityItems.push({
+      title: "Ultima nomina procesada",
+      description: `${formatPeriod(latestPayroll.period)} · ${latestPayroll.total_employees} empleados · ${formatCurrency(latestPayroll.total_debit)}`,
+      iconName: "cash-outline",
+      statusLabel: payrollStatus.label,
+      statusTone: payrollStatus.tone,
+      href: "/(tabs)/(employer)/payroll/history",
+    });
+
+    activityItems.push({
+      title: "Ultimo aporte realizado",
+      description: `${formatCurrency(latestPayroll.total_pension_contrib)} registrados el ${formatDate(latestPayroll.executed_at)}`,
+      iconName: "trending-up-outline",
+      statusLabel: "Registrado",
+      statusTone: "success",
+      href: "/(tabs)/(employer)/funds",
+    });
+  }
+
+  if (dashboard?.recentEmployee) {
+    activityItems.push({
+      title: "Ultimo empleado registrado",
+      description: `${dashboard.recentEmployee.firstName} ${dashboard.recentEmployee.lastName} · ${dashboard.recentEmployee.position} · Inicio ${formatDate(dashboard.recentEmployee.startDate)}`,
+      iconName: "person-add-outline",
+      statusLabel:
+        dashboard.recentEmployee.status === "ACTIVE" ? "Activo" : "Inactivo",
+      statusTone:
+        dashboard.recentEmployee.status === "ACTIVE" ? "success" : "neutral",
+      href: "/(tabs)/(employer)/employees",
+    });
+  }
 
   return (
     <EmployerScreenContainer>
@@ -385,25 +367,12 @@ export default function EmployerDashboardScreen() {
           </Text>
 
           <View style={styles.welcomeMetaRow}>
-            <AppStatusBadge
-              label={`${dashboard?.sourcesLoaded ?? 0}/4 fuentes cargadas`}
-              tone={(dashboard?.sourcesLoaded ?? 0) === 4 ? "success" : "warning"}
-            />
+            <AppStatusBadge label="Resumen listo" tone="info" />
             <Text style={styles.welcomeMetaText}>
               Balance total: {formatCurrency(combinedFundBalance)}
             </Text>
           </View>
         </AppCard>
-
-        {(dashboard?.sourcesLoaded ?? 0) < 4 ? (
-          <AppCard variant="muted">
-            <Text style={styles.noticeTitle}>Vista con datos parciales</Text>
-            <Text style={styles.noticeText}>
-              Algunas secciones usan informacion disponible y mantienen fallback
-              seguro mientras las fuentes restantes responden.
-            </Text>
-          </AppCard>
-        ) : null}
 
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionTitle}>Resumen general</Text>
@@ -416,9 +385,9 @@ export default function EmployerDashboardScreen() {
 
         <View style={styles.sectionBlock}>
           <Text style={styles.sectionTitle}>Actividad reciente</Text>
-          <View style={styles.activityList}>
-            {activities.map((item) =>
-              item.href ? (
+          {activityItems.length > 0 ? (
+            <View style={styles.activityList}>
+              {activityItems.map((item) => (
                 <Pressable
                   key={item.title}
                   onPress={() => router.push(item.href as never)}
@@ -426,11 +395,17 @@ export default function EmployerDashboardScreen() {
                 >
                   <ActivityCard item={item} />
                 </Pressable>
-              ) : (
-                <ActivityCard key={item.title} item={item} />
-              )
-            )}
-          </View>
+              ))}
+            </View>
+          ) : (
+            <AppCard variant="muted">
+              <Text style={styles.emptyActivityTitle}>Sin actividad reciente</Text>
+              <Text style={styles.emptyActivityText}>
+                La actividad operativa se mostrara aqui cuando registres
+                movimientos, empleados o nominas procesadas.
+              </Text>
+            </AppCard>
+          )}
         </View>
 
         <View style={styles.sectionBlock}>
@@ -450,29 +425,37 @@ export default function EmployerDashboardScreen() {
         </View>
 
         <AppCard style={styles.fundsSummaryCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Fondos disponibles</Text>
+          <View style={styles.fundsHeader}>
+            <View style={styles.fundsHeaderCopy}>
+              <Text style={styles.fundsTitle}>Fondos disponibles</Text>
+              <Text style={styles.fundsSubtitle}>
+                Consulta los saldos listos para operacion y seguimiento interno.
+              </Text>
+            </View>
+
             <AppButton
               title="Ver fondos"
               variant="ghost"
               iconName="arrow-forward-outline"
+              style={styles.fundsButton}
+              textStyle={styles.fundsButtonText}
               onPress={() => router.push("/(tabs)/(employer)/funds" as never)}
             />
           </View>
 
           <View style={styles.fundsRow}>
-            <View style={styles.fundSummaryItem}>
+            <AppCard compact style={styles.fundSummaryItem}>
               <Text style={styles.fundSummaryLabel}>Fondo de nomina</Text>
               <Text style={styles.fundSummaryValue}>
                 {formatCurrency(payrollFund?.balance ?? 0)}
               </Text>
-            </View>
-            <View style={styles.fundSummaryItem}>
+            </AppCard>
+            <AppCard compact style={styles.fundSummaryItem}>
               <Text style={styles.fundSummaryLabel}>Fondo de aportes</Text>
               <Text style={styles.fundSummaryValue}>
                 {formatCurrency(pensionFund?.balance ?? 0)}
               </Text>
-            </View>
+            </AppCard>
           </View>
         </AppCard>
       </ScrollView>
@@ -486,7 +469,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: spacing.xxxl,
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
   welcomeCard: {
     gap: spacing.sm,
@@ -516,17 +499,8 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textSubtle,
   },
-  noticeTitle: {
-    ...typography.bodyStrong,
-    color: colors.neutralText,
-    marginBottom: spacing.xs,
-  },
-  noticeText: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
   sectionBlock: {
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   sectionTitle: {
     ...typography.sectionTitle,
@@ -563,9 +537,6 @@ const styles = StyleSheet.create({
   metricHelper: {
     ...typography.caption,
     color: colors.textMuted,
-  },
-  metricBadge: {
-    marginTop: spacing.sm,
   },
   activityList: {
     gap: spacing.md,
@@ -605,6 +576,15 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textMuted,
   },
+  emptyActivityTitle: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    marginBottom: spacing.xs,
+  },
+  emptyActivityText: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
   quickActionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -613,15 +593,39 @@ const styles = StyleSheet.create({
   quickActionButton: {
     flexGrow: 1,
     flexBasis: "47%",
+    minWidth: 148,
   },
   fundsSummaryCard: {
+    gap: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  fundsHeader: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: spacing.md,
   },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: spacing.md,
+  fundsHeaderCopy: {
+    flex: 1,
+    minWidth: 180,
+    gap: spacing.xs,
+  },
+  fundsTitle: {
+    ...typography.sectionTitle,
+    color: colors.text,
+  },
+  fundsSubtitle: {
+    ...typography.body,
+    color: colors.textMuted,
+  },
+  fundsButton: {
+    minHeight: 40,
+    paddingHorizontal: spacing.md,
+    alignSelf: "flex-start",
+  },
+  fundsButtonText: {
+    ...typography.caption,
   },
   fundsRow: {
     flexDirection: "row",
@@ -632,6 +636,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexBasis: "47%",
     minWidth: 145,
+    gap: spacing.xs,
+    backgroundColor: colors.surfaceMuted,
   },
   fundSummaryLabel: {
     ...typography.caption,
