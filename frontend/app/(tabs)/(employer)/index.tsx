@@ -16,7 +16,7 @@ const MORE_ITEMS: MoreMenuItem[] = [
   },
   {
     title: "Reportes",
-    description: "Accede a la vista secundaria de reportes del modulo.",
+    description: "Consulta el resumen financiero y operativo del modulo empresarial.",
     href: "/(tabs)/(employer)/reports",
     iconName: "bar-chart-outline",
   },
