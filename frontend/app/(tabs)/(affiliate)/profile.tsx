@@ -11,6 +11,7 @@ import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenCon
 import ProfileCard from "@/src/components/profile/ProfileCard";
 import type { AffiliateProfileDto } from "@/src/dtos/affiliate/affiliate.dtos";
 import { getAffiliateProfile } from "@/src/services/api/affiliateService";
+import { spacing } from "@/src/theme";
 import { formatCurrency } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -158,7 +159,11 @@ export default function AffiliateProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { paddingBottom: 32 },
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingBottom: spacing.xxxl,
+  },
   loadingBox: { padding: 24, alignItems: "center" },
   card: {
     backgroundColor: "#FFFFFF",

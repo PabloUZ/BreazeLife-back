@@ -2,7 +2,6 @@ import { useRouter } from "expo-router";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import AppButton from "@/src/components/common/AppButton";
 import AppCard from "@/src/components/common/AppCard";
-import AppHeader from "@/src/components/common/AppHeader";
 import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import { useAuthContext } from "@/src/context/AuthContext";
 import { colors, radius, shadows, spacing, typography } from "@/src/theme";
@@ -76,11 +75,6 @@ export default function ProfileCard() {
 
   return (
     <View style={styles.container}>
-      <AppHeader
-        title="Perfil"
-        subtitle="Consulta tu informacion principal y administra tu sesion."
-      />
-
       <View style={styles.heroCard}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatar}>
@@ -89,10 +83,12 @@ export default function ProfileCard() {
           {user.verified ? <View style={styles.verifiedDot} /> : null}
         </View>
 
-        <Text style={styles.name}>
-          {user.first_name} {user.last_name}
-        </Text>
-        <AppStatusBadge label={roleLabel} tone="info" />
+        <View style={styles.identityBlock}>
+          <Text style={styles.name}>
+            {user.first_name} {user.last_name}
+          </Text>
+          <AppStatusBadge label={roleLabel} tone="info" style={styles.roleBadge} />
+        </View>
       </View>
 
       <AppCard style={styles.infoCard}>
@@ -121,15 +117,16 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.screen,
-    gap: spacing.lg,
+    paddingVertical: spacing.lg,
+    justifyContent: "center",
+    gap: spacing.md,
     backgroundColor: colors.background,
   },
   heroCard: {
     width: "100%",
     alignSelf: "stretch",
     alignItems: "center",
-    gap: spacing.sm,
+    gap: spacing.lg,
     padding: spacing.xxl,
     borderRadius: radius.xl,
     backgroundColor: colors.surface,
@@ -169,6 +166,14 @@ const styles = StyleSheet.create({
     ...typography.sectionTitle,
     color: colors.text,
     textAlign: "center",
+  },
+  identityBlock: {
+    alignItems: "center",
+    gap: spacing.xs,
+    width: "100%",
+  },
+  roleBadge: {
+    alignSelf: "center",
   },
   infoCard: {
     width: "100%",

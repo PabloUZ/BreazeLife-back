@@ -5,7 +5,10 @@ import EmployerScreenContainer from "@/src/components/layout/EmployerScreenConta
 export default function EmployerProfileScreen() {
   return (
     <EmployerScreenContainer>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        showsVerticalScrollIndicator={false}
+      >
         <ProfileCard />
       </ScrollView>
     </EmployerScreenContainer>
