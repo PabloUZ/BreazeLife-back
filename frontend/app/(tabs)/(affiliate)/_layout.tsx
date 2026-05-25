@@ -68,12 +68,26 @@ export default function AffiliateTabsLayout() {
           ),
         }}
       />
-
-      
+      <Tabs.Screen
+        name="payments"
+        options={{
+          title: "Pagos",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="payment-detail"
+        options={{
+          href: null,
+        }}
+      />
 
       <Tabs.Screen name="index" options={{ href: null }} />
 
     </Tabs>
+
   );
 
 }

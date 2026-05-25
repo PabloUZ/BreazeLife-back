@@ -1,8 +1,15 @@
 // src/services/api/affiliateService.ts
 
 import { httpClient } from "@/src/config/http";
-import type { ApiResponseDto, ProgressResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
-import type { PaginatedResponseDto, PayslipDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import type {
+  ApiResponseDto,
+  ProgressResponseDto,
+  PaginatedResponseDto,
+  PayslipDto,
+  AffiliatePaymentHistoryResponseDto,
+  PaymentDetailResponseDto,
+} from "@/src/dtos/affiliate/affiliate.dtos";
+
 
 
 const BASE_PATH = "/api/v1/affiliates";
@@ -83,3 +90,26 @@ export async function getRentabilities(affiliateId: string, page: number = 0, si
   );
   return response.data.data;
 }
+
+export async function getAffiliatePayments(params?: {
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+  status?: string;
+}): Promise<ApiResponseDto<AffiliatePaymentHistoryResponseDto>> {
+  const response = await httpClient.get<ApiResponseDto<AffiliatePaymentHistoryResponseDto>>(
+    "/api/v1/payroll/payments",
+    { params }
+  );
+  return response.data;
+}
+
+export async function getPaymentDetail(
+  paymentId: string
+): Promise<ApiResponseDto<PaymentDetailResponseDto>> {
+  const response = await httpClient.get<ApiResponseDto<PaymentDetailResponseDto>>(
+    `/api/v1/payroll/payments/${paymentId}`
+  );
+  return response.data;
+}
