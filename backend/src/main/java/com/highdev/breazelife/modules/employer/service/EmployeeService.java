@@ -6,6 +6,7 @@ import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeReque
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.response.*;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface EmployeeService {
     RegisterEmployeeResponse registerEmployee(String employerId, RegisterEmployeeRequest request);
@@ -13,4 +14,5 @@ public interface EmployeeService {
     EmployeeDetailResponse getEmployeeDetail(String employerId, String contractId);
     UpdateEmployeeResponse updateEmployee(String employerId, String contractId, UpdateEmployeeRequest request);
     ChangeSalaryPositionResponse changeSalaryPosition(String employerId, String contractId, ChangeSalaryPositionRequest request);
+    Page<SalaryHistoryResponse> getSalaryHistory(String employerId, String contractId, Pageable pageable);
 }
