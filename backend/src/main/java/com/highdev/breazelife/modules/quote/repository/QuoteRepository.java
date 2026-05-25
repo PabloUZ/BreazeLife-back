@@ -108,4 +108,7 @@ public interface QuoteRepository extends JpaRepository<Quote, String> {
         "AND q.status = 'ACCEPTED' " +
         "ORDER BY q.contribDate ASC")
     List<Quote> findAllAcceptedQuotesByAffiliateAsc(@Param("affiliateId") String affiliateId);
+
+    @Query("SELECT q FROM Quote q WHERE q.contribDate >= :from AND q.contribDate <= :to ORDER BY q.contribDate DESC")
+    List<Quote> findAllByDateRange(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

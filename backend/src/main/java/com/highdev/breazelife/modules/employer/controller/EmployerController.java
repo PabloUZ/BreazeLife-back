@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateLegalRepresentativeDto;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.service.EmployerService;

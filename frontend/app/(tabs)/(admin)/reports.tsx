@@ -11,12 +11,16 @@ import AffiliatesByFundTypeChart from "@/src/components/admin/charts/AffiliatesB
 import FundDistributionChart from "@/src/components/admin/charts/FundDistributionChart";
 import MonthlyContributionsChart from "@/src/components/admin/charts/MonthlyContributionsChart";
 import QuotesByStatusChart from "@/src/components/admin/charts/QuotesByStatusChart";
+import ReportCard from "@/src/components/admin/reports/ReportCard";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import { useAdminDashboardGraphs } from "@/src/hooks/useAdminDashboardGraphs";
+import { useAdminReports } from "@/src/hooks/useAdminReports";
 
 export default function AdminReportsScreen() {
   const { error, graphs, isEmpty, isLoading, isRefreshing, refresh } =
     useAdminDashboardGraphs();
+  const { quotesStatus, affiliatesStatus, downloadQuotes, downloadAffiliates } =
+    useAdminReports();
 
   if (isLoading) {
     return (
@@ -52,11 +56,46 @@ export default function AdminReportsScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Graficas del sistema</Text>
+          <Text style={styles.title}>Gráficas y reportes</Text>
           <Text style={styles.subtitle}>
-            Analiza cotizaciones, aportes, afiliados y distribucion de fondos
-            desde una sola vista.
+            Descarga reportes PDF o analiza cotizaciones, aportes, afiliados y
+            distribución de fondos desde una sola vista.
           </Text>
+        </View>
+
+        {/* ── Sección PDF ───────────────────────────────────────── */}
+        <View style={styles.pdfSection}>
+          <Text style={styles.sectionTitle}>Reportes PDF</Text>
+          <Text style={styles.sectionSubtitle}>
+            Genera y descarga reportes globales por rango de fechas.
+          </Text>
+
+          <ReportCard
+            title="Reporte de cotizaciones"
+            description="Incluye todas las cotizaciones del período: estado, aportes del empleador y afiliado, días cotizados y total acumulado."
+            icon="document-text-outline"
+            iconColor="#369BC9"
+            iconBg="#EFF6FF"
+            requiresDates
+            status={quotesStatus}
+            onDownload={(params) => params && downloadQuotes({ from: params.from!, to: params.to! })}
+          />
+
+          <ReportCard
+            title="Reporte de afiliados"
+            description="Incluye todos los afiliados: tipo de fondo, saldo, estado, documento y fecha de afiliación. El rango de fechas es opcional."
+            icon="people-outline"
+            iconColor="#10B981"
+            iconBg="#ECFDF5"
+            requiresDates={false}
+            status={affiliatesStatus}
+            onDownload={(params) => downloadAffiliates(params)}
+          />
+        </View>
+
+        {/* ── Sección Gráficas ──────────────────────────────────── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Gráficas del sistema</Text>
         </View>
 
         {isEmpty ? (
@@ -138,5 +177,22 @@ const styles = StyleSheet.create({
   },
   chartsList: {
     gap: 16,
+  },
+  pdfSection: {
+    gap: 12,
+  },
+  sectionHeader: {
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+    lineHeight: 18,
   },
 });
