@@ -22,6 +22,7 @@ export async function getAffiliateDashboard(): Promise<AffiliateDashboardDto> {
   return response.data.data;
 }
 
+
 export async function getAffiliateProfile(): Promise<AffiliateProfileDto> {
   const response = await httpClient.get<ApiResponseDto<AffiliateProfileDto>>(
     "/api/v1/affiliate/profile"
