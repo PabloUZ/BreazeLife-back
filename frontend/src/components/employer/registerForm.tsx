@@ -63,7 +63,24 @@ function validateForm(form: FormFields): FormErrors {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
     errors.email = "Correo invalido";
   if (!form.document.trim()) errors.document = "La cedula es requerida";
-  if (!form.birthDate.trim()) errors.birthDate = "La fecha de nacimiento es requerida";
+  if (!form.birthDate.trim()) {
+    errors.birthDate = "La fecha de nacimiento es requerida";
+  } else {
+    const today = new Date();
+    const birthDateParts = form.birthDate.split("-");
+    const birthYear = parseInt(birthDateParts[0], 10);
+    const birthMonth = parseInt(birthDateParts[1], 10) - 1;
+    const birthDay = parseInt(birthDateParts[2], 10);
+
+    let age = today.getFullYear() - birthYear;
+    const monthDiff = today.getMonth() - birthMonth;
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDay)) {
+      age--;
+    }
+    if (age < 18) {
+      errors.birthDate = "El empleado debe tener minimo 18 años";
+    }
+  }
   if (!form.position.trim()) errors.position = "El cargo es requerido";
   if (!form.baseSalary.trim()) errors.baseSalary = "El salario es requerido";
   else if (isNaN(Number(form.baseSalary)) || Number(form.baseSalary) <= 0)

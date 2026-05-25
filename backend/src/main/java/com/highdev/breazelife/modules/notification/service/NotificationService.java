@@ -98,7 +98,7 @@ public class NotificationService {
         notificationRepository.delete(notification);
     }
 
-    public void createNotification(String userId, String message) {
+    public synchronized void createNotification(String userId, String message) {
         User user = userRepository.getReferenceById(userId);
 
         Notification notification = new Notification();
@@ -115,7 +115,7 @@ public class NotificationService {
         );
     }
 
-    public NotificationResponse createContributionApprovedNotification(
+    public synchronized NotificationResponse createContributionApprovedNotification(
             String userId,
             String quoteId,
             String accountId,
