@@ -76,3 +76,10 @@ export async function getQuotes(
   
   return response.data.data; // Devuelve el PagedResponseDTO
 }
+
+export async function getRentabilities(affiliateId: string, page: number = 0, size: number = 5) {
+  const response = await httpClient.get(
+    `/api/v1/affiliates/${affiliateId}/rentabilities?page=${page}&size=${size}`
+  );
+  return response.data.data;
+}

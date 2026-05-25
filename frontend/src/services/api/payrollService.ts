@@ -1,5 +1,6 @@
 import { httpClient } from "@/src/config/http";
 import type {
+  PayrollExecuteResponseDto,
   PayrollPeriodRequestDto,
   PayrollPreviewResponseDto,
 } from "@/src/dtos/employer/employer.dtos";
@@ -11,6 +12,16 @@ export async function previewPayroll(
 ): Promise<PayrollPreviewResponseDto> {
   const response = await httpClient.post<PayrollPreviewResponseDto>(
     `${BASE_PATH}/preview`,
+    data
+  );
+  return response.data;
+}
+
+export async function executePayroll(
+  data: PayrollPeriodRequestDto
+): Promise<PayrollExecuteResponseDto> {
+  const response = await httpClient.post<PayrollExecuteResponseDto>(
+    `${BASE_PATH}/execute`,
     data
   );
   return response.data;
