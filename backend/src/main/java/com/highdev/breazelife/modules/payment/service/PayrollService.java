@@ -54,6 +54,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
+import com.highdev.breazelife.modules.notification.events.PayrollPaymentSuccessEvent;
 
 @Service
 public class PayrollService {
@@ -69,19 +71,22 @@ public class PayrollService {
     private final PaymentRepository paymentRepository;
     private final QuoteRepository quoteRepository;
     private final AccountRepository accountRepository;
+    private final ApplicationEventPublisher eventPublisher;
  
     public PayrollService(ContractRepository contractRepository,
                           FundsService fundsService,
                           EmployerRepository employerRepository,
                           PaymentRepository paymentRepository,
                           QuoteRepository quoteRepository,
-                          AccountRepository accountRepository) {
+                          AccountRepository accountRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.contractRepository = contractRepository;
         this.fundsService = fundsService;
         this.employerRepository = employerRepository;
         this.paymentRepository = paymentRepository;
         this.quoteRepository = quoteRepository;
         this.accountRepository = accountRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // ─── Preview ─────────────────────────────────────────────────────────────
@@ -227,6 +232,9 @@ public class PayrollService {
             quote.setContribDate(paymentDate);
             quote.setStatus(Quote.QuoteStatus.PENDING);
             quoteRepository.save(quote);
+
+            // Publicar evento de notificación de pago de nómina exitoso al afiliado
+            eventPublisher.publishEvent(new PayrollPaymentSuccessEvent(contract.getAffiliate().getUserId()));
 
             PaymentResultDTO result = new PaymentResultDTO();
             result.setPaymentId(payment.getId());
