@@ -106,7 +106,6 @@ export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
                 <Text style={styles.title}>Editar empleado</Text>
                 <Text style={styles.subtitle}>Modifica los datos básicos del empleado</Text>
 
-                {/* Datos editables */}
                 <Text style={styles.sectionTitle}>Datos personales</Text>
 
                 <View style={styles.row}>
@@ -178,7 +177,6 @@ export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
                     />
                 )}
 
-                {/* Datos no editables */}
                 <Text style={styles.sectionTitle}>Datos no editables</Text>
 
                 <Text style={styles.label}>Cargo</Text>
@@ -191,7 +189,16 @@ export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
                     <Text style={styles.readonlyText}>{employee.document}</Text>
                 </View>
 
-                {/* Botón submit */}
+                <TouchableOpacity
+                    style={styles.salaryButton}
+                    onPress={() => router.push({
+                        pathname: "/(tabs)/(employer)/change-salary-position" as any,
+                        params: { contractId: employee.contractId },
+                    })}
+                >
+                    <Text style={styles.salaryButtonText}>Cambiar cargo y salario</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                     style={[styles.submitButton, loading && styles.submitButtonDisabled]}
                     onPress={handleSubmit}
@@ -304,6 +311,20 @@ const styles = StyleSheet.create({
     },
     submitButtonText: {
         color: "#FFFFFF",
+        fontSize: 16,
+        fontWeight: "600",
+    },
+    salaryButton: {
+        backgroundColor: "#F3F4F6",
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+    },
+    salaryButtonText: {
+        color: "#374151",
         fontSize: 16,
         fontWeight: "600",
     },

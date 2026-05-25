@@ -1,13 +1,16 @@
 import { httpClient } from "@/src/config/http";
 import type {
+    ChangeSalaryPositionDto,
+    ChangeSalaryPositionResponseDto,
     EmployeeDetailDto,
     EmployeeListParamsDto,
     EmployeeListResponseDto,
     RegisterEmployeeDto,
     RegisterEmployeeResponseDto,
     UpdateEmployeeDto,
-    UpdateEmployeeResponseDto
+    UpdateEmployeeResponseDto,
 } from "@/src/dtos/employer/employee.dtos";
+import { apiClient } from "@/src/services/api/ApiClient";
 
 const BASE_PATH = "/api/v1/employers";
 
@@ -59,6 +62,18 @@ export async function updateEmployee(
 ): Promise<UpdateEmployeeResponseDto> {
     const response = await httpClient.put<UpdateEmployeeResponseDto>(
         `${BASE_PATH}/${employerId}/update-employee/${contractId}`,
+        data
+    );
+    return response.data;
+}
+
+export async function changeSalaryPosition(
+    employerId: string,
+    contractId: string,
+    data: ChangeSalaryPositionDto
+): Promise<ChangeSalaryPositionResponseDto> {
+    const response = await httpClient.patch<ChangeSalaryPositionResponseDto>(
+        `${BASE_PATH}/${employerId}/change-salary-position/${contractId}`,
         data
     );
     return response.data;

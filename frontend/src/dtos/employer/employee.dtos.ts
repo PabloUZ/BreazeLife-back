@@ -99,3 +99,20 @@ export type EmployeeListParamsDto = {
     size?: number;
     status?: EmployeeStatus;
 };
+
+export type ChangeSalaryPositionDto = {
+    position: string;
+    baseSalary: number;
+};
+
+export type ChangeSalaryPositionResponseDto = {
+    contractId: string;
+    affiliateId: string;
+    employerId: string;
+    firstName: string;
+    lastName: string;
+    position: string;
+    baseSalary: number;
+    startDate: string;
+    status: string;
+};
