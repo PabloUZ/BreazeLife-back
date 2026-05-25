@@ -46,3 +46,33 @@ export async function getPayslips(
   
   return response.data.data;
 }
+
+
+export async function getQuotes(
+  affiliateId: string,
+  page: number = 0,
+  size: number = 10,
+  from?: string,
+  to?: string,
+  status?: string
+) {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+
+  if (from && to) {
+    query.append("from", from);
+    query.append("to", to);
+  }
+  
+  if (status) {
+    query.append("status", status);
+  }
+
+  const response = await httpClient.get(
+    `/api/v1/affiliates/${affiliateId}/quotes?${query.toString()}`
+  );
+  
+  return response.data.data; // Devuelve el PagedResponseDTO
+}
