@@ -16,10 +16,10 @@ public class Employer {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(length = 20, unique = true, nullable = false)
+    @Column(length = 20, unique = true)
     private String nit;
 
-    @Column(name = "company_name", length = 50, nullable = false)
+    @Column(name = "company_name", length = 50)
     private String companyName;
 
     @Column(length = 100)

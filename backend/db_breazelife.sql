@@ -28,8 +28,8 @@ CREATE TABLE admins (
 -- ============================================
 CREATE TABLE employers (
     user_id            CHAR(36) PRIMARY KEY,
-    nit                VARCHAR(20) UNIQUE NOT NULL,
-    company_name       VARCHAR(50) NOT NULL,
+    nit                VARCHAR(20) UNIQUE,
+    company_name       VARCHAR(50),
     sector             VARCHAR(100),
     name_legal_rep     VARCHAR(50),
     id_legal_rep       VARCHAR(20),
@@ -164,10 +164,11 @@ CREATE TABLE quotes (
 -- ============================================
 CREATE TABLE notifications (
     id          VARCHAR(20) PRIMARY KEY,
-    user        CHAR(36),
-    message     TEXT,
-    read        BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (user) REFERENCES users(id)
+    user_id     CHAR(36) NOT NULL,
+    message     TEXT NOT NULL,
+    is_read     BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ============================================
@@ -177,4 +178,32 @@ CREATE TABLE system_config (
     id      INT AUTO_INCREMENT PRIMARY KEY,
     `key`   VARCHAR(100) UNIQUE,
     value   VARCHAR(100)
+);
+
+-- ============================================
+-- EMPLOYER DOCUMENTS
+-- ============================================
+CREATE TABLE employer_documents (
+    id              CHAR(36) PRIMARY KEY,
+    employer_id     CHAR(36) NOT NULL,
+    payment_id      CHAR(36),
+    type            ENUM('PAYROLL_RECEIPT','PAYSLIP'),
+    file_name       VARCHAR(255),
+    file_path       TEXT,
+    generated_at    TIMESTAMP,
+    FOREIGN KEY (employer_id) REFERENCES employers(user_id),
+    FOREIGN KEY (payment_id) REFERENCES payments(id)
+);
+
+-- ============================================
+-- AFFILIATE DOCUMENTS
+-- ============================================
+CREATE TABLE affiliate_documents (
+    id              VARCHAR(20) PRIMARY KEY,
+    affiliate_id    CHAR(36) NOT NULL,
+    type            ENUM('AFFILIATION_CERTIFICATE','BALANCE_CERTIFICATE','ACCOUNT_STATEMENT','PAYSLIP') NOT NULL,
+    file_name       VARCHAR(255) NOT NULL,
+    content         LONGBLOB NOT NULL,
+    generated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (affiliate_id) REFERENCES affiliates(user_id)
 );

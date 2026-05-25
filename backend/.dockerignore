@@ -1,9 +1,9 @@
 # Version control
 .git/
-.gitignore
+../.gitignore
 
 # Build output (rebuilt inside Docker)
-target/
+backend/target/
 
 # IDE files
 .idea/
@@ -13,18 +13,18 @@ target/
 .settings/
 
 # Tests (skipped in production build)
-src/test/
+backend/src/test/
 
 # Documentation
 *.md
 
 # Windows Maven wrapper (not needed in Linux container)
-mvnw.cmd
+backend/mvnw.cmd
 
 # Local environment / secrets
-.env
+backend/.env
 *.env.local
 
 # Docker files (not needed inside the image)
-Dockerfile
+backend/Dockerfile
 .dockerignore
