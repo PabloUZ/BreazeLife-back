@@ -133,3 +133,13 @@ export type SalaryHistoryPageDto = {
     number: number;
     last: boolean;
 };
+
+export type DeactivateEmployeeResponseDto = {
+    contractId: string;
+    affiliateId: string;
+    employerId: string;
+    firstName: string;
+    lastName: string;
+    status: string;
+    endDate: string;
+};
