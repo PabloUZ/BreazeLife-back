@@ -17,35 +17,21 @@ type Props = {
 export default function DateRangeFilter({ onApply }: Props) {
   const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
   const [toDate, setToDate] = useState<Date | undefined>(new Date());
-  
-  // Control de visibilidad del picker
   const [showPicker, setShowPicker] = useState<"from" | "to" | null>(null);
 
   function handleDateChange(event: DateTimePickerEvent, selectedDate?: Date) {
     if (Platform.OS === "android") {
       setShowPicker(null);
-      
-      // En Android, cuando el usuario da clic en aceptar
       if (event.type === "set" && selectedDate) {
         let newFrom = fromDate;
         let newTo = toDate;
-
-        if (showPicker === "from") {
-          setFromDate(selectedDate);
-          newFrom = selectedDate;
-        }
-        if (showPicker === "to") {
-          setToDate(selectedDate);
-          newTo = selectedDate;
-        }
-
+        if (showPicker === "from") { setFromDate(selectedDate); newFrom = selectedDate; }
+        if (showPicker === "to") { setToDate(selectedDate); newTo = selectedDate; }
         const fromIso = newFrom ? newFrom.toISOString().split("T")[0] : undefined;
         const toIso = newTo ? newTo.toISOString().split("T")[0] : undefined;
         onApply(fromIso, toIso);
       }
     } else {
-      // En iOS, SOLO actualizamos el estado en pantalla mientras gira la rueda,
-      // NO llamamos a la API aun
       if (selectedDate) {
         if (showPicker === "from") setFromDate(selectedDate);
         if (showPicker === "to") setToDate(selectedDate);
@@ -53,12 +39,11 @@ export default function DateRangeFilter({ onApply }: Props) {
     }
   }
 
-  // confirmar fecha en iOS
   function handleIosConfirm() {
     setShowPicker(null);
     const fromIso = fromDate ? fromDate.toISOString().split("T")[0] : undefined;
     const toIso = toDate ? toDate.toISOString().split("T")[0] : undefined;
-    onApply(fromIso, toIso); // aqui se se dispara la API una sola vez
+    onApply(fromIso, toIso);
   }
 
   function handleClear() {
@@ -73,85 +58,185 @@ export default function DateRangeFilter({ onApply }: Props) {
     return date.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
   }
 
+  const activeFrom = showPicker === "from";
+  const activeTo = showPicker === "to";
+
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Filtrar por fecha</Text>
-      
-      <View style={styles.row}>
-        <View style={styles.dateInputContainer}>
-          <Text style={styles.subLabel}>Desde:</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker("from")}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.dateText}>{formatDate(fromDate)}</Text>
-          </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <Ionicons name="filter-outline" size={14} color="#369BC9" />
+          <Text style={styles.label}>Filtrar por fecha</Text>
         </View>
-
-        <View style={styles.dateInputContainer}>
-          <Text style={styles.subLabel}>Hasta:</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker("to")}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.dateText}>{formatDate(toDate)}</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={handleClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={styles.clearLink}>Limpiar</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Renderizamos el picker nativo si showPicker no es nulo */}
+      <View style={styles.row}>
+        {/* Desde */}
+        <TouchableOpacity
+          style={[styles.dateBtn, activeFrom && styles.dateBtnActive]}
+          onPress={() => setShowPicker("from")}
+          activeOpacity={0.8}
+        >
+          <View style={styles.dateBtnInner}>
+            <Text style={styles.subLabel}>Desde</Text>
+            <View style={styles.dateBtnValue}>
+              <Ionicons
+                name="calendar-outline"
+                size={13}
+                color={activeFrom ? "#369BC9" : "#9CA3AF"}
+              />
+              <Text style={[styles.dateText, !fromDate && styles.dateTextPlaceholder]}>
+                {formatDate(fromDate)}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.separator}>
+          <View style={styles.separatorLine} />
+          <Ionicons name="arrow-forward" size={12} color="#D1D5DB" />
+          <View style={styles.separatorLine} />
+        </View>
+
+        {/* Hasta */}
+        <TouchableOpacity
+          style={[styles.dateBtn, activeTo && styles.dateBtnActive]}
+          onPress={() => setShowPicker("to")}
+          activeOpacity={0.8}
+        >
+          <View style={styles.dateBtnInner}>
+            <Text style={styles.subLabel}>Hasta</Text>
+            <View style={styles.dateBtnValue}>
+              <Ionicons
+                name="calendar-outline"
+                size={13}
+                color={activeTo ? "#369BC9" : "#9CA3AF"}
+              />
+              <Text style={[styles.dateText, !toDate && styles.dateTextPlaceholder]}>
+                {formatDate(toDate)}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {showPicker && (
         <DateTimePicker
           value={(showPicker === "from" ? fromDate : toDate) || new Date()}
           mode="date"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={handleDateChange}
-          maximumDate={new Date()} // No fechas futuras
+          maximumDate={new Date()}
           themeVariant="light"
           textColor="#000000"
         />
       )}
 
-      {/* boton en iOS para cerrar el spinner y aplicar de verdad */}
       {Platform.OS === "ios" && showPicker && (
-        <TouchableOpacity style={styles.iosDoneBtn} onPress={handleIosConfirm}>
-          <Text style={styles.iosDoneText}>Aplicar Filtro</Text>
+        <TouchableOpacity style={styles.iosDoneBtn} onPress={handleIosConfirm} activeOpacity={0.8}>
+          <Text style={styles.iosDoneText}>Confirmar fecha</Text>
         </TouchableOpacity>
       )}
-
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
-          <Text style={styles.clearBtnText}>Limpiar fechas</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 12 },
-  row: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  dateInputContainer: { flex: 1 },
-  subLabel: { fontSize: 11, color: "#6B7280", marginBottom: 4 },
-  dateBtn: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
+    letterSpacing: 0.2,
+  },
+  clearLink: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    fontWeight: "500",
+  },
+  row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  dateBtn: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
   },
-  dateText: { fontSize: 13, color: "#111827" },
-  iosDoneBtn: { alignItems: "center", padding: 10, backgroundColor: "#F3F4F6", borderRadius: 8, marginBottom: 16 },
-  iosDoneText: { color: "#369BC9", fontWeight: "600", fontSize: 14 },
-  actionsRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 4 },
-  clearBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: "#F3F4F6" },
-  clearBtnText: { color: "#6B7280", fontWeight: "600", fontSize: 13 },
+  dateBtnActive: {
+    borderColor: "#369BC9",
+    backgroundColor: "#EFF6FF",
+  },
+  dateBtnInner: {
+    gap: 3,
+  },
+  dateBtnValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  subLabel: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    fontWeight: "500",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  dateText: {
+    fontSize: 13,
+    color: "#111827",
+    fontWeight: "500",
+  },
+  dateTextPlaceholder: {
+    color: "#9CA3AF",
+    fontWeight: "400",
+  },
+  separator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  separatorLine: {
+    width: 4,
+    height: 1,
+    backgroundColor: "#D1D5DB",
+  },
+  iosDoneBtn: {
+    marginTop: 10,
+    alignItems: "center",
+    paddingVertical: 11,
+    backgroundColor: "#369BC9",
+    borderRadius: 10,
+  },
+  iosDoneText: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });
