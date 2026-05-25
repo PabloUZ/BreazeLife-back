@@ -63,6 +63,15 @@ export default function AdminTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="profitability"
+        options={{
+          title: "Rentabilidad",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trending-up-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="notifications"
         options={{
           title: "Alertas",
