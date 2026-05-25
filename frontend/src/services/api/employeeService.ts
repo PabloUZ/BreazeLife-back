@@ -9,6 +9,7 @@ import type {
     RegisterEmployeeResponseDto,
     UpdateEmployeeDto,
     UpdateEmployeeResponseDto,
+    SalaryHistoryPageDto
 } from "@/src/dtos/employer/employee.dtos";
 import { apiClient } from "@/src/services/api/ApiClient";
 
@@ -75,6 +76,18 @@ export async function changeSalaryPosition(
     const response = await httpClient.patch<ChangeSalaryPositionResponseDto>(
         `${BASE_PATH}/${employerId}/change-salary-position/${contractId}`,
         data
+    );
+    return response.data;
+}
+
+export async function getSalaryHistory(
+    employerId: string,
+    contractId: string,
+    page: number = 0,
+    size: number = 10
+): Promise<SalaryHistoryPageDto> {
+    const response = await httpClient.get<SalaryHistoryPageDto>(
+        `${BASE_PATH}/${employerId}/salary-history/${contractId}?page=${page}&size=${size}`
     );
     return response.data;
 }

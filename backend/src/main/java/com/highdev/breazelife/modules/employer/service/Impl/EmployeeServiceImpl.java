@@ -11,11 +11,7 @@ import com.highdev.breazelife.modules.contract.repository.ContractRepository;
 import com.highdev.breazelife.modules.employer.dto.request.ChangeSalaryPositionRequest;
 import com.highdev.breazelife.modules.employer.dto.request.RegisterEmployeeRequest;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployeeRequest;
-import com.highdev.breazelife.modules.employer.dto.response.ChangeSalaryPositionResponse;
-import com.highdev.breazelife.modules.employer.dto.response.EmployeeDetailResponse;
-import com.highdev.breazelife.modules.employer.dto.response.ListEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.RegisterEmployeeResponse;
-import com.highdev.breazelife.modules.employer.dto.response.UpdateEmployeeResponse;
+import com.highdev.breazelife.modules.employer.dto.response.*;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.employer.service.EmployeeService;
@@ -23,6 +19,8 @@ import com.highdev.breazelife.modules.history.entity.UpdateHistory;
 import com.highdev.breazelife.modules.history.repository.UpdateHistoryRepository;
 import com.highdev.breazelife.modules.user.entity.User;
 import com.highdev.breazelife.modules.user.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -252,5 +250,27 @@ public class EmployeeServiceImpl implements EmployeeService {
         response.setStatus(contract.getAffiliate().getStatus().name());
 
         return response;
+    }
+
+    @Override
+    public Page<SalaryHistoryResponse> getSalaryHistory(String employerId, String contractId, Pageable pageable) {
+        Contract contract = contractRepository.findById(contractId)
+            .orElseThrow(() -> new EntityNotFoundException("Contract not found"));
+
+        if (!contract.getEmployer().getUserId().equals(employerId)) {
+            throw new AccessDeniedException("Contract does not belong to this employer");
+        }
+
+        return updateHistoryRepository.findByContractIdOrderByDateDesc(contractId, pageable)
+            .map(history -> {
+                SalaryHistoryResponse response = new SalaryHistoryResponse();
+                response.setHistoryId(String.valueOf(history.getId()));
+                response.setContractId(history.getContract().getId());
+                response.setDate(history.getDate());
+                response.setAction(history.getAction());
+                response.setPosition(history.getPosition());
+                response.setSalary(history.getSalary());
+                return response;
+            });
     }
 }

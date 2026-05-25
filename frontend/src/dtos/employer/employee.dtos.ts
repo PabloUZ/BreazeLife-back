@@ -116,3 +116,20 @@ export type ChangeSalaryPositionResponseDto = {
     startDate: string;
     status: string;
 };
+
+export type SalaryHistoryResponseDto = {
+    historyId: string;
+    contractId: string;
+    date: string;
+    action: string;
+    position: string;
+    salary: number;
+};
+
+export type SalaryHistoryPageDto = {
+    content: SalaryHistoryResponseDto[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    last: boolean;
+};
