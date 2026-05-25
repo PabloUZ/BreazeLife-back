@@ -8,6 +8,7 @@ import type { ProgressResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
 
 // Importa tu hook de autenticación
 import { useAuthContext } from "@/src/context/AuthContext"; 
+import { RentabilityHistory } from "@/src/components/affiliate/RentabilityHistory";
 
 export default function AffiliateDashboardScreen() {
   const { state } = useAuthContext(); // Extraemos el estado global
@@ -61,7 +62,7 @@ export default function AffiliateDashboardScreen() {
       ) : (
         <Text style={styles.errorText}>No hay datos de progreso disponibles.</Text>
       )}
-
+    <RentabilityHistory />
     </ScrollView>
   );
 }

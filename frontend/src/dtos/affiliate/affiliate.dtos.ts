@@ -43,3 +43,30 @@ export interface PaginatedResponseDto<T> {
   size: number;
   number: number;
 }
+
+
+export interface QuoteResponseDto {
+  quoteId: string;
+  employerContrib: number;
+  affiliateContrib: number;
+  totalContrib: number;
+  daysContributed: number;
+  contribDate: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  comment?: string;
+  payment?: {
+    paymentId: string;
+    netSalary: number;
+    grossSalary: number;
+    date: string;
+  };
+}
+
+export interface ProfitabilityResponseDto {
+  id: string;
+  profit: number;
+  date: string;
+  accountType: string;
+}

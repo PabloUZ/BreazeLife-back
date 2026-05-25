@@ -31,8 +31,10 @@ import com.highdev.breazelife.modules.affiliate.dto.response.ProgressResponseDTO
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
-import com.highdev.breazelife.modules.account.service.AccumulationService; // Asegúrate de la ruta
+import com.highdev.breazelife.modules.account.service.AccumulationService; 
 import com.highdev.breazelife.modules.quote.exceptions.QuoteAlreadyProcessedException;
+
+import com.highdev.breazelife.modules.profitability.dto.response.ProfitabilityResponseDTO;
 
 
 @RestController
@@ -160,6 +162,26 @@ public class AffiliateController {
         
         return ResponseEntity.ok(Map.of(
                 "message", "Affiliate progress retrieved successfully",
+                "status_code", 200,
+                "status", "OK",
+                "data", result
+        ));
+    }
+    @PreAuthorize("hasAnyRole('AFFILIATE', 'ADMIN')")
+    @GetMapping("/{affiliate_id}/rentabilities")
+    public ResponseEntity<?> getRentabilities(
+            @PathVariable("affiliate_id") String affiliateId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // Llama a un método de AffiliateService que busque la cuenta y luego llame a:
+        // profitabilityHistoryRepository.findByAccountIdOrderByDateDesc(accountId, PageRequest.of(page, size))
+        // Y lo mapee al PagedResponseDTO<ProfitabilityResponseDto>
+        
+        PagedResponseDTO<ProfitabilityResponseDTO> result = affiliateService.getProfitabilityHistory(affiliateId, page, size);
+        
+        return ResponseEntity.ok(Map.of(
+                "message", "Rentabilities retrieved successfully",
                 "status_code", 200,
                 "status", "OK",
                 "data", result
