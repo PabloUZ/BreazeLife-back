@@ -73,6 +73,10 @@ export default function EmployeeDetailScreen() {
                             pathname: "/(tabs)/(employer)/edit-employee" as any,
                             params: { contractId: employee.contractId },
                         })}
+                        onViewHistory={() => router.push({
+                            pathname: "/(tabs)/(employer)/salary-history" as any,
+                            params: { contractId: employee.contractId },
+                        })}
                     />
                 )}
             </ScreenContainer>
