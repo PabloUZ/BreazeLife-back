@@ -3,6 +3,7 @@ package com.highdev.breazelife.modules.profitability.service;
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.modules.account.entity.Account;
 import com.highdev.breazelife.modules.account.repository.AccountRepository;
+import com.highdev.breazelife.modules.config.service.SystemConfigService;
 import com.highdev.breazelife.modules.profitability.dto.response.ApplyProfitabilityResponseDto;
 import com.highdev.breazelife.modules.profitability.dto.response.ProfitabilityHistoryPeriodDto;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
@@ -22,20 +23,16 @@ import java.util.Map;
 @Service
 public class ProfitabilityService {
 
-    // Tasas mensuales por tipo de cuenta
-    private static final Map<Account.AccountType, BigDecimal> MONTHLY_RATES = Map.of(
-            Account.AccountType.CONSERVATIVE, new BigDecimal("0.004"),  // 0.4%
-            Account.AccountType.MODERATE,     new BigDecimal("0.006"),  // 0.6%
-            Account.AccountType.RISKY,        new BigDecimal("0.008")   // 0.8%
-    );
-
     private final AccountRepository accountRepository;
     private final ProfitabilityHistoryRepository profitabilityHistoryRepository;
+    private final SystemConfigService systemConfigService;
 
     public ProfitabilityService(AccountRepository accountRepository,
-                                ProfitabilityHistoryRepository profitabilityHistoryRepository) {
+                                ProfitabilityHistoryRepository profitabilityHistoryRepository,
+                                SystemConfigService systemConfigService) {
         this.accountRepository = accountRepository;
         this.profitabilityHistoryRepository = profitabilityHistoryRepository;
+        this.systemConfigService = systemConfigService;
     }
 
     @Transactional
@@ -44,7 +41,6 @@ public class ProfitabilityService {
         LocalDate firstDayOfMonth = today.withDayOfMonth(1);
         LocalDate lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth());
 
-        // Guard: verificar que no se haya aplicado ya este mes
         if (profitabilityHistoryRepository.existsByDateBetween(firstDayOfMonth, lastDayOfMonth)) {
             throw new BadRequestException(
                     "PROFITABILITY_ALREADY_APPLIED",
@@ -52,6 +48,13 @@ public class ProfitabilityService {
                     today.getMonth().name() + " " + today.getYear()
             );
         }
+
+        // Leer tasas desde system_config (con fallback a defaults)
+        Map<Account.AccountType, BigDecimal> monthlyRates = Map.of(
+                Account.AccountType.CONSERVATIVE, systemConfigService.getRateConservative(),
+                Account.AccountType.MODERATE,     systemConfigService.getRateModerate(),
+                Account.AccountType.RISKY,        systemConfigService.getRateRisky()
+        );
 
         List<Account> accounts = accountRepository.findAll();
         List<ApplyProfitabilityResponseDto.AccountProfitDetailDto> details = new ArrayList<>();
@@ -63,7 +66,7 @@ public class ProfitabilityService {
                 continue;
             }
 
-            BigDecimal rate = MONTHLY_RATES.get(account.getAccountType());
+            BigDecimal rate = monthlyRates.get(account.getAccountType());
             if (rate == null) continue;
 
             BigDecimal previousBalance = account.getBalance();
