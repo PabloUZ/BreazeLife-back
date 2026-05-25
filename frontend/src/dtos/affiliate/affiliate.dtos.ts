@@ -1,6 +1,52 @@
-export type AffiliateDashboardDto = Record<string, never>;
+export interface AffiliateDashboardDto {
+  account_id: string;
+  account_type: string;
+  balance: number;
+  quoted_weeks: number;
+  weeks_remaining: number;
+  progress_percentage: number;
+  monthly_profitability: {
+    profit: number;
+    date: string;
+  } | null;
+  last_contribution: {
+    quote_id: string;
+    employer_contrib: number;
+    affiliate_contrib: number;
+    total_contribution: number;
+    days_contributed: number;
+    contrib_date: string;
+    status: string;
+  } | null;
+}
 
-export type AffiliateProfileDto = Record<string, never>;
+export interface AffiliateProfileDto {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  verified: boolean;
+  document: string;
+  birth_date: string;
+  affiliation_date: string;
+  phone: string;
+  status: string;
+  account: {
+    account_id: string;
+    account_type: string;
+    balance: number;
+    quoted_days: number;
+  } | null;
+}
+
+export interface UpdateAffiliateProfileDto {
+  email?: string;
+  phone?: string;
+  current_password?: string;
+  new_password?: string;
+  account_type?: string;
+}
 
 export type AffiliateContributionDto = Record<string, never>;
 
