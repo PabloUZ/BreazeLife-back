@@ -70,3 +70,44 @@ export interface ProfitabilityResponseDto {
   date: string;
   accountType: string;
 }
+
+export interface AffiliatePaymentItemDto {
+  payment_id: string;
+  period: string;
+  company_name: string;
+  position: string;
+  base_salary: number;
+  net_salary: number;
+  total_pension_contrib: number;
+  status: string;
+  paid_at: string;
+}
+
+export interface AffiliatePaymentHistoryResponseDto {
+  items: AffiliatePaymentItemDto[];
+  pagination: {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+  };
+}
+
+export interface PaymentDetailResponseDto {
+  payment_id: string;
+  period: string;
+  company_name: string;
+  affiliate_name: string;
+  document: string;
+  position: string;
+  base_salary: number;
+  employee_pension_deduction: number;
+  net_salary: number;
+  employer_pension_contrib: number;
+  total_pension_contrib: number;
+  days_contributed: number;
+  quote_id: string | null;
+  quote_status: string | null;
+  status: string;
+  paid_at: string;
+}
