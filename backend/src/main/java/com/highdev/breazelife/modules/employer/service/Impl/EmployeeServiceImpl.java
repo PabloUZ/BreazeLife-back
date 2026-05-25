@@ -2,6 +2,8 @@ package com.highdev.breazelife.modules.employer.service.Impl;
 
 import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.common.exceptions.http.NotFoundException;
+import com.highdev.breazelife.modules.account.entity.Account;
+import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.contract.entity.Contract;
@@ -38,18 +40,21 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final EmployerRepository employerRepository;
     private final UserRepository userRepository;
     private final UpdateHistoryRepository updateHistoryRepository;
+    private final AccountRepository accountRepository;
 
     public EmployeeServiceImpl(
         ContractRepository contractRepository,
         AffiliateRepository affiliateRepository,
         EmployerRepository employerRepository,
         UserRepository userRepository,
-        UpdateHistoryRepository updateHistoryRepository) {
+        UpdateHistoryRepository updateHistoryRepository,
+        AccountRepository accountRepository) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
         this.userRepository = userRepository;
         this.updateHistoryRepository = updateHistoryRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -94,6 +99,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         affiliate.setAffiliationDate(request.getStartDate());
         affiliate.setStatus(Affiliate.Status.ACTIVE);
         affiliateRepository.save(affiliate);
+
+        // Crear la cuenta pensional
+        Account account = new Account();
+        account.setAffiliate(affiliate);
+        account.setAccountType(request.getPensionFundType());
+        accountRepository.save(account);
 
         // Crear el contrato
         Contract contract = new Contract();

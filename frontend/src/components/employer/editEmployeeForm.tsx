@@ -14,8 +14,7 @@ import { useRouter } from "expo-router";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import { updateEmployee } from "@/src/services/api/employeeService";
 import type { EmployeeDetailDto, UpdateEmployeeDto } from "@/src/dtos/employer/employee.dtos";
-
-const EMPLOYER_ID = "placeholder-employer-id";
+import { useAuthContext } from "@/src/context/AuthContext";
 
 type FormFields = {
     firstName: string;
@@ -43,6 +42,8 @@ type EditEmployeeFormProps = {
 
 export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
     const router = useRouter();
+    const { state } = useAuthContext();
+    const employerId = state.user?.user_id ?? "";
     const [form, setForm] = useState<FormFields>({
         firstName: employee.firstName,
         lastName: employee.lastName,
@@ -85,7 +86,7 @@ export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
                 birthDate: form.birthDate.trim(),
             };
 
-            await updateEmployee(EMPLOYER_ID, employee.contractId, payload);
+            await updateEmployee(employerId, employee.contractId, payload);
 
             Alert.alert(
                 "¡Empleado actualizado!",
