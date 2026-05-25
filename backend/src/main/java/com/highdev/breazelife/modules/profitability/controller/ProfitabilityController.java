@@ -1,6 +1,7 @@
 package com.highdev.breazelife.modules.profitability.controller;
 
 import com.highdev.breazelife.modules.profitability.dto.response.ApplyProfitabilityResponseDto;
+import com.highdev.breazelife.modules.profitability.dto.response.ProfitabilityHistoryPeriodDto;
 import com.highdev.breazelife.modules.profitability.service.ProfitabilityService;
 import com.highdev.breazelife.shared.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -8,9 +9,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/profitability")
@@ -55,6 +59,26 @@ public class ProfitabilityController {
                 200,
                 "OK",
                 data
+        ));
+    }
+
+    @Operation(
+            summary = "Historial de rentabilidades aplicadas",
+            description = "Retorna el historial completo de rentabilidades aplicadas, agrupado por período (mes/año)."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Historial obtenido exitosamente"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "No autenticado"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Acceso denegado - Se requiere rol ADMIN")
+    })
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<List<ProfitabilityHistoryPeriodDto>>> getProfitabilityHistory() {
+        List<ProfitabilityHistoryPeriodDto> history = profitabilityService.getProfitabilityHistory();
+        return ResponseEntity.ok(ApiResponse.of(
+                "Profitability history retrieved successfully.",
+                200,
+                "OK",
+                history
         ));
     }
 }

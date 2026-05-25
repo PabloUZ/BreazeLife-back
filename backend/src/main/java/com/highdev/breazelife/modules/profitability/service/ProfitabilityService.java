@@ -4,6 +4,7 @@ import com.highdev.breazelife.common.exceptions.http.BadRequestException;
 import com.highdev.breazelife.modules.account.entity.Account;
 import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.profitability.dto.response.ApplyProfitabilityResponseDto;
+import com.highdev.breazelife.modules.profitability.dto.response.ProfitabilityHistoryPeriodDto;
 import com.highdev.breazelife.modules.profitability.entity.ProfitabilityHistory;
 import com.highdev.breazelife.modules.profitability.repository.ProfitabilityHistoryRepository;
 import org.springframework.stereotype.Service;
@@ -12,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -94,6 +97,24 @@ public class ProfitabilityService {
         }
 
         return new ApplyProfitabilityResponseDto(today, processed, totalProfit, details);
+    }
+
+    public List<ProfitabilityHistoryPeriodDto> getProfitabilityHistory() {
+        List<Object[]> rows = profitabilityHistoryRepository.findHistoryGroupedByDate();
+        List<ProfitabilityHistoryPeriodDto> result = new ArrayList<>();
+
+        for (Object[] row : rows) {
+            LocalDate date = (LocalDate) row[0];
+            long count = (long) row[1];
+            BigDecimal total = (BigDecimal) row[2];
+
+            String period = date.getMonth().getDisplayName(TextStyle.FULL, new Locale("es", "CO"))
+                    + " " + date.getYear();
+
+            result.add(new ProfitabilityHistoryPeriodDto(period, date, count, total));
+        }
+
+        return result;
     }
 }
 

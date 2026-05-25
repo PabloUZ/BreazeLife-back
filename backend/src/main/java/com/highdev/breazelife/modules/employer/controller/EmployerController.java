@@ -1,6 +1,6 @@
 package com.highdev.breazelife.modules.employer.controller;
 
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDto;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerRepresentativeDTO;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.service.EmployerService;
@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateLegalRepresentativeDto;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.service.EmployerService;
@@ -48,7 +47,7 @@ public class EmployerController {
     @PutMapping("/profile") 
     public ResponseEntity<EmployerProfileResponseDTO> updateProfile(
             @AuthenticationPrincipal User authenticatedUser,
-            @RequestBody UpdateEmployerProfileDTO dto) {
+            @RequestBody UpdateEmployerProfileDto dto) {
         
         String userIdFromToken = authenticatedUser.getId();
         EmployerProfileResponseDTO updated = employerService.updateProfile(userIdFromToken, dto);

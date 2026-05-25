@@ -1,7 +1,8 @@
 package com.highdev.breazelife.modules.employer.service;
 
-import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDTO;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerProfileDto;
 import com.highdev.breazelife.modules.employer.dto.request.UpdateEmployerRepresentativeDTO;
+import com.highdev.breazelife.modules.employer.dto.request.UpdateLegalRepresentativeDto;
 import com.highdev.breazelife.modules.employer.dto.response.EmployerProfileResponseDTO;
 import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
@@ -84,7 +85,7 @@ public class EmployerService {
     }
 
     @Transactional
-    public EmployerProfileResponseDTO updateProfile(String userId, UpdateEmployerProfileDTO dto) {
+    public EmployerProfileResponseDTO updateProfile(String userId, UpdateEmployerProfileDto dto) {
         Employer employer = employerRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Employer not found"));
         
