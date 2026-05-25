@@ -7,9 +7,18 @@ import com.highdev.breazelife.modules.affiliate.repository.AffiliateRepository;
 import com.highdev.breazelife.modules.document.service.PdfTemplateService;
 import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.borders.SolidBorder;
+import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import org.springframework.stereotype.Service;
 
@@ -126,11 +135,15 @@ public class AdminReportService {
                 ? affiliateRepository.findByAffiliationDateBetweenOrderByAffiliationDateAsc(from, to)
                 : affiliateRepository.findAllByOrderByAffiliationDateAsc();
 
-        // Obtener cuentas para info de fondo/saldo
         List<Account> accounts = accountRepository.findAll();
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        Document doc = pdfTemplateService.createDocument(out);
+
+        // ── Documento en horizontal (A4 Landscape) para acomodar todas las columnas
+        PdfWriter writer  = new PdfWriter(out);
+        PdfDocument pdf   = new PdfDocument(writer);
+        Document doc      = new Document(pdf, PageSize.A4.rotate());
+        doc.setMargins(35, 45, 50, 45);
 
         pdfTemplateService.addHeader(doc, "Reporte Global de Afiliados");
 
@@ -165,35 +178,34 @@ public class AdminReportService {
             doc.add(new Paragraph("No se encontraron afiliados en el período seleccionado.")
                     .setFontSize(10).setItalic());
         } else {
-            Table table = new Table(UnitValue.createPercentArray(new float[]{14, 22, 20, 14, 14, 10, 12}))
+            // 7 columnas con proporciones ajustadas a A4 Landscape
+            // Documento | Nombre | Email | Fondo | Saldo | Estado | F.Afiliación
+            float[] colWidths = {11f, 16f, 22f, 11f, 13f, 10f, 11f};
+            Table table = new Table(UnitValue.createPercentArray(colWidths))
                     .setWidth(UnitValue.createPercentValue(100));
 
-            pdfTemplateService.addTableHeaderRow(table,
-                    "Documento", "Nombre", "Email", "Tipo Fondo", "Saldo",
-                    "Estado", "Fecha Afiliación");
+            addAffiliateHeaderRow(table,
+                    "Documento", "Nombre completo", "Email",
+                    "Tipo fondo", "Saldo", "Estado", "F. Afiliación");
 
             for (int i = 0; i < affiliates.size(); i++) {
-                Affiliate a = affiliates.get(i);
-                String name  = a.getUser() != null ? a.getUser().getFirstName() + " " + a.getUser().getLastName() : "—";
-                String email = a.getUser() != null ? a.getUser().getEmail() : "—";
-
-                // Buscar cuenta
+                Affiliate a    = affiliates.get(i);
+                String name    = a.getUser() != null
+                        ? a.getUser().getFirstName() + " " + a.getUser().getLastName() : "—";
+                String email   = a.getUser() != null ? a.getUser().getEmail() : "—";
                 Account account = accounts.stream()
-                        .filter(acc -> acc.getAffiliate() != null && a.getUserId().equals(acc.getAffiliate().getUserId()))
+                        .filter(acc -> acc.getAffiliate() != null
+                                && a.getUserId().equals(acc.getAffiliate().getUserId()))
                         .findFirst().orElse(null);
+                String fundType = account != null && account.getAccountType() != null
+                        ? account.getAccountType().name() : "—";
+                String balance  = account != null && account.getBalance() != null
+                        ? formatCurrency(account.getBalance()) : "—";
 
-                String fundType = account != null && account.getAccountType() != null ? account.getAccountType().name() : "—";
-                String balance  = account != null && account.getBalance() != null ? formatCurrency(account.getBalance()) : "—";
-
-                pdfTemplateService.addMovementRow(table, i % 2 == 0,
-                        a.getDocument(),
-                        name,
-                        email,
-                        fundType,
-                        balance,
+                addAffiliateDataRow(table, i % 2 == 0,
+                        a.getDocument(), name, email, fundType, balance,
                         a.getStatus().name(),
-                        a.getAffiliationDate() != null ? a.getAffiliationDate().format(DATE_FMT) : "—"
-                );
+                        a.getAffiliationDate() != null ? a.getAffiliationDate().format(DATE_FMT) : "—");
             }
             doc.add(table);
         }
@@ -201,6 +213,37 @@ public class AdminReportService {
         pdfTemplateService.addFooter(doc);
         doc.close();
         return out.toByteArray();
+    }
+
+    // Encabezado de tabla de afiliados optimizado para landscape
+    private void addAffiliateHeaderRow(Table table, String... headers) {
+        DeviceRgb COLOR_BLUE = new DeviceRgb(0, 102, 204);
+        for (String h : headers) {
+            table.addHeaderCell(new Cell()
+                    .setBackgroundColor(COLOR_BLUE)
+                    .setBorder(Border.NO_BORDER)
+                    .setPadding(5)
+                    .add(new Paragraph(h)
+                            .setFontColor(ColorConstants.WHITE)
+                            .setBold()
+                            .setFontSize(8)
+                            .setTextAlignment(TextAlignment.CENTER)));
+        }
+    }
+
+    // Fila de datos de tabla de afiliados con font pequeño para que quepa
+    private void addAffiliateDataRow(Table table, boolean isEven, String... values) {
+        DeviceRgb COLOR_LIGHT  = new DeviceRgb(240, 245, 255);
+        DeviceRgb COLOR_BORDER = new DeviceRgb(200, 210, 230);
+        var bg = isEven ? COLOR_LIGHT : ColorConstants.WHITE;
+        for (String v : values) {
+            table.addCell(new Cell()
+                    .setBackgroundColor(bg)
+                    .setBorder(new SolidBorder(COLOR_BORDER, 0.3f))
+                    .setPadding(4)
+                    .add(new Paragraph(v != null ? v : "—")
+                            .setFontSize(7.5f)));
+        }
     }
 
     // ── Utilidades ────────────────────────────────────────────────────────────

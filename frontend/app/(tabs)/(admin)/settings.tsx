@@ -19,6 +19,7 @@ import AppLoadingState from "@/src/components/common/AppLoadingState";
 import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import type { UpdateSystemConfigDto } from "@/src/dtos/admin/systemConfig.dtos";
 import { useSystemConfig } from "@/src/hooks/useSystemConfig";
+import { useSystemConfigContext } from "@/src/context/SystemConfigContext";
 import { colors, formStyles, spacing, typography } from "@/src/theme";
 
 function toPercent(decimal: number): string {
@@ -120,6 +121,7 @@ function SectionHeader({
 export default function AdminSettingsScreen() {
   const { config, error, isLoading, isRefreshing, isSaving, refresh, saveConfig } =
     useSystemConfig();
+  const { reload: reloadGlobalConfig } = useSystemConfigContext();
 
   const [rateConservative, setRateConservative] = useState("");
   const [rateModerate, setRateModerate] = useState("");
@@ -173,6 +175,9 @@ export default function AdminSettingsScreen() {
             const saved = await saveConfig(payload);
             if (saved) {
               setIsDirty(false);
+              // Recarga el context global para que todas las pantallas
+              // reflejen inmediatamente los nuevos valores (tasas, cotización, etc.)
+              reloadGlobalConfig();
             }
           },
         },

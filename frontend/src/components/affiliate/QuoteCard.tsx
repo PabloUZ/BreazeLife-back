@@ -3,6 +3,7 @@ import AppCard from "@/src/components/common/AppCard";
 import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import type { QuoteResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
 import { colors, spacing, typography } from "@/src/theme";
+import { useSystemConfigContext, formatContributionRate } from "@/src/context/SystemConfigContext";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-CO", {
@@ -27,6 +28,7 @@ function getStatusTone(status: string) {
 
 export function QuoteCard({ quote }: { quote: QuoteResponseDto }) {
   const status = getStatusTone(quote.status);
+  const { config } = useSystemConfigContext();
 
   return (
     <AppCard style={styles.card}>
@@ -58,7 +60,9 @@ export function QuoteCard({ quote }: { quote: QuoteResponseDto }) {
       </View>
 
       <View style={styles.totalBox}>
-        <Text style={styles.totalLabel}>Total cotizado (16%)</Text>
+        <Text style={styles.totalLabel}>
+          Total cotizado ({formatContributionRate(config.contribution_rate)})
+        </Text>
         <Text style={styles.totalValue}>{formatCurrency(quote.totalContrib)}</Text>
       </View>
 

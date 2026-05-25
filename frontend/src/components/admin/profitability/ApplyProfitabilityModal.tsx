@@ -7,26 +7,32 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { formatRate } from "@/src/context/SystemConfigContext";
 
 interface Props {
   visible: boolean;
   isApplying: boolean;
+  rateConservative: number;
+  rateModerate: number;
+  rateRisky: number;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-const RATES = [
-  { type: "CONSERVATIVE", label: "Conservador", rate: "0.4%", color: "#3B82F6" },
-  { type: "MODERATE", label: "Moderado", rate: "0.6%", color: "#F59E0B" },
-  { type: "RISKY", label: "Mayor riesgo", rate: "0.8%", color: "#EF4444" },
-];
-
 export default function ApplyProfitabilityModal({
   visible,
   isApplying,
+  rateConservative,
+  rateModerate,
+  rateRisky,
   onConfirm,
   onCancel,
 }: Props) {
+  const rates = [
+    { label: "Conservador",   rate: formatRate(rateConservative), color: "#3B82F6" },
+    { label: "Moderado",      rate: formatRate(rateModerate),     color: "#F59E0B" },
+    { label: "Mayor riesgo",  rate: formatRate(rateRisky),        color: "#EF4444" },
+  ];
   return (
     <Modal
       visible={visible}
@@ -52,13 +58,11 @@ export default function ApplyProfitabilityModal({
           {/* Tasas */}
           <View style={styles.ratesContainer}>
             <Text style={styles.ratesTitle}>Tasas a aplicar</Text>
-            {RATES.map((r) => (
-              <View key={r.type} style={styles.rateRow}>
+            {rates.map((r) => (
+              <View key={r.label} style={styles.rateRow}>
                 <View style={[styles.rateDot, { backgroundColor: r.color }]} />
                 <Text style={styles.rateLabel}>{r.label}</Text>
-                <Text style={[styles.rateValue, { color: r.color }]}>
-                  {r.rate}
-                </Text>
+                <Text style={[styles.rateValue, { color: r.color }]}>{r.rate}</Text>
               </View>
             ))}
           </View>

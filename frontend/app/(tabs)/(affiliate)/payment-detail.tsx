@@ -19,6 +19,7 @@ import type { PaymentDetailResponseDto } from "@/src/dtos/affiliate/affiliate.dt
 import { getPaymentDetail } from "@/src/services/api/affiliateService";
 import { colors, spacing, typography } from "@/src/theme";
 import { formatCurrency, formatDate, formatPeriod } from "@/src/utils/formatters";
+import { useSystemConfigContext, formatContributionRate } from "@/src/context/SystemConfigContext";
 
 function getStatusTone(status: string) {
   switch (status.toUpperCase()) {
@@ -82,6 +83,7 @@ function KeyValueRow({
 export default function AffiliatePaymentDetailScreen() {
   const router = useRouter();
   const { paymentId } = useLocalSearchParams<{ paymentId: string }>();
+  const { config } = useSystemConfigContext();
 
   const [detail, setDetail] = useState<PaymentDetailResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ export default function AffiliatePaymentDetailScreen() {
             />
             <View style={styles.divider} />
             <KeyValueRow
-              label="Total cotizado (16% IBC)"
+              label={`Total cotizado (${formatContributionRate(config.contribution_rate)} IBC)`}
               value={formatCurrency(detail.total_pension_contrib)}
               valueStyle={styles.primaryValue}
             />
@@ -267,7 +269,7 @@ export default function AffiliatePaymentDetailScreen() {
                   color={colors.warningText}
                 />
                 <Text style={styles.tipText}>
-                  El aporte del 16% esta pendiente de aprobacion administrativa.
+                  El aporte del {formatContributionRate(config.contribution_rate)} esta pendiente de aprobacion administrativa.
                   Tu saldo se actualizara cuando el aporte quede aprobado.
                 </Text>
               </View>
