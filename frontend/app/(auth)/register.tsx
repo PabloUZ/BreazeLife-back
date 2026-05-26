@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import SignupForm from "@/src/components/auth/SignupForm";
+import { colors, spacing, typography } from "@/src/theme";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -30,27 +31,29 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.background,
   },
   content: {
-    padding: 24,
-    paddingTop: 40,
-    gap: 8,
+    flexGrow: 1,
+    padding: spacing.screen,
+    paddingBottom: spacing.xl,
+    gap: spacing.sm,
+    justifyContent: "center",
   },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 6,
-    marginTop: 16,
+    marginTop: spacing.md,
+    marginBottom: 36,
   },
   footerText: {
-    fontSize: 14,
-    color: "#6B7280",
+    ...typography.body,
+    color: colors.textMuted,
   },
   footerLink: {
-    fontSize: 14,
-    color: "#369BC9",
-    fontWeight: "600",
+    ...typography.bodyStrong,
+    color: colors.primary,
   },
 });

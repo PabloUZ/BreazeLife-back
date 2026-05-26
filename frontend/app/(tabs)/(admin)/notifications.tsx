@@ -12,7 +12,7 @@ import {
 import AdminAlertCard from "@/src/components/admin/notifications/AdminAlertCard";
 import AdminNotificationCard from "@/src/components/admin/notifications/AdminNotificationCard";
 import { sortNotifications } from "@/src/components/admin/notifications/notificationUtils";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import type {
   AdminAlertItemDto,
   AdminNotificationDto,
@@ -181,17 +181,17 @@ export default function AdminNotificationsScreen() {
 
   if (isInitialLoading) {
     return (
-      <ScreenContainer>
+      <AdminScreenContainer>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#369BC9" />
           <Text style={styles.loadingText}>Cargando alertas y notificaciones...</Text>
         </View>
-      </ScreenContainer>
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <AdminScreenContainer>
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -289,7 +289,7 @@ export default function AdminNotificationsScreen() {
           )}
         </View>
       </ScrollView>
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 

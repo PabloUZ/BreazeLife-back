@@ -13,24 +13,24 @@ import ScreenContainer from "@/src/components/layout/ScreenContainer";
 import ProfitabilityHistoryCard from "@/src/components/admin/profitability/ProfitabilityHistoryCard";
 import ApplyProfitabilityModal from "@/src/components/admin/profitability/ApplyProfitabilityModal";
 import { useProfitability } from "@/src/hooks/useProfitability";
+import { useSystemConfigContext, formatRate } from "@/src/context/SystemConfigContext";
 
 export default function AdminProfitabilityScreen() {
   const {
-    error,
-    history,
-    isApplying,
-    isEmpty,
-    isLoading,
-    isRefreshing,
-    applyProfitability,
-    refresh,
+    error, history, isApplying, isEmpty, isLoading,
+    isRefreshing, applyProfitability, refresh,
   } = useProfitability();
-
+  const { config, reload: reloadConfig } = useSystemConfigContext();
   const [showModal, setShowModal] = useState(false);
 
   const handleConfirm = async () => {
     setShowModal(false);
     await applyProfitability();
+  };
+
+  // Al hacer pull-to-refresh también actualiza las tasas del context
+  const handleRefresh = async () => {
+    await Promise.all([refresh(), reloadConfig()]);
   };
 
   if (isLoading) {
@@ -51,7 +51,7 @@ export default function AdminProfitabilityScreen() {
       <ScreenContainer>
         <View style={styles.centered}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
             <Text style={styles.retryButtonText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -64,9 +64,9 @@ export default function AdminProfitabilityScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={refresh} />
-        }
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          }
       >
         {/* Header */}
         <View style={styles.header}>
@@ -88,7 +88,7 @@ export default function AdminProfitabilityScreen() {
             <View style={styles.actionCardText}>
               <Text style={styles.actionTitle}>Aplicar este mes</Text>
               <Text style={styles.actionSubtitle}>
-                Acredita rentabilidad a todos los fondos activos
+                Acredita rentabilidad{"\n"}a todos los fondos activos
               </Text>
             </View>
           </View>
@@ -111,19 +111,25 @@ export default function AdminProfitabilityScreen() {
           <View style={styles.ratesRow}>
             <View style={styles.rateItem}>
               <View style={[styles.rateBadge, { backgroundColor: "#EFF6FF" }]}>
-                <Text style={[styles.rateBadgeText, { color: "#3B82F6" }]}>0.4%</Text>
+                <Text style={[styles.rateBadgeText, { color: "#3B82F6" }]}>
+                  {formatRate(config.rate_conservative)}
+                </Text>
               </View>
               <Text style={styles.rateItemLabel}>Conservador</Text>
             </View>
             <View style={styles.rateItem}>
               <View style={[styles.rateBadge, { backgroundColor: "#FFFBEB" }]}>
-                <Text style={[styles.rateBadgeText, { color: "#F59E0B" }]}>0.6%</Text>
+                <Text style={[styles.rateBadgeText, { color: "#F59E0B" }]}>
+                  {formatRate(config.rate_moderate)}
+                </Text>
               </View>
               <Text style={styles.rateItemLabel}>Moderado</Text>
             </View>
             <View style={styles.rateItem}>
               <View style={[styles.rateBadge, { backgroundColor: "#FEF2F2" }]}>
-                <Text style={[styles.rateBadgeText, { color: "#EF4444" }]}>0.8%</Text>
+                <Text style={[styles.rateBadgeText, { color: "#EF4444" }]}>
+                  {formatRate(config.rate_risky)}
+                </Text>
               </View>
               <Text style={styles.rateItemLabel}>Mayor riesgo</Text>
             </View>
@@ -159,6 +165,9 @@ export default function AdminProfitabilityScreen() {
       <ApplyProfitabilityModal
         visible={showModal}
         isApplying={isApplying}
+        rateConservative={config.rate_conservative}
+        rateModerate={config.rate_moderate}
+        rateRisky={config.rate_risky}
         onConfirm={handleConfirm}
         onCancel={() => setShowModal(false)}
       />

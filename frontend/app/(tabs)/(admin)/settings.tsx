@@ -1,6 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -9,13 +9,18 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import { useSystemConfig } from "@/src/hooks/useSystemConfig";
+import AppButton from "@/src/components/common/AppButton";
+import AppCard from "@/src/components/common/AppCard";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AdminScreenContainer from "@/src/components/layout/AdminScreenContainer";
 import type { UpdateSystemConfigDto } from "@/src/dtos/admin/systemConfig.dtos";
+import { useSystemConfig } from "@/src/hooks/useSystemConfig";
+import { useSystemConfigContext } from "@/src/context/SystemConfigContext";
+import { colors, formStyles, spacing, typography } from "@/src/theme";
 
 function toPercent(decimal: number): string {
   return (decimal * 100).toFixed(2);
@@ -25,55 +30,90 @@ function fromPercent(percent: string): number {
   return parseFloat(percent) / 100;
 }
 
-function isValidRate(val: string): boolean {
-  const n = parseFloat(val);
-  return !isNaN(n) && n >= 0.1 && n <= 5;
+function isValidRate(value: string): boolean {
+  const numberValue = parseFloat(value);
+  return !Number.isNaN(numberValue) && numberValue >= 0.1 && numberValue <= 5;
 }
 
-function isValidLifeExpectancy(val: string): boolean {
-  const n = parseInt(val, 10);
-  return !isNaN(n) && n >= 50 && n <= 100;
+function isValidLifeExpectancy(value: string): boolean {
+  const numberValue = parseInt(value, 10);
+  return !Number.isNaN(numberValue) && numberValue >= 50 && numberValue <= 100;
 }
 
-function isValidContributionRate(val: string): boolean {
-  const n = parseFloat(val);
-  return !isNaN(n) && n >= 1 && n <= 30;
+function isValidContributionRate(value: string): boolean {
+  const numberValue = parseFloat(value);
+  return !Number.isNaN(numberValue) && numberValue >= 1 && numberValue <= 30;
 }
 
-interface ConfigInputProps {
+type ConfigInputProps = {
   label: string;
   hint: string;
   value: string;
   unit: string;
   isValid: boolean;
-  errorMsg: string;
-  onChangeText: (v: string) => void;
+  errorMessage: string;
+  onChangeText: (value: string) => void;
   keyboardType?: "numeric" | "decimal-pad";
-  color?: string;
-}
+  tintColor?: string;
+};
 
 function ConfigInput({
-  label, hint, value, unit, isValid, errorMsg,
-  onChangeText, keyboardType = "decimal-pad", color = "#369BC9",
+  label,
+  hint,
+  value,
+  unit,
+  isValid,
+  errorMessage,
+  onChangeText,
+  keyboardType = "decimal-pad",
+  tintColor = colors.primary,
 }: ConfigInputProps) {
   return (
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>{label}</Text>
       <Text style={styles.inputHint}>{hint}</Text>
-      <View style={[styles.inputRow, !isValid && styles.inputRowError]}>
+      <View style={[styles.inputRow, !isValid ? formStyles.inputError : null]}>
         <TextInput
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           placeholder="0"
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={colors.textSubtle}
         />
-        <View style={[styles.unitBadge, { backgroundColor: color + "20" }]}>
-          <Text style={[styles.unitText, { color }]}>{unit}</Text>
+        <View style={[styles.unitBadge, { backgroundColor: `${tintColor}18` }]}>
+          <Text style={[styles.unitText, { color: tintColor }]}>{unit}</Text>
         </View>
       </View>
-      {!isValid && <Text style={styles.errorText}>{errorMsg}</Text>}
+      {!isValid ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+    </View>
+  );
+}
+
+type SectionHeaderProps = {
+  iconName: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBackground: string;
+  title: string;
+  subtitle: string;
+};
+
+function SectionHeader({
+  iconName,
+  iconColor,
+  iconBackground,
+  title,
+  subtitle,
+}: SectionHeaderProps) {
+  return (
+    <View style={styles.sectionHeader}>
+      <View style={[styles.sectionIcon, { backgroundColor: iconBackground }]}>
+        <Ionicons name={iconName} size={18} color={iconColor} />
+      </View>
+      <View style={styles.sectionHeaderText}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
+      </View>
     </View>
   );
 }
@@ -81,6 +121,7 @@ function ConfigInput({
 export default function AdminSettingsScreen() {
   const { config, error, isLoading, isRefreshing, isSaving, refresh, saveConfig } =
     useSystemConfig();
+  const { reload: reloadGlobalConfig } = useSystemConfigContext();
 
   const [rateConservative, setRateConservative] = useState("");
   const [rateModerate, setRateModerate] = useState("");
@@ -98,8 +139,8 @@ export default function AdminSettingsScreen() {
     setIsDirty(false);
   }, [config]);
 
-  const markDirty = (setter: (v: string) => void) => (v: string) => {
-    setter(v);
+  const markDirty = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
     setIsDirty(true);
   };
 
@@ -112,12 +153,13 @@ export default function AdminSettingsScreen() {
 
   const handleSave = () => {
     if (!isFormValid) {
-      Alert.alert("Datos inválidos", "Revisa los campos marcados en rojo antes de guardar.");
+      Alert.alert("Datos invalidos", "Revisa los campos marcados antes de guardar.");
       return;
     }
+
     Alert.alert(
       "Confirmar cambios",
-      "¿Estás seguro de que deseas actualizar la configuración del sistema? Los nuevos valores aplicarán en los próximos procesos.",
+      "Los nuevos valores se aplicaran en los siguientes procesos del sistema.",
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -130,8 +172,13 @@ export default function AdminSettingsScreen() {
               life_expectancy: parseInt(lifeExpectancy, 10),
               contribution_rate: fromPercent(contributionRate),
             };
-            const ok = await saveConfig(payload);
-            if (ok) setIsDirty(false);
+            const saved = await saveConfig(payload);
+            if (saved) {
+              setIsDirty(false);
+              // Recarga el context global para que todas las pantallas
+              // reflejen inmediatamente los nuevos valores (tasas, cotización, etc.)
+              reloadGlobalConfig();
+            }
           },
         },
       ]
@@ -139,7 +186,7 @@ export default function AdminSettingsScreen() {
   };
 
   const handleDiscard = () => {
-    Alert.alert("Descartar cambios", "Se perderán los cambios no guardados.", [
+    Alert.alert("Descartar cambios", "Se perderan los cambios no guardados.", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Descartar",
@@ -158,183 +205,255 @@ export default function AdminSettingsScreen() {
 
   if (isLoading) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#369BC9" />
-          <Text style={styles.loadingText}>Cargando configuración del sistema...</Text>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppLoadingState message="Cargando configuracion del sistema..." />
+      </AdminScreenContainer>
     );
   }
 
   if (error) {
     return (
-      <ScreenContainer>
-        <View style={styles.centered}>
-          <Text style={styles.errorBanner}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenContainer>
+      <AdminScreenContainer>
+        <AppErrorState message={error} onRetry={refresh} />
+      </AdminScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <AdminScreenContainer>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refresh} />}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={refresh} tintColor={colors.primary} />
+          }
         >
-          <View style={styles.header}>
-            <Text style={styles.title}>Configuración del sistema</Text>
-            <Text style={styles.subtitle}>
-              Ajusta los parámetros globales que aplican a todos los procesos del fondo de pensiones.
-            </Text>
-          </View>
+          <AppHeader
+            title="Configuracion del sistema"
+            subtitle="Ajusta los parametros globales del fondo de pensiones sin salir del panel administrativo."
+          />
 
-          {isDirty && (
-            <View style={styles.dirtyBanner}>
-              <Ionicons name="alert-circle-outline" size={16} color="#92400E" />
-              <Text style={styles.dirtyBannerText}>Tienes cambios sin guardar.</Text>
-            </View>
-          )}
+          {isDirty ? (
+            <AppCard variant="muted" style={styles.warningCard}>
+              <Ionicons name="alert-circle-outline" size={18} color={colors.warningText} />
+              <Text style={styles.warningText}>Tienes cambios sin guardar.</Text>
+            </AppCard>
+          ) : null}
 
-          {/* Tasas de rentabilidad */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: "#EFF6FF" }]}>
-                <Ionicons name="trending-up" size={18} color="#3B82F6" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sectionTitle}>Tasas de rentabilidad mensual</Text>
-                <Text style={styles.sectionSubtitle}>Se aplican una vez al mes según el tipo de fondo</Text>
-              </View>
-            </View>
-            <ConfigInput label="Fondo Conservador" hint="Rango: 0.1% – 5.0%" value={rateConservative}
-              unit="%" color="#3B82F6" isValid={!isDirty || isValidRate(rateConservative)}
-              errorMsg="Valor entre 0.1 y 5.0" onChangeText={markDirty(setRateConservative)} />
-            <ConfigInput label="Fondo Moderado" hint="Rango: 0.1% – 5.0%" value={rateModerate}
-              unit="%" color="#F59E0B" isValid={!isDirty || isValidRate(rateModerate)}
-              errorMsg="Valor entre 0.1 y 5.0" onChangeText={markDirty(setRateModerate)} />
-            <ConfigInput label="Fondo Mayor Riesgo" hint="Rango: 0.1% – 5.0%" value={rateRisky}
-              unit="%" color="#EF4444" isValid={!isDirty || isValidRate(rateRisky)}
-              errorMsg="Valor entre 0.1 y 5.0" onChangeText={markDirty(setRateRisky)} />
-          </View>
+          <AppCard>
+            <SectionHeader
+              iconName="trending-up-outline"
+              iconColor={colors.info}
+              iconBackground={colors.infoSoft}
+              title="Tasas de rentabilidad mensual"
+              subtitle="Se aplican una vez al mes segun el tipo de fondo."
+            />
 
-          {/* Parámetros actuariales */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: "#ECFDF5" }]}>
-                <Ionicons name="analytics-outline" size={18} color="#10B981" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.sectionTitle}>Parámetros actuariales</Text>
-                <Text style={styles.sectionSubtitle}>Usados en el simulador de pensión y cálculos proyectados</Text>
-              </View>
-            </View>
-            <ConfigInput label="Expectativa de vida" hint="Años promedio (50 – 100)"
-              value={lifeExpectancy} unit="años" color="#10B981" keyboardType="numeric"
+            <ConfigInput
+              label="Fondo conservador"
+              hint="Rango permitido: 0.1% a 5.0%"
+              value={rateConservative}
+              unit="%"
+              tintColor={colors.info}
+              isValid={!isDirty || isValidRate(rateConservative)}
+              errorMessage="Ingresa un valor entre 0.1 y 5.0."
+              onChangeText={markDirty(setRateConservative)}
+            />
+            <ConfigInput
+              label="Fondo moderado"
+              hint="Rango permitido: 0.1% a 5.0%"
+              value={rateModerate}
+              unit="%"
+              tintColor={colors.warning}
+              isValid={!isDirty || isValidRate(rateModerate)}
+              errorMessage="Ingresa un valor entre 0.1 y 5.0."
+              onChangeText={markDirty(setRateModerate)}
+            />
+            <ConfigInput
+              label="Fondo mayor riesgo"
+              hint="Rango permitido: 0.1% a 5.0%"
+              value={rateRisky}
+              unit="%"
+              tintColor={colors.danger}
+              isValid={!isDirty || isValidRate(rateRisky)}
+              errorMessage="Ingresa un valor entre 0.1 y 5.0."
+              onChangeText={markDirty(setRateRisky)}
+            />
+          </AppCard>
+
+          <AppCard>
+            <SectionHeader
+              iconName="analytics-outline"
+              iconColor={colors.success}
+              iconBackground={colors.successSoft}
+              title="Parametros actuariales"
+              subtitle="Se usan en el simulador de pension y en los calculos proyectados."
+            />
+
+            <ConfigInput
+              label="Expectativa de vida"
+              hint="Rango permitido: 50 a 100 anos"
+              value={lifeExpectancy}
+              unit="anos"
+              tintColor={colors.success}
+              keyboardType="numeric"
               isValid={!isDirty || isValidLifeExpectancy(lifeExpectancy)}
-              errorMsg="Valor entre 50 y 100" onChangeText={markDirty(setLifeExpectancy)} />
-            <ConfigInput label="Porcentaje de cotización vigente" hint="% del salario (1% – 30%)"
-              value={contributionRate} unit="%" color="#10B981"
+              errorMessage="Ingresa un valor entre 50 y 100."
+              onChangeText={markDirty(setLifeExpectancy)}
+            />
+            <ConfigInput
+              label="Porcentaje de cotizacion"
+              hint="Rango permitido: 1% a 30% del salario"
+              value={contributionRate}
+              unit="%"
+              tintColor={colors.success}
               isValid={!isDirty || isValidContributionRate(contributionRate)}
-              errorMsg="Valor entre 1 y 30" onChangeText={markDirty(setContributionRate)} />
-          </View>
+              errorMessage="Ingresa un valor entre 1 y 30."
+              onChangeText={markDirty(setContributionRate)}
+            />
+          </AppCard>
 
-          {/* Nota */}
-          <View style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
-            <Text style={styles.infoText}>
-              Los cambios en las tasas aplican en la próxima ejecución de rentabilidad mensual.
-              El porcentaje de cotización aplica a nuevas liquidaciones de nómina.
+          <AppCard variant="tint" style={styles.noteCard}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.infoText} />
+            <Text style={styles.noteText}>
+              Las tasas nuevas se aplican en la siguiente ejecucion de rentabilidad mensual.
+              El porcentaje de cotizacion impacta las nuevas liquidaciones de nomina.
             </Text>
-          </View>
+          </AppCard>
 
-          {/* Acciones */}
           <View style={styles.actions}>
-            {isDirty && (
-              <TouchableOpacity style={styles.discardButton} onPress={handleDiscard} disabled={isSaving}>
-                <Text style={styles.discardButtonText}>Descartar cambios</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.saveButton, (!isDirty || !isFormValid || isSaving) && styles.saveButtonDisabled]}
+            {isDirty ? (
+              <AppButton
+                title="Descartar cambios"
+                variant="secondary"
+                onPress={handleDiscard}
+                disabled={isSaving}
+                style={styles.actionButton}
+              />
+            ) : null}
+            <AppButton
+              title="Guardar cambios"
+              iconName="checkmark-circle-outline"
               onPress={handleSave}
-              disabled={!isDirty || !isFormValid || isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.saveButtonText}>Guardar cambios</Text>
-                </>
-              )}
-            </TouchableOpacity>
+              disabled={!isDirty || !isFormValid}
+              loading={isSaving}
+              style={styles.actionButton}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ScreenContainer>
+    </AdminScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
-  loadingText: { fontSize: 14, color: "#6B7280" },
-  errorBanner: { fontSize: 14, color: "#EF4444", textAlign: "center", paddingHorizontal: 24 },
-  retryButton: { backgroundColor: "#369BC9", paddingHorizontal: 24, paddingVertical: 10, borderRadius: 8 },
-  retryButtonText: { color: "#FFFFFF", fontWeight: "600", fontSize: 14 },
-  content: { paddingBottom: 40, gap: 16 },
-  header: { gap: 4 },
-  title: { fontSize: 24, fontWeight: "700", color: "#111827" },
-  subtitle: { fontSize: 14, color: "#6B7280", lineHeight: 20 },
-  dirtyBanner: {
-    flexDirection: "row", alignItems: "center", gap: 8,
-    backgroundColor: "#FFFBEB", borderWidth: 1, borderColor: "#FDE68A",
-    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+  flex: {
+    flex: 1,
   },
-  dirtyBannerText: { fontSize: 13, color: "#92400E", flex: 1 },
-  section: {
-    backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: "#E5E7EB", gap: 14,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
+  content: {
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
   },
-  sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
-  sectionIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  sectionTitle: { fontSize: 14, fontWeight: "700", color: "#111827" },
-  sectionSubtitle: { fontSize: 12, color: "#6B7280", lineHeight: 16, marginTop: 2 },
-  inputGroup: { gap: 4 },
-  inputLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },
-  inputHint: { fontSize: 11, color: "#9CA3AF" },
+  warningCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: colors.warningSoft,
+    borderColor: "#FDE68A",
+  },
+  warningText: {
+    ...typography.bodyStrong,
+    color: colors.warningText,
+    flex: 1,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  sectionIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: {
+    ...typography.cardTitle,
+    color: colors.text,
+  },
+  sectionSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  inputGroup: {
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  inputLabel: {
+    ...formStyles.label,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  inputHint: {
+    ...typography.caption,
+    color: colors.textSubtle,
+  },
   inputRow: {
-    flexDirection: "row", alignItems: "center",
-    borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 10, overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
   },
-  inputRowError: { borderColor: "#EF4444" },
-  input: { flex: 1, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, color: "#111827" },
-  unitBadge: { paddingHorizontal: 14, paddingVertical: 12, borderLeftWidth: 1, borderLeftColor: "#E5E7EB" },
-  unitText: { fontSize: 14, fontWeight: "700" },
-  errorText: { fontSize: 11, color: "#EF4444" },
-  infoCard: {
-    flexDirection: "row", alignItems: "flex-start", gap: 8,
-    backgroundColor: "#F9FAFB", borderWidth: 1, borderColor: "#E5E7EB",
-    borderRadius: 12, padding: 12,
+  input: {
+    ...formStyles.input,
+    flex: 1,
+    borderWidth: 0,
+    borderRadius: 0,
+    minHeight: 52,
   },
-  infoText: { flex: 1, fontSize: 12, color: "#6B7280", lineHeight: 18 },
-  actions: { gap: 10 },
-  discardButton: { backgroundColor: "#F3F4F6", borderRadius: 12, paddingVertical: 14, alignItems: "center" },
-  discardButtonText: { fontSize: 15, fontWeight: "600", color: "#374151" },
-  saveButton: {
-    backgroundColor: "#369BC9", borderRadius: 12, paddingVertical: 14,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+  unitBadge: {
+    minWidth: 64,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
   },
-  saveButtonDisabled: { opacity: 0.45 },
-  saveButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  unitText: {
+    ...typography.bodyStrong,
+  },
+  errorText: {
+    ...formStyles.errorText,
+  },
+  noteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  noteText: {
+    ...typography.body,
+    color: colors.infoText,
+    flex: 1,
+  },
+  actions: {
+    gap: spacing.sm,
+  },
+  actionButton: {
+    width: "100%",
+  },
 });
-

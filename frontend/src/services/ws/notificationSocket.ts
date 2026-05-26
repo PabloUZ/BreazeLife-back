@@ -38,9 +38,9 @@ export class NotificationSocket {
         Authorization: `Bearer ${token}`,
       },
       reconnectDelay: 5_000,
-      heartbeatIncoming: 4_000,
-      heartbeatOutgoing: 4_000,
-      forceBinaryWSFrames: true,
+      heartbeatIncoming: 10_000,
+      heartbeatOutgoing: 10_000,
+      forceBinaryWSFrames: false,
       appendMissingNULLonIncoming: true,
       onConnect: () => {
         this.client?.subscribe("/user/queue/notifications", (msg: IMessage) => {
@@ -60,7 +60,7 @@ export class NotificationSocket {
         this.notifyConnectionChange(false);
       },
       onStompError: (frame) => {
-        console.error(
+        console.warn(
           "[NotificationSocket] STOMP error:",
           frame.headers["message"],
           frame.body
@@ -69,7 +69,7 @@ export class NotificationSocket {
         this.errorListeners.forEach((listener) => listener(frame));
       },
       onWebSocketError: (event) => {
-        console.error("[NotificationSocket] WebSocket error:", event);
+        console.warn("[NotificationSocket] WebSocket error:", event);
         this.notifyConnectionChange(false);
         this.errorListeners.forEach((listener) => listener(event));
       },

@@ -1,72 +1,113 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import type { PayslipDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import { colors, spacing, typography } from "@/src/theme";
 
-export const PayslipCard = ({ payslip }: { payslip: PayslipDto }) => {
-  
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
-      maximumFractionDigits: 0 
-    }).format(amount || 0);
-  };
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(amount || 0);
+}
 
+export function PayslipCard({ payslip }: { payslip: PayslipDto }) {
   return (
-    <View style={styles.card}>
+    <AppCard style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.dateText}>Periodo: {payslip.period}</Text>
-        {/* Usamos el status como etiqueta, ya que no hay un ID de colilla */}
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{payslip.status}</Text>
+        <View style={styles.headerCopy}>
+          <Text style={styles.dateText}>Periodo: {payslip.period}</Text>
         </View>
+        <AppStatusBadge label={payslip.status} tone="success" />
       </View>
-      
+
       <View style={styles.salaryRow}>
-        <Text style={styles.label}>Salario Bruto:</Text>
+        <Text style={styles.label}>Salario bruto</Text>
         <Text style={styles.grossValue}>{formatCurrency(payslip.grossSalary)}</Text>
       </View>
       <View style={styles.salaryRow}>
-        <Text style={styles.label}>Salario Neto (Recibido):</Text>
-        <Text style={styles.netValue}>{formatCurrency(payslip.netSalaryReceived)}</Text>
+        <Text style={styles.label}>Salario neto</Text>
+        <Text style={styles.netValue}>
+          {formatCurrency(payslip.netSalaryReceived)}
+        </Text>
       </View>
 
       <View style={styles.divider} />
 
-      <Text style={styles.sectionTitle}>Detalle de Aportes</Text>
+      <Text style={styles.sectionTitle}>Detalle de aportes</Text>
       <View style={styles.salaryRow}>
-        <Text style={styles.label}>Tu deducción (Pensión 4%):</Text>
+        <Text style={styles.label}>Tu deduccion (4%)</Text>
         <Text style={styles.valueText}>{formatCurrency(payslip.pensionDeduction)}</Text>
       </View>
       <View style={styles.salaryRow}>
-        <Text style={styles.label}>Aporte Empresa:</Text>
+        <Text style={styles.label}>Aporte empresa</Text>
         <Text style={styles.valueText}>{formatCurrency(payslip.employerContrib)}</Text>
       </View>
-    </View>
+    </AppCard>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    marginBottom: spacing.md,
   },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  dateText: { fontWeight: "bold", color: "#1e293b", textTransform: "capitalize" },
-  statusBadge: { backgroundColor: "#dcfce3", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { color: "#166534", fontSize: 10, fontWeight: "bold" },
-  salaryRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  label: { color: "#64748b" },
-  grossValue: { fontWeight: "bold", color: "#475569" },
-  netValue: { fontWeight: "bold", color: "#16a34a", fontSize: 16 },
-  valueText: { fontWeight: "600", color: "#334155" },
-  divider: { height: 1, backgroundColor: "#f1f5f9", marginVertical: 12 },
-  sectionTitle: { fontSize: 12, fontWeight: "bold", color: "#94a3b8", textTransform: "uppercase", marginBottom: 8 },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  headerCopy: {
+    flex: 1,
+  },
+  dateText: {
+    ...typography.bodyStrong,
+    color: colors.text,
+    textTransform: "capitalize",
+    flexShrink: 1,
+  },
+  salaryRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  label: {
+    ...typography.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  grossValue: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  netValue: {
+    ...typography.cardTitle,
+    color: colors.success,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  valueText: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
+  },
+  sectionTitle: {
+    ...typography.caption,
+    color: colors.textSubtle,
+    textTransform: "uppercase",
+    marginBottom: spacing.sm,
+  },
 });

@@ -30,7 +30,7 @@ public class NotificationEventListener {
     }
 
     @Async("notificationExecutor")
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPayrollPaymentSuccess(PayrollPaymentSuccessEvent event) {
         notificationService.createNotification(
                 event.affiliateId(),

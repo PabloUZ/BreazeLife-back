@@ -1,17 +1,18 @@
 import { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Stack, useRouter, useFocusEffect } from "expo-router";
-import ScreenContainer from "@/src/components/layout/ScreenContainer";
-import { getPayrollHistory } from "@/src/services/api/payrollService";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
+import AppButton from "@/src/components/common/AppButton";
+import AppCard from "@/src/components/common/AppCard";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
+import EmployerScreenContainer from "@/src/components/layout/EmployerScreenContainer";
 import type { PayrollHistoryItemDto } from "@/src/dtos/employer/employer.dtos";
+import { getPayrollHistory } from "@/src/services/api/payrollService";
 import { formatCurrency, formatPeriod, formatDate } from "@/src/utils/formatters";
+import { formStyles, spacing, typography } from "@/src/theme";
 
 const MONTHS = [
   { label: "Todos", value: null },
@@ -40,16 +41,12 @@ const STATUSES = [
 
 export default function EmployerPayrollHistoryScreen() {
   const router = useRouter();
-
-  // Estados de datos y paginación
   const [items, setItems] = useState<PayrollHistoryItemDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-
-  // Estados de filtros
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -59,12 +56,9 @@ export default function EmployerPayrollHistoryScreen() {
       setLoading(true);
       setError(null);
 
-      // Construir el filtro de periodo si se seleccionaron año y mes
       let periodParam: string | undefined;
       if (selectedYear) {
-        const monthPart = selectedMonth
-          ? String(selectedMonth).padStart(2, "0")
-          : "";
+        const monthPart = selectedMonth ? String(selectedMonth).padStart(2, "0") : "";
         periodParam = monthPart ? `${selectedYear}-${monthPart}` : `${selectedYear}`;
       }
 
@@ -79,516 +73,302 @@ export default function EmployerPayrollHistoryScreen() {
       setPage(res.data.pagination.page);
       setTotalPages(res.data.pagination.total_pages);
       setTotalItems(res.data.pagination.total_items);
-    } catch (err) {
-      setError("No se pudo cargar el historial. Revisa tu conexión.");
+    } catch {
+      setError("No se pudo cargar el historial. Revisa tu conexion.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Carga al entrar en foco o al cambiar los filtros / página
   useFocusEffect(
     useCallback(() => {
       fetchHistory(page);
     }, [page, selectedYear, selectedMonth, selectedStatus])
   );
 
-  // Reiniciar a página 1 al cambiar cualquier filtro
   const handleFilterChange = (type: "year" | "month" | "status", value: any) => {
     setPage(1);
     if (type === "year") {
       setSelectedYear(value);
-      // Si se deselecciona el año, también se deselecciona el mes
       if (!value) setSelectedMonth(null);
     } else if (type === "month") {
       setSelectedMonth(value);
-    } else if (type === "status") {
+    } else {
       setSelectedStatus(value);
     }
   };
 
-  const handleNextPage = () => {
-    if (page < totalPages) setPage(page + 1);
-  };
+  if (loading) {
+    return (
+      <EmployerScreenContainer>
+        <AppLoadingState message="Buscando nominas..." />
+      </EmployerScreenContainer>
+    );
+  }
 
-  const handlePrevPage = () => {
-    if (page > 1) setPage(page - 1);
-  };
+  if (error) {
+    return (
+      <EmployerScreenContainer>
+        <AppErrorState message={error} onRetry={() => fetchHistory(page)} />
+      </EmployerScreenContainer>
+    );
+  }
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Historial de Nóminas",
-          headerShown: true,
-        }}
-      />
-      <ScreenContainer>
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.container}>
-          {/* Sección de Filtros */}
-          <View style={styles.filterSection}>
-            <Text style={styles.filterTitle}>Filtros de búsqueda</Text>
+    <EmployerScreenContainer>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <View style={styles.topBar}>
+          <AppButton
+            title="Volver"
+            variant="secondary"
+            iconName="arrow-back-outline"
+            onPress={() => router.back()}
+          />
+        </View>
 
-            {/* Año */}
-            <Text style={styles.filterSubtitle}>Año</Text>
-            <View style={styles.chipsRow}>
-              {YEARS.map((year) => (
-                <TouchableOpacity
-                  key={year === null ? "all-years" : year}
+        <AppHeader
+          title="Historial de nominas"
+          subtitle="Filtra periodos procesados y revisa el detalle de cada ejecucion."
+        />
+
+        <AppCard>
+          <Text style={styles.filterTitle}>Ano</Text>
+          <View style={styles.chipsRow}>
+            {YEARS.map((year) => (
+              <TouchableOpacity
+                key={year === null ? "all-years" : year}
+                style={[styles.chip, selectedYear === year ? styles.chipActive : null]}
+                onPress={() => handleFilterChange("year", year)}
+                activeOpacity={0.85}
+              >
+                <Text
                   style={[
-                    styles.chip,
-                    selectedYear === year && styles.chipActive,
+                    styles.chipText,
+                    selectedYear === year ? styles.chipTextActive : null,
                   ]}
-                  onPress={() => handleFilterChange("year", year)}
                 >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      selectedYear === year && styles.chipTextActive,
-                    ]}
-                  >
-                    {year === null ? "Todos" : year}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  {year === null ? "Todos" : year}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-            {/* Mes (solo habilitado si hay un año seleccionado) */}
-            {selectedYear && (
-              <>
-                <Text style={styles.filterSubtitle}>Mes</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.scrollChipsRow}
-                >
+          {selectedYear ? (
+            <>
+              <Text style={styles.filterTitle}>Mes</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.scrollChipsRow}>
                   {MONTHS.map((month) => (
                     <TouchableOpacity
                       key={month.value === null ? "all-months" : month.value}
-                      style={[
-                        styles.chip,
-                        selectedMonth === month.value && styles.chipActive,
-                      ]}
+                      style={[styles.chip, selectedMonth === month.value ? styles.chipActive : null]}
                       onPress={() => handleFilterChange("month", month.value)}
+                      activeOpacity={0.85}
                     >
                       <Text
                         style={[
                           styles.chipText,
-                          selectedMonth === month.value && styles.chipTextActive,
+                          selectedMonth === month.value ? styles.chipTextActive : null,
                         ]}
                       >
                         {month.label}
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
-              </>
-            )}
+                </View>
+              </ScrollView>
+            </>
+          ) : null}
 
-            {/* Estado */}
-            <Text style={styles.filterSubtitle}>Estado</Text>
-            <View style={styles.chipsRow}>
-              {STATUSES.map((status) => (
-                <TouchableOpacity
-                  key={status.value === null ? "all-status" : status.value}
-                  style={[
-                    styles.chip,
-                    selectedStatus === status.value && styles.chipActive,
-                  ]}
-                  onPress={() => handleFilterChange("status", status.value)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      selectedStatus === status.value && styles.chipTextActive,
-                    ]}
-                  >
-                    {status.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Listado de Historial */}
-          <View style={styles.listHeader}>
-            <Text style={styles.resultsCount}>
-              {totalItems} {totalItems === 1 ? "nómina encontrada" : "nóminas encontradas"}
-            </Text>
-          </View>
-
-          {loading ? (
-            <View style={styles.centeredState}>
-              <ActivityIndicator size="large" color="#369BC9" />
-              <Text style={styles.stateText}>Buscando nóminas...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorState}>
-              <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.filterTitle}>Estado</Text>
+          <View style={styles.chipsRow}>
+            {STATUSES.map((status) => (
               <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => fetchHistory(page)}
+                key={status.value === null ? "all-status" : status.value}
+                style={[styles.chip, selectedStatus === status.value ? styles.chipActive : null]}
+                onPress={() => handleFilterChange("status", status.value)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.retryButtonText}>Reintentar</Text>
-              </TouchableOpacity>
-            </View>
-          ) : items.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>
-                No se encontraron nóminas ejecutadas con los filtros seleccionados.
-              </Text>
-            </View>
-          ) : (
-            <>
-              {items.map((item) => (
-                <TouchableOpacity
-                  key={item.payroll_id}
-                  style={styles.payrollCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(tabs)/(employer)/payroll/detail",
-                      params: { payrollId: item.payroll_id },
-                    } as any)
-                  }
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedStatus === status.value ? styles.chipTextActive : null,
+                  ]}
                 >
+                  {status.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </AppCard>
+
+        <Text style={styles.resultsCount}>
+          {totalItems} {totalItems === 1 ? "nomina encontrada" : "nominas encontradas"}
+        </Text>
+
+        {items.length === 0 ? (
+          <AppEmptyState
+            title="Sin nominas"
+            description="No se encontraron nominas ejecutadas con los filtros seleccionados."
+          />
+        ) : (
+          <>
+            {items.map((item) => (
+              <TouchableOpacity
+                key={item.payroll_id}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/(employer)/payroll/detail",
+                    params: { payrollId: item.payroll_id },
+                  } as any)
+                }
+                activeOpacity={0.82}
+              >
+                <AppCard style={styles.payrollCard}>
                   <View style={styles.cardHeader}>
-                    <View>
-                      <Text style={styles.cardPeriod}>
-                        {formatPeriod(item.period)}
-                      </Text>
-                      <Text style={styles.cardDate}>
-                        Ejecutado: {formatDate(item.executed_at)}
-                      </Text>
+                    <View style={styles.headerCopy}>
+                      <Text style={styles.cardPeriod}>{formatPeriod(item.period)}</Text>
+                      <Text style={styles.cardDate}>Ejecutado: {formatDate(item.executed_at)}</Text>
                     </View>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        item.status === "PROCESSED"
-                          ? styles.badgeProcessed
-                          : styles.badgePending,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.statusBadgeText,
-                          item.status === "PROCESSED"
-                            ? styles.textProcessed
-                            : styles.textPending,
-                        ]}
-                      >
-                        {item.status === "PROCESSED" ? "Procesada" : item.status}
-                      </Text>
-                    </View>
+                    <AppStatusBadge
+                      label={item.status === "PROCESSED" ? "Procesada" : item.status}
+                      tone={item.status === "PROCESSED" ? "success" : "warning"}
+                    />
                   </View>
 
                   <View style={styles.divider} />
 
-                  <View style={styles.cardDetails}>
+                  <View style={styles.detailsGrid}>
                     <View style={styles.detailCol}>
                       <Text style={styles.detailLabel}>Empleados</Text>
                       <Text style={styles.detailValue}>{item.total_employees}</Text>
                     </View>
                     <View style={styles.detailCol}>
-                      <Text style={styles.detailLabel}>Total Neto</Text>
-                      <Text style={styles.detailValue}>
-                        {formatCurrency(item.total_net_salary)}
-                      </Text>
+                      <Text style={styles.detailLabel}>Total neto</Text>
+                      <Text style={styles.detailValue}>{formatCurrency(item.total_net_salary)}</Text>
                     </View>
-                    <View style={styles.detailColRight}>
-                      <Text style={styles.detailLabel}>Total Debitado</Text>
-                      <Text style={[styles.detailValue, styles.debitValue]}>
+                    <View style={styles.detailCol}>
+                      <Text style={styles.detailLabel}>Total debitado</Text>
+                      <Text style={[styles.detailValue, styles.primaryText]}>
                         {formatCurrency(item.total_debit)}
                       </Text>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
+                </AppCard>
+              </TouchableOpacity>
+            ))}
 
-              {/* Controles de Paginación */}
-              {totalPages > 1 && (
-                <View style={styles.paginationRow}>
-                  <TouchableOpacity
-                    style={[styles.pageButton, page === 1 && styles.pageButtonDisabled]}
-                    onPress={handlePrevPage}
-                    disabled={page === 1}
-                  >
-                    <Text
-                      style={[
-                        styles.pageButtonText,
-                        page === 1 && styles.pageButtonTextDisabled,
-                      ]}
-                    >
-                      {"← Anterior"}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <Text style={styles.pageIndicator}>
-                    Página {page} de {totalPages}
-                  </Text>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.pageButton,
-                      page === totalPages && styles.pageButtonDisabled,
-                    ]}
-                    onPress={handleNextPage}
-                    disabled={page === totalPages}
-                  >
-                    <Text
-                      style={[
-                        styles.pageButtonText,
-                        page === totalPages && styles.pageButtonTextDisabled,
-                      ]}
-                    >
-                      {"Siguiente →"}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </>
-          )}
-
-          <View style={styles.bottomSpacing} />
-        </ScrollView>
-      </ScreenContainer>
-    </>
+            {totalPages > 1 ? (
+              <View style={styles.paginationRow}>
+                <AppButton
+                  title="Anterior"
+                  variant="secondary"
+                  onPress={() => page > 1 && setPage(page - 1)}
+                  disabled={page === 1}
+                />
+                <Text style={styles.pageIndicator}>
+                  Pagina {page} de {totalPages}
+                </Text>
+                <AppButton
+                  title="Siguiente"
+                  variant="secondary"
+                  onPress={() => page < totalPages && setPage(page + 1)}
+                  disabled={page === totalPages}
+                />
+              </View>
+            ) : null}
+          </>
+        )}
+      </ScrollView>
+    </EmployerScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 4,
+  content: {
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
   },
-  filterSection: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  topBar: {
+    alignItems: "flex-start",
   },
   filterTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  filterSubtitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4B5563",
-    marginTop: 8,
-    marginBottom: 8,
+    ...typography.bodyStrong,
+    marginBottom: spacing.sm,
   },
   chipsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
+    gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   scrollChipsRow: {
     flexDirection: "row",
-    gap: 8,
-    paddingBottom: 4,
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
   },
-  chip: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  chipActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#369BC9",
-  },
-  chipText: {
-    fontSize: 13,
-    color: "#4B5563",
-    fontWeight: "500",
-  },
-  chipTextActive: {
-    color: "#369BC9",
-    fontWeight: "600",
-  },
-  listHeader: {
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
+  chip: formStyles.chip,
+  chipActive: formStyles.chipActive,
+  chipText: formStyles.chipText,
+  chipTextActive: formStyles.chipTextActive,
   resultsCount: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "500",
+    ...typography.body,
   },
   payrollCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 1,
+    marginBottom: spacing.md,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   cardPeriod: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
+    ...typography.cardTitle,
   },
   cardDate: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeProcessed: {
-    backgroundColor: "#D1FAE5",
-  },
-  badgePending: {
-    backgroundColor: "#FEF3C7",
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  textProcessed: {
-    color: "#065F46",
-  },
-  textPending: {
-    color: "#92400E",
+    ...typography.caption,
+    marginTop: spacing.xs,
   },
   divider: {
     height: 1,
-    backgroundColor: "#F3F4F6",
-    marginVertical: 12,
+    backgroundColor: "#E5EEF5",
+    marginVertical: spacing.md,
   },
-  cardDetails: {
+  detailsGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.md,
   },
   detailCol: {
-    flex: 1,
-  },
-  detailColRight: {
-    flex: 1.2,
-    alignItems: "flex-end",
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 96,
   },
   detailLabel: {
-    fontSize: 11,
+    ...typography.caption,
     color: "#9CA3AF",
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   detailValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
+    ...typography.bodyStrong,
   },
-  debitValue: {
+  primaryText: {
     color: "#369BC9",
-  },
-  centeredState: {
-    paddingVertical: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  stateText: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  errorState: {
-    paddingVertical: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-  errorText: {
-    fontSize: 14,
-    color: "#EF4444",
-    textAlign: "center",
-    paddingHorizontal: 24,
-  },
-  retryButton: {
-    backgroundColor: "#369BC9",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  emptyState: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#D1D5DB",
-    paddingVertical: 40,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    lineHeight: 20,
   },
   paginationRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
-    marginBottom: 24,
-    paddingHorizontal: 4,
-  },
-  pageButton: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-  },
-  pageButtonDisabled: {
-    backgroundColor: "#F3F4F6",
-    borderColor: "#E5E7EB",
-  },
-  pageButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#4B5563",
-  },
-  pageButtonTextDisabled: {
-    color: "#9CA3AF",
+    justifyContent: "space-between",
+    gap: spacing.md,
   },
   pageIndicator: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: "#4B5563",
-  },
-  bottomSpacing: {
-    height: 40,
+    ...typography.caption,
+    flex: 1,
+    textAlign: "center",
   },
 });

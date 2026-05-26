@@ -1,37 +1,44 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Alert,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { secureStoreService } from "@/src/services/storage/SecureStoreService";
+import AppCard from "@/src/components/common/AppCard";
+import AppEmptyState from "@/src/components/common/AppEmptyState";
+import AppErrorState from "@/src/components/common/AppErrorState";
+import AppHeader from "@/src/components/common/AppHeader";
+import AppLoadingState from "@/src/components/common/AppLoadingState";
+import AppButton from "@/src/components/common/AppButton";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
 import {
-  getDocuments,
   generateCertificate,
   generatePayslip,
+  getDocuments,
   getDownloadUrl,
   type AffiliateDocument,
   type DocumentType,
 } from "@/src/services/api/documentService";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+import { secureStoreService } from "@/src/services/storage/SecureStoreService";
+import { colors, spacing, typography } from "@/src/theme";
 
 const DOCUMENT_LABELS: Record<DocumentType, string> = {
-  AFFILIATION_CERTIFICATE: "Certificado de Afiliación",
-  BALANCE_CERTIFICATE: "Certificado de Saldo",
-  ACCOUNT_STATEMENT: "Extracto de Cuenta",
-  PAYSLIP: "Colilla de Pago",
+  AFFILIATION_CERTIFICATE: "Certificado de afiliacion",
+  BALANCE_CERTIFICATE: "Certificado de saldo",
+  ACCOUNT_STATEMENT: "Extracto de cuenta",
+  PAYSLIP: "Colilla de pago",
 };
 
 const formatDate = (dateStr: string): string => {
-  if (!dateStr) return "—";
+  if (!dateStr) return "-";
   const date = new Date(dateStr);
   return date.toLocaleDateString("es-CO", {
     day: "2-digit",
@@ -40,29 +47,25 @@ const formatDate = (dateStr: string): string => {
   });
 };
 
-// ── Componente principal ──────────────────────────────────────────────────────
-
 export default function AffiliateDocumentsScreen() {
   const [documents, setDocuments] = useState<AffiliateDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [generating, setGenerating] = useState<DocumentType | null>(null);
-
-  // ── Cargar documentos ───────────────────────────────────────────────────────
+  const [error, setError] = useState<string | null>(null);
 
   const loadDocuments = useCallback(async () => {
     try {
+      setError(null);
       const docs = await getDocuments();
-      // getDocuments ya retorna todos incluyendo payslips
-      // no necesitamos llamar getPayslips por separado
       const sorted = docs.sort(
         (a, b) =>
           new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
       );
       setDocuments(sorted);
     } catch {
-      Alert.alert("Error", "No se pudieron cargar los documentos.");
+      setError("No se pudieron cargar los documentos.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,8 +80,6 @@ export default function AffiliateDocumentsScreen() {
     setRefreshing(true);
     loadDocuments();
   }, [loadDocuments]);
-
-  // ── Generar certificado ─────────────────────────────────────────────────────
 
   const handleGenerate = async (type: DocumentType) => {
     setGenerating(type);
@@ -97,15 +98,13 @@ export default function AffiliateDocumentsScreen() {
     }
   };
 
-  // ── Descargar PDF ───────────────────────────────────────────────────────────
-
   const handleDownload = async (doc: AffiliateDocument) => {
     setDownloading(doc.documentId);
     try {
       const token = await secureStoreService.getItem("access_token");
 
       if (!token) {
-        Alert.alert("Error", "Sesión expirada. Inicia sesión nuevamente.");
+        Alert.alert("Error", "Sesion expirada. Inicia sesion nuevamente.");
         return;
       }
 
@@ -136,222 +135,181 @@ export default function AffiliateDocumentsScreen() {
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#0066CC" />
-        <Text style={styles.loadingText}>Cargando documentos...</Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis Documentos</Text>
-        <Text style={styles.headerSubtitle}>
-          Genera y descarga tus certificados y colillas
-        </Text>
-      </View>
+    <AffiliateScreenContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <AppHeader
+          title="Mis documentos"
+          subtitle="Genera y descarga certificados, extractos y colillas desde tu cuenta."
+        />
 
-      {/* Botones de generación */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Generar Documento</Text>
-        <View style={styles.generateButtons}>
-          {(
-            [
-              "AFFILIATION_CERTIFICATE",
-              "BALANCE_CERTIFICATE",
-              "ACCOUNT_STATEMENT",
-              "PAYSLIP",
-            ] as DocumentType[]
-          ).map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.generateButton,
-                generating === type && styles.generateButtonDisabled,
-              ]}
-              onPress={() => handleGenerate(type)}
-              disabled={generating !== null}
-            >
-              {generating === type ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.generateButtonText}>
-                  {DOCUMENT_LABELS[type]}
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+        <AppCard>
+          <Text style={styles.sectionTitle}>Solicitar documento</Text>
+          <Text style={styles.sectionSubtitle}>
+            Genera un nuevo archivo y agregalo al historial.
+          </Text>
 
-      {/* Lista de documentos */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Historial de Documentos</Text>
-        {documents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              No tienes documentos generados aún.
-            </Text>
-          </View>
-        ) : (
-          documents.map((doc) => (
-            <View key={doc.documentId} style={styles.documentCard}>
-              <View style={styles.documentInfo}>
-                <Text style={styles.documentType}>
-                  {DOCUMENT_LABELS[doc.type] ?? doc.type}
-                </Text>
-                <Text style={styles.documentDate}>
-                  {formatDate(doc.generatedAt)}
-                </Text>
-                <Text style={styles.documentFileName}>{doc.fileName}</Text>
-              </View>
+          <View style={styles.generateList}>
+            {(
+              [
+                "AFFILIATION_CERTIFICATE",
+                "BALANCE_CERTIFICATE",
+                "ACCOUNT_STATEMENT",
+                "PAYSLIP",
+              ] as DocumentType[]
+            ).map((type) => (
               <TouchableOpacity
+                key={type}
                 style={[
-                  styles.downloadButton,
-                  downloading === doc.documentId && styles.downloadButtonDisabled,
+                  styles.generateRow,
+                  generating === type && styles.generateRowDisabled,
                 ]}
-                onPress={() => handleDownload(doc)}
-                disabled={downloading !== null}
+                onPress={() => handleGenerate(type)}
+                disabled={generating !== null}
+                activeOpacity={0.82}
               >
-                {downloading === doc.documentId ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                <View style={styles.generateCopy}>
+                  <Text style={styles.generateLabel}>{DOCUMENT_LABELS[type]}</Text>
+                  <Text style={styles.generateHelp}>Generar nuevo documento</Text>
+                </View>
+
+                {generating === type ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
-                  <Text style={styles.downloadButtonText}>⬇ Descargar</Text>
+                  <Ionicons
+                    name="arrow-forward-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
                 )}
               </TouchableOpacity>
-            </View>
-          ))
+            ))}
+          </View>
+        </AppCard>
+
+        {loading ? (
+          <AppLoadingState message="Cargando documentos..." />
+        ) : error ? (
+          <AppErrorState message={error} onRetry={loadDocuments} />
+        ) : documents.length === 0 ? (
+          <AppEmptyState
+            title="Sin documentos"
+            description="Todavia no has generado documentos en tu historial."
+          />
+        ) : (
+          <View style={styles.documentsList}>
+            {documents.map((doc) => (
+              <AppCard key={doc.documentId} style={styles.documentCard}>
+                <View style={styles.documentCopy}>
+                  <Text style={styles.documentType}>
+                    {DOCUMENT_LABELS[doc.type] ?? doc.type}
+                  </Text>
+                  <Text style={styles.documentDate}>
+                    Generado: {formatDate(doc.generatedAt)}
+                  </Text>
+                  <Text
+                    style={styles.documentFileName}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {doc.fileName}
+                  </Text>
+                </View>
+
+                <AppButton
+                  title="Descargar"
+                  variant="secondary"
+                  iconName="download-outline"
+                  loading={downloading === doc.documentId}
+                  disabled={downloading !== null && downloading !== doc.documentId}
+                  onPress={() => handleDownload(doc)}
+                  style={styles.downloadButton}
+                />
+              </AppCard>
+            ))}
+          </View>
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </AffiliateScreenContainer>
   );
 }
-
-// ── Estilos ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
   },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-  },
-  loadingText: {
-    color: "#666",
-    fontSize: 14,
-  },
-  header: {
-    backgroundColor: "#0F2850",
-    padding: 24,
-    paddingTop: 48,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#B4C8E6",
-  },
-  section: {
-    padding: 16,
-    marginBottom: 8,
+  content: {
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0F2850",
-    marginBottom: 12,
+    ...typography.cardTitle,
+    color: colors.text,
+    marginBottom: spacing.xs,
   },
-  generateButtons: {
-    gap: 10,
+  sectionSubtitle: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginBottom: spacing.lg,
   },
-  generateButton: {
-    backgroundColor: "#0066CC",
-    borderRadius: 10,
-    padding: 14,
+  generateList: {
+    gap: spacing.sm,
+  },
+  generateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-  generateButtonDisabled: {
-    backgroundColor: "#99BBDD",
-  },
-  generateButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  emptyState: {
-    backgroundColor: "#fff",
+    gap: spacing.md,
+    padding: spacing.md,
     borderRadius: 12,
-    padding: 24,
-    alignItems: "center",
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  emptyText: {
-    color: "#888",
-    fontSize: 14,
+  generateRowDisabled: {
+    opacity: 0.75,
+  },
+  generateCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  generateLabel: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+  },
+  generateHelp: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  documentsList: {
+    gap: spacing.md,
   },
   documentCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: spacing.md,
   },
-  documentInfo: {
-    flex: 1,
-    marginRight: 12,
+  documentCopy: {
+    gap: spacing.xs,
   },
   documentType: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0F2850",
-    marginBottom: 2,
+    ...typography.cardTitle,
+    color: colors.text,
   },
   documentDate: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 2,
+    ...typography.caption,
+    color: colors.textMuted,
   },
   documentFileName: {
-    fontSize: 11,
-    color: "#999",
+    ...typography.body,
+    color: colors.neutralText,
   },
   downloadButton: {
-    backgroundColor: "#0066CC",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  downloadButtonDisabled: {
-    backgroundColor: "#99BBDD",
-  },
-  downloadButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
+    width: "100%",
   },
 });

@@ -2,15 +2,18 @@ import { StyleSheet, View } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AffiliateContributionToastListener from "@/src/components/affiliate/AffiliateContributionToastListener";
+import { useSharedTabScreenOptions } from "@/src/theme/navigation";
 
 export default function AffiliateTabsLayout() {
+  const sharedTabScreenOptions = useSharedTabScreenOptions();
+
   return (
     <View style={styles.container}>
-      <Tabs screenOptions={{ headerShown: true }}>
+      <Tabs screenOptions={{ ...sharedTabScreenOptions, headerShown: false }}>
         <Tabs.Screen
           name="dashboard"
           options={{
-            title: "Dashboard",
+            title: "Inicio",
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             ),
@@ -26,38 +29,11 @@ export default function AffiliateTabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="quotes"
+          name="payments"
           options={{
-            title: "Cotizaciones",
+            title: "Pagos",
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="document-text-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="simulator"
-          options={{
-            title: "Simulador",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calculator-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="documents"
-          options={{
-            title: "Documentos",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="folder-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="notifications"
-          options={{
-            title: "Alertas",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="notifications-outline" size={size} color={color} />
+              <Ionicons name="wallet-outline" size={size} color={color} />
             ),
           }}
         />
@@ -71,22 +47,25 @@ export default function AffiliateTabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="payments"
+          name="index"
           options={{
-            title: "Pagos",
+            title: "Mas",
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="wallet-outline" size={size} color={color} />
+              <Ionicons name="ellipsis-horizontal-circle-outline" size={size} color={color} />
             ),
           }}
         />
+        <Tabs.Screen name="quotes" options={{ href: null }} />
+        <Tabs.Screen name="simulator" options={{ href: null }} />
+        <Tabs.Screen name="documents" options={{ href: null }} />
+        <Tabs.Screen name="notifications" options={{ href: null }} />
         <Tabs.Screen
           name="payment-detail"
           options={{
             href: null,
+            title: "Detalle de pago",
           }}
         />
-
-        <Tabs.Screen name="index" options={{ href: null }} />
       </Tabs>
 
       <AffiliateContributionToastListener />

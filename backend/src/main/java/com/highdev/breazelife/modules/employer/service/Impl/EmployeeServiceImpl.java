@@ -26,6 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -44,20 +45,23 @@ public class EmployeeServiceImpl implements EmployeeService {
     private final UserRepository userRepository;
     private final UpdateHistoryRepository updateHistoryRepository;
     private final AccountRepository accountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public EmployeeServiceImpl(
-            ContractRepository contractRepository,
-            AffiliateRepository affiliateRepository,
-            EmployerRepository employerRepository,
-            UserRepository userRepository,
-            UpdateHistoryRepository updateHistoryRepository,
-            AccountRepository accountRepository) {
+        ContractRepository contractRepository,
+        AffiliateRepository affiliateRepository,
+        EmployerRepository employerRepository,
+        UserRepository userRepository,
+        UpdateHistoryRepository updateHistoryRepository,
+        AccountRepository accountRepository,
+        PasswordEncoder passwordEncoder) {
         this.contractRepository = contractRepository;
         this.affiliateRepository = affiliateRepository;
         this.employerRepository = employerRepository;
         this.userRepository = userRepository;
         this.updateHistoryRepository = updateHistoryRepository;
         this.accountRepository = accountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -77,7 +81,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Affiliate affiliate;
         User user;
 
-        // 2. Flujo Alternativo: Comprobar si el ciudadano ya existe en BreazeLife
+        // 2. Comprobar si el ciudadano ya existe en BreazeLife (Flujo Alternativo)
         Optional<Affiliate> existingAffiliate = affiliateRepository.findByDocument(request.getDocument());
 
         if (existingAffiliate.isPresent()) {
@@ -97,32 +101,34 @@ public class EmployeeServiceImpl implements EmployeeService {
                     "A user with email " + request.getEmail() + " already exists");
             }
 
+            // Crear el usuario base usando las mejoras del equipo (password encriptada con documento)
             user = new User();
             user.setId(UUID.randomUUID().toString());
             user.setFirstName(request.getFirstName());
             user.setLastName(request.getLastName());
             user.setEmail(request.getEmail());
-            user.setPassword(UUID.randomUUID().toString()); // Se encripta en producción/auth hooks
+            user.setPassword(passwordEncoder.encode(request.getDocument())); 
             user.setRole(User.Role.AFFILIATE);
             user.setVerified(false);
             user = userRepository.save(user);
 
+            // Crear el afiliado (tomando la fecha de inicio enviada)
             affiliate = new Affiliate();
             affiliate.setUser(user);
             affiliate.setDocument(request.getDocument());
             affiliate.setBirthDate(request.getBirthDate());
-            affiliate.setAffiliationDate(LocalDate.now());
+            affiliate.setAffiliationDate(request.getStartDate());
             affiliate.setStatus(Affiliate.Status.ACTIVE);
             affiliate = affiliateRepository.save(affiliate);
 
-            // Crear la cuenta pensional inicial obligatoria (MODERATE por defecto)
+            // Crear la cuenta pensional tomando el tipo enviado dinámicamente
             Account account = new Account();
             account.setAffiliate(affiliate);
-            account.setAccountType(Account.AccountType.MODERATE);
+            account.setAccountType(request.getPensionFundType());
             accountRepository.save(account);
         }
 
-        // 3. Crear siempre el nuevo contrato laboral
+        // 3. Crear siempre el nuevo contrato laboral (Aplica para ambos flujos)
         Contract contract = new Contract();
         contract.setId(UUID.randomUUID().toString());
         contract.setAffiliate(affiliate);
@@ -339,7 +345,8 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public EmployeeDetailResponse updateContractConditions(String employerId, String contractId,
             UpdateEmployeeContractRequest request) {
-        // TODO Auto-generated method stub
+        // Recuerda que en chats anteriores vimos que debes implementar este método
+        // mapeando el DTO hacia las propiedades del contrato y del service.
         throw new UnsupportedOperationException("Unimplemented method 'updateContractConditions'");
     }
 }

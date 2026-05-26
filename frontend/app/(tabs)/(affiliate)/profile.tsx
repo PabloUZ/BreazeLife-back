@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   ActivityIndicator,
-  ScrollView,
+  Alert,
   RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import AffiliateScreenContainer from "@/src/components/layout/AffiliateScreenContainer";
 import ProfileCard from "@/src/components/profile/ProfileCard";
-import { getAffiliateProfile } from "@/src/services/api/affiliateService";
-import type { AffiliateProfileDto } from "@/src/dtos/affiliate/affiliate.dtos";
+import type {
+  AffiliateProfileDto,
+  UpdateAffiliateProfileDto,
+} from "@/src/dtos/affiliate/affiliate.dtos";
+import {
+  getAffiliateProfile,
+  updateAffiliateProfile,
+} from "@/src/services/api/affiliateService";
+import { spacing } from "@/src/theme";
 import { formatCurrency } from "@/src/utils/formatters";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -23,6 +34,12 @@ const STATUS_LABELS: Record<string, string> = {
   SUSPENDED: "Suspendido",
   INACTIVE: "Inactivo",
 };
+
+const ACCOUNT_TYPES = [
+  { value: "CONSERVATIVE", label: "Conservador" },
+  { value: "MODERATE", label: "Moderado" },
+  { value: "RISKY", label: "Arriesgado" },
+] as const;
 
 function formatLocalDate(isoDate: string): string {
   try {
@@ -52,21 +69,50 @@ function Divider() {
   return <View style={styles.divider} />;
 }
 
+type EditForm = {
+  email: string;
+  phone: string;
+  account_type: string;
+  current_password: string;
+  new_password: string;
+};
+
 export default function AffiliateProfileScreen() {
   const [profile, setProfile] = useState<AffiliateProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<EditForm>({
+    email: "",
+    phone: "",
+    account_type: "MODERATE",
+    current_password: "",
+    new_password: "",
+  });
 
   async function load(isRefresh = false) {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     setError(null);
+
     try {
       const data = await getAffiliateProfile();
       setProfile(data);
+      setForm({
+        email: data.email,
+        phone: data.phone,
+        account_type: data.account?.accountType ?? "MODERATE",
+        current_password: "",
+        new_password: "",
+      });
     } catch {
-      setError("No se pudo cargar el perfil. Verifica tu conexión.");
+      setError("No se pudo cargar el perfil. Verifica tu conexion.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,87 +123,282 @@ export default function AffiliateProfileScreen() {
     load();
   }, []);
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => load(true)}
-          tintColor="#369BC9"
-        />
+  function handleCancel() {
+    if (!profile) {
+      return;
+    }
+
+    setForm({
+      email: profile.email,
+      phone: profile.phone,
+      account_type: profile.account?.accountType ?? "MODERATE",
+      current_password: "",
+      new_password: "",
+    });
+    setEditing(false);
+  }
+
+  async function handleSave() {
+    if (!profile) {
+      return;
+    }
+
+    const body: UpdateAffiliateProfileDto = {};
+
+    if (form.email !== profile.email) {
+      body.email = form.email;
+    }
+
+    if (form.phone !== profile.phone) {
+      body.phone = form.phone;
+    }
+
+    if (form.account_type !== profile.account?.accountType) {
+      body.account_type = form.account_type;
+    }
+
+    if (form.new_password) {
+      if (!form.current_password) {
+        Alert.alert("Error", "Ingresa tu contrasena actual para poder cambiarla.");
+        return;
       }
-    >
-      {/* Tarjeta básica del usuario (nombre, rol, logout) */}
-      <ProfileCard />
 
-      {/* Datos de afiliado desde el backend */}
-      {loading && !profile ? (
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="small" color="#369BC9" />
-        </View>
-      ) : error ? (
-        <View style={styles.card}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : profile ? (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Datos de afiliación</Text>
-            <InfoRow label="Documento" value={profile.document} />
-            <Divider />
-            <InfoRow
-              label="Estado"
-              value={STATUS_LABELS[profile.status] ?? profile.status}
+      body.current_password = form.current_password;
+      body.new_password = form.new_password;
+    }
+
+    if (Object.keys(body).length === 0) {
+      setEditing(false);
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await updateAffiliateProfile(body);
+      Alert.alert("Exito", "Perfil actualizado correctamente.");
+      setEditing(false);
+      await load();
+    } catch {
+      Alert.alert("Error", "No se pudo actualizar el perfil. Intenta de nuevo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <AffiliateScreenContainer>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          !editing ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(true)}
+              tintColor="#369BC9"
             />
-            <Divider />
-            <InfoRow
-              label="Fecha de nacimiento"
-              value={formatLocalDate(profile.birth_date)}
-            />
-            <Divider />
-            <InfoRow
-              label="Fecha de afiliación"
-              value={formatLocalDate(profile.affiliation_date)}
-            />
-            <Divider />
-            <InfoRow label="Teléfono" value={profile.phone} />
+          ) : undefined
+        }
+      >
+        <ProfileCard />
+
+        {loading && !profile ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#369BC9" />
           </View>
-
-          {profile.account && (
+        ) : error ? (
+          <View style={styles.card}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : profile ? (
+          <>
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Cuenta pensional</Text>
-              <InfoRow label="ID de cuenta" value={profile.account.account_id} />
+              <Text style={styles.sectionTitle}>Datos de afiliacion</Text>
+              <InfoRow label="Documento" value={profile.document} />
+              <Divider />
+              <InfoRow label="Estado" value={STATUS_LABELS[profile.status] ?? profile.status} />
               <Divider />
               <InfoRow
-                label="Tipo de fondo"
-                value={
-                  ACCOUNT_TYPE_LABELS[profile.account.account_type] ??
-                  profile.account.account_type
-                }
+                label="Fecha de nacimiento"
+                value={formatLocalDate(profile.birthDate)}
               />
               <Divider />
               <InfoRow
-                label="Saldo acumulado"
-                value={formatCurrency(profile.account.balance)}
+                label="Fecha de afiliacion"
+                value={formatLocalDate(profile.affiliationDate)}
               />
               <Divider />
-              <InfoRow
-                label="Días cotizados"
-                value={`${profile.account.quoted_days} días`}
-              />
+              <InfoRow label="Telefono" value={profile.phone} />
             </View>
-          )}
-        </>
-      ) : null}
-    </ScrollView>
+
+            {profile.account ? (
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Cuenta pensional</Text>
+                <InfoRow label="ID de cuenta" value={profile.account.accountId} />
+                <Divider />
+                <InfoRow
+                  label="Tipo de fondo"
+                  value={
+                    ACCOUNT_TYPE_LABELS[profile.account.accountType] ??
+                    profile.account.accountType
+                  }
+                />
+                <Divider />
+                <InfoRow
+                  label="Saldo acumulado"
+                  value={formatCurrency(profile.account.balance)}
+                />
+                <Divider />
+                <InfoRow
+                  label="Dias cotizados"
+                  value={`${profile.account.quotedDays} dias`}
+                />
+              </View>
+            ) : null}
+
+            {!editing ? (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => setEditing(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.editButtonText}>Editar perfil</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Datos editables</Text>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Correo electronico</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.email}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, email: value }))
+                      }
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      placeholder="correo@ejemplo.com"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Telefono</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.phone}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, phone: value }))
+                      }
+                      keyboardType="phone-pad"
+                      placeholder="3001234567"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Tipo de fondo pensional</Text>
+                    <View style={styles.chipRow}>
+                      {ACCOUNT_TYPES.map((type) => (
+                        <TouchableOpacity
+                          key={type.value}
+                          style={[
+                            styles.chip,
+                            form.account_type === type.value && styles.chipActive,
+                          ]}
+                          onPress={() =>
+                            setForm((current) => ({ ...current, account_type: type.value }))
+                          }
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              form.account_type === type.value && styles.chipTextActive,
+                            ]}
+                          >
+                            {type.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.card}>
+                  <Text style={styles.sectionTitle}>Cambiar contrasena</Text>
+                  <Text style={styles.sectionHint}>
+                    Deja en blanco si no deseas cambiarla.
+                  </Text>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Contrasena actual</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.current_password}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, current_password: value }))
+                      }
+                      secureTextEntry
+                      placeholder="********"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.fieldLabel}>Nueva contrasena</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={form.new_password}
+                      onChangeText={(value) =>
+                        setForm((current) => ({ ...current, new_password: value }))
+                      }
+                      secureTextEntry
+                      placeholder="Minimo 8 caracteres"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancel}
+                    disabled={saving}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                    onPress={handleSave}
+                    disabled={saving}
+                    activeOpacity={0.8}
+                  >
+                    {saving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </>
+        ) : null}
+      </ScrollView>
+    </AffiliateScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F9FAFB" },
-  content: { paddingBottom: 32 },
+  content: {
+    flexGrow: 1,
+    paddingBottom: spacing.xxxl,
+  },
   loadingBox: { padding: 24, alignItems: "center" },
   card: {
     backgroundColor: "#FFFFFF",
@@ -180,6 +421,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E5E7EB",
   },
+  sectionHint: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
   infoRow: {
     paddingHorizontal: 20,
     paddingVertical: 14,
@@ -201,10 +449,58 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E7EB",
     marginHorizontal: 20,
   },
-  errorText: {
-    color: "#DC2626",
-    textAlign: "center",
-    padding: 20,
+  fieldGroup: { paddingHorizontal: 20, paddingVertical: 10 },
+  fieldLabel: { fontSize: 13, color: "#6B7280", fontWeight: "500", marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
   },
+  chipRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+  },
+  chipActive: { backgroundColor: "#369BC9", borderColor: "#369BC9" },
+  chipText: { fontSize: 13, color: "#6B7280", fontWeight: "500" },
+  chipTextActive: { color: "#FFFFFF" },
+  editButton: {
+    backgroundColor: "#369BC9",
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  editButtonText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  actionRow: { flexDirection: "row", gap: 12, marginHorizontal: 16, marginTop: 16 },
+  cancelButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  cancelButtonText: { fontSize: 16, fontWeight: "600", color: "#6B7280" },
+  saveButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    backgroundColor: "#369BC9",
+  },
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  errorText: { color: "#DC2626", textAlign: "center", padding: 20, fontSize: 14 },
 });

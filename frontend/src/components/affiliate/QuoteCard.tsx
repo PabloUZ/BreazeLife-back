@@ -1,75 +1,148 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
+import AppStatusBadge from "@/src/components/common/AppStatusBadge";
 import type { QuoteResponseDto } from "@/src/dtos/affiliate/affiliate.dtos";
-export const QuoteCard = ({ quote }: { quote: QuoteResponseDto }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount || 0);
-  };
+import { colors, spacing, typography } from "@/src/theme";
+import { useSystemConfigContext, formatContributionRate } from "@/src/context/SystemConfigContext";
 
-  // Configuración visual según el estado
-  const getStatusStyle = () => {
-    switch (quote.status) {
-      case 'ACCEPTED': return { bg: '#dcfce3', text: '#166534', label: 'APROBADA' };
-      case 'PENDING': return { bg: '#fef08a', text: '#854d0e', label: 'PENDIENTE' };
-      case 'REJECTED': return { bg: '#fee2e2', text: '#991b1b', label: 'RECHAZADA' };
-      default: return { bg: '#e2e8f0', text: '#475569', label: quote.status };
-    }
-  };
-  const statusStyle = getStatusStyle();
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  }).format(amount || 0);
+}
+
+function getStatusTone(status: string) {
+  switch (status) {
+    case "ACCEPTED":
+      return { label: "Aprobada", tone: "success" as const };
+    case "PENDING":
+      return { label: "Pendiente", tone: "warning" as const };
+    case "REJECTED":
+      return { label: "Rechazada", tone: "danger" as const };
+    default:
+      return { label: status, tone: "neutral" as const };
+  }
+}
+
+export function QuoteCard({ quote }: { quote: QuoteResponseDto }) {
+  const status = getStatusTone(quote.status);
+  const { config } = useSystemConfigContext();
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.dateText}>
-          Fecha: {new Date(quote.contribDate).toLocaleDateString('es-ES')}
-        </Text>
-        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-          <Text style={[styles.statusText, { color: statusStyle.text }]}>{statusStyle.label}</Text>
+    <AppCard style={styles.card}>
+      <View style={styles.header}>
+        <View style={styles.headerCopy}>
+          <Text style={styles.dateText}>
+            {new Date(quote.contribDate).toLocaleDateString("es-CO")}
+          </Text>
+          <Text style={styles.idText} numberOfLines={1} ellipsizeMode="tail">
+            Ref: {quote.quoteId}
+          </Text>
         </View>
+        <AppStatusBadge label={status.label} tone={status.tone} />
       </View>
 
-      <Text style={styles.idText}>Ref: {quote.quoteId}</Text>
       <View style={styles.divider} />
 
       <View style={styles.row}>
-        <Text style={styles.label}>Días Cotizados:</Text>
-        <Text style={styles.valueText}>{quote.daysContributed} días</Text>
+        <Text style={styles.label}>Dias cotizados</Text>
+        <Text style={styles.valueText}>{quote.daysContributed} dias</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Tu Aporte:</Text>
+        <Text style={styles.label}>Tu aporte</Text>
         <Text style={styles.valueText}>{formatCurrency(quote.affiliateContrib)}</Text>
       </View>
       <View style={styles.row}>
-        <Text style={styles.label}>Aporte Empresa:</Text>
+        <Text style={styles.label}>Aporte empresa</Text>
         <Text style={styles.valueText}>{formatCurrency(quote.employerContrib)}</Text>
       </View>
 
       <View style={styles.totalBox}>
-        <Text style={styles.totalLabel}>Total Cotizado (16%)</Text>
+        <Text style={styles.totalLabel}>
+          Total cotizado ({formatContributionRate(config.contribution_rate)})
+        </Text>
         <Text style={styles.totalValue}>{formatCurrency(quote.totalContrib)}</Text>
       </View>
 
-      {/* Si fue rechazada y tiene comentario, lo mostramos */}
-      {quote.status === 'REJECTED' && quote.comment && (
+      {quote.status === "REJECTED" && quote.comment ? (
         <Text style={styles.errorText}>Motivo: {quote.comment}</Text>
-      )}
-    </View>
+      ) : null}
+    </AppCard>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#ffffff", borderRadius: 12, padding: 16, marginBottom: 16, elevation: 2, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  dateText: { fontWeight: "bold", color: "#1e293b" },
-  idText: { color: "#94a3b8", fontSize: 11, marginBottom: 8 },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 10, fontWeight: "bold" },
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
-  label: { color: "#64748b" },
-  valueText: { fontWeight: "600", color: "#334155" },
-  divider: { height: 1, backgroundColor: "#f1f5f9", marginVertical: 12 },
-  totalBox: { backgroundColor: "#f8fafc", padding: 12, borderRadius: 8, flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 },
-  totalLabel: { fontWeight: "bold", color: "#475569" },
-  totalValue: { fontWeight: "bold", color: "#2563eb", fontSize: 16 },
-  errorText: { color: "#dc2626", fontSize: 12, marginTop: 10, fontStyle: "italic" }
+  card: {
+    marginBottom: spacing.md,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  dateText: {
+    ...typography.bodyStrong,
+    color: colors.text,
+  },
+  idText: {
+    ...typography.caption,
+    color: colors.textSubtle,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  label: {
+    ...typography.body,
+    color: colors.textMuted,
+    flex: 1,
+  },
+  valueText: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  totalBox: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 12,
+    padding: spacing.md,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  totalLabel: {
+    ...typography.bodyStrong,
+    color: colors.neutralText,
+    flex: 1,
+  },
+  totalValue: {
+    ...typography.cardTitle,
+    color: colors.primary,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.dangerText,
+    marginTop: spacing.sm,
+  },
 });
