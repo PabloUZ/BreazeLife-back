@@ -20,4 +20,6 @@ public interface ContractRepository extends JpaRepository<Contract, String> {
     Optional<Contract> findByIdAndEmployerUserId(String id, String employerUserId);
 
     List<Contract> findByEmployerUserIdAndAffiliateStatus(String employerUserId, Affiliate.Status status);
+
+    java.util.Optional<Contract> findFirstByAffiliateUserId(String affiliateUserId);
 }

@@ -54,4 +54,10 @@ public class Fund {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     public void deductFunds(BigDecimal amount) {this.balance = this.balance.subtract(amount);}
+
+    @PrePersist
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

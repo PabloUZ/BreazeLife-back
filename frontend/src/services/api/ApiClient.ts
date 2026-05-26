@@ -8,9 +8,10 @@ export type ApiRequestConfig = {
 };
 
 export class ApiClient {
-  async request<TResponse>(_config: ApiRequestConfig): Promise<TResponse> {
-    // TODO: Implement API integration, interceptors and auth headers.
-    throw new Error("ApiClient.request is a placeholder.");
+  async request<TResponse>(config: ApiRequestConfig): Promise<TResponse> {
+    throw new Error(
+      `ApiClient.request: usa los servicios (employeeService, authService, etc.) en lugar de ApiClient directamente. Endpoint: ${config.endpoint}`
+    );
   }
 }
 

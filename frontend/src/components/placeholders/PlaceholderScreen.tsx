@@ -1,9 +1,12 @@
 import type { PropsWithChildren } from "react";
-import { StyleSheet, Text } from "react-native";
-
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import AppCard from "@/src/components/common/AppCard";
+import AppHeader from "@/src/components/common/AppHeader";
 import ScreenContainer from "@/src/components/layout/ScreenContainer";
+import { spacing } from "@/src/theme";
 
 type PlaceholderScreenProps = PropsWithChildren<{
+  contentStyle?: StyleProp<ViewStyle>;
   title: string;
   subtitle: string;
 }>;
@@ -12,23 +15,22 @@ export default function PlaceholderScreen({
   title,
   subtitle,
   children,
+  contentStyle,
 }: PlaceholderScreenProps) {
   return (
-    <ScreenContainer>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {children}
+    <ScreenContainer contentStyle={contentStyle}>
+      <AppHeader title={title} subtitle={subtitle} />
+      <AppCard variant="muted">
+        <View style={styles.content}>
+          {children}
+        </View>
+      </AppCard>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#4B5563",
+  content: {
+    gap: spacing.sm,
   },
 });

@@ -2,12 +2,15 @@ package com.highdev.breazelife.modules.admin.service;
 
 import com.highdev.breazelife.modules.account.repository.AccountRepository;
 import com.highdev.breazelife.modules.account.entity.Account;
+import com.highdev.breazelife.modules.admin.dto.response.AdminAlertItemDTO;
+import com.highdev.breazelife.modules.admin.dto.response.AdminDashboardAlertsResponseDTO;
 import com.highdev.breazelife.modules.admin.dto.response.AdminDashboardGraphsResponseDTO;
 import com.highdev.breazelife.modules.admin.dto.response.AffiliateFundTypeGraphDTO;
 import com.highdev.breazelife.modules.admin.dto.response.AdminDashboardSummaryResponseDTO;
 import com.highdev.breazelife.modules.admin.dto.response.FundDistributionGraphDTO;
 import com.highdev.breazelife.modules.admin.dto.response.MonthlyContributionGraphDTO;
 import com.highdev.breazelife.modules.admin.dto.response.QuoteStatusGraphDTO;
+import com.highdev.breazelife.modules.admin.exceptions.AdminDashboardAlertsException;
 import com.highdev.breazelife.modules.admin.exceptions.AdminDashboardGraphsException;
 import com.highdev.breazelife.modules.admin.exceptions.AdminDashboardSummaryException;
 import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
@@ -16,6 +19,7 @@ import com.highdev.breazelife.modules.employer.entity.Employer;
 import com.highdev.breazelife.modules.employer.repository.EmployerRepository;
 import com.highdev.breazelife.modules.fund.enums.FundType;
 import com.highdev.breazelife.modules.fund.repository.FundRepository;
+import com.highdev.breazelife.modules.notification.service.NotificationService;
 import com.highdev.breazelife.modules.quote.entity.Quote;
 import com.highdev.breazelife.modules.quote.repository.QuoteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +49,9 @@ public class AdminDashboardService {
 
     @Autowired
     private FundRepository fundRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public AdminDashboardSummaryResponseDTO getSummary() {
         try {
@@ -78,6 +85,44 @@ public class AdminDashboardService {
             );
         } catch (Exception ex) {
             throw new AdminDashboardGraphsException(ex);
+        }
+    }
+
+    public AdminDashboardAlertsResponseDTO getAlerts(String adminUserId) {
+        try {
+            List<AdminAlertItemDTO> alerts = new ArrayList<>();
+
+            long pendingQuotes = quoteRepository.countByStatus(Quote.QuoteStatus.PENDING);
+            addAlertIfAny(
+                    alerts,
+                    "PENDING_QUOTES",
+                    "WARNING",
+                    pendingQuotes,
+                    "There are %d pension quotes pending review."
+            );
+
+            long unreadNotifications = notificationService.countUnreadNotifications(adminUserId);
+            addAlertIfAny(
+                    alerts,
+                    "UNREAD_NOTIFICATIONS",
+                    "INFO",
+                    unreadNotifications,
+                    "You have %d unread notifications."
+            );
+
+            long suspendedAccounts = affiliateRepository.countByStatus(Affiliate.Status.SUSPENDED)
+                    + employerRepository.countByStatus(Employer.Status.SUSPENDED);
+            addAlertIfAny(
+                    alerts,
+                    "SUSPENDED_ACCOUNTS",
+                    "WARNING",
+                    suspendedAccounts,
+                    "There are %d suspended accounts."
+            );
+
+            return new AdminDashboardAlertsResponseDTO(alerts);
+        } catch (Exception ex) {
+            throw new AdminDashboardAlertsException(ex);
         }
     }
 
@@ -152,5 +197,17 @@ public class AdminDashboardService {
 
     private Long defaultZero(Long value) {
         return value != null ? value : 0L;
+    }
+
+    private void addAlertIfAny(
+            List<AdminAlertItemDTO> alerts,
+            String type,
+            String severity,
+            long count,
+            String messageTemplate
+    ) {
+        if (count > 0) {
+            alerts.add(new AdminAlertItemDTO(type, severity, messageTemplate.formatted(count), count));
+        }
     }
 }

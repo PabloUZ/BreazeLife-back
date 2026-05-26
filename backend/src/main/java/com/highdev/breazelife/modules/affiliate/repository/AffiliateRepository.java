@@ -4,6 +4,8 @@ import com.highdev.breazelife.modules.affiliate.entity.Affiliate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,5 +18,8 @@ public interface AffiliateRepository extends JpaRepository<Affiliate, String> {
     boolean existsByPhoneNumber(String phoneNumber);
 
     long countByStatus(Affiliate.Status status);
-    
+
+    List<Affiliate> findByAffiliationDateBetweenOrderByAffiliationDateAsc(LocalDate from, LocalDate to);
+
+    List<Affiliate> findAllByOrderByAffiliationDateAsc();
 }
